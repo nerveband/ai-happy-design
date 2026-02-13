@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>/* STYLES */</style>
+</head>
+<body>
+  <div id="app">
+    <div class="header">
+      <h1>AI Happy Design</h1>
+      <div class="status" id="status">Disconnected</div>
+    </div>
+    <div class="channel-display">
+      <span class="channel-key" id="channel-key">---</span>
+      <button id="copy-btn" title="Copy channel key">Copy</button>
+    </div>
+    <div class="connection">
+      <input type="text" id="port-input" value="3055" placeholder="Port">
+      <button id="connect-btn">Connect</button>
+    </div>
+    <div class="progress-container" id="progress-container" style="display:none">
+      <div class="progress-bar-track">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <span class="progress-text" id="progress-text">0%</span>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value" id="stat-commands">0</div>
+        <div class="stat-label">Commands</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="stat-errors">0</div>
+        <div class="stat-label">Errors</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="stat-uptime">0s</div>
+        <div class="stat-label">Uptime</div>
+      </div>
+    </div>
+    <div class="log" id="log"></div>
+  </div>
+  <script>/* SCRIPT */</script>
+</body>
+</html>

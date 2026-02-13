@@ -1,0 +1,14 @@
+{
+  "name": "AI Happy Design",
+  "id": "ai-happy-design-v2",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "capabilities": [],
+  "enableProposedApi": true,
+  "editorType": ["figma", "figjam"],
+  "networkAccess": {
+    "allowedDomains": ["none"],
+    "devAllowedDomains": ["http://localhost:*", "ws://localhost:*"]
+  }
+}
