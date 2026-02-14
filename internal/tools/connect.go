@@ -6,8 +6,8 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/nerveband/ai-happy-design-v2/internal/figma"
-	"github.com/nerveband/ai-happy-design-v2/internal/ws"
+	"github.com/nerveband/ai-happy-design/internal/figma"
+	"github.com/nerveband/ai-happy-design/internal/ws"
 )
 
 // RegisterConnectTool registers the "connect" tool for managing plugin connections.

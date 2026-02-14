@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"sync"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
 // Message is the envelope for all WebSocket messages.
@@ -18,26 +19,30 @@ type Message struct {
 	Type    string          `json:"type"`
 	Channel string          `json:"channel,omitempty"`
 	Command string          `json:"command,omitempty"`
+	Domain  string          `json:"domain,omitempty"`
+	Action  string          `json:"action,omitempty"`
 	Params  json.RawMessage `json:"params,omitempty"`
 	Result  json.RawMessage `json:"result,omitempty"`
 	Error   string          `json:"error,omitempty"`
+	Message json.RawMessage `json:"message,omitempty"`
 }
 
 // Conn wraps a WebSocket connection with metadata.
 type Conn struct {
-	ws       *websocket.Conn
-	id       string
-	channel  string
-	sendCh   chan []byte
-	mu       sync.Mutex
+	ws      *websocket.Conn
+	id      string
+	channel string
+	sendCh  chan []byte
+	mu      sync.Mutex
 }
 
 // Server is the WebSocket relay server.
 type Server struct {
-	port     int
-	channels map[string]map[string]*Conn // channel -> connID -> Conn
-	mu       sync.RWMutex
-	upgrader websocket.Upgrader
+	port             int
+	channels         map[string]map[string]*Conn // channel -> connID -> Conn
+	preferredChannel string
+	mu               sync.RWMutex
+	upgrader         websocket.Upgrader
 
 	// Pending commands: requestID -> response channel
 	pending   map[string]chan *Message
@@ -72,6 +77,11 @@ func (s *Server) Start() error {
 func (s *Server) SendCommand(channel, command string, params map[string]interface{}) (json.RawMessage, error) {
 	id := uuid.New().String()
 
+	domain, action, err := resolveCommandRoute(command, params)
+	if err != nil {
+		return nil, err
+	}
+
 	paramsJSON, err := json.Marshal(params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal params: %w", err)
@@ -82,6 +92,8 @@ func (s *Server) SendCommand(channel, command string, params map[string]interfac
 		Type:    "command",
 		Channel: channel,
 		Command: command,
+		Domain:  domain,
+		Action:  action,
 		Params:  paramsJSON,
 	}
 
@@ -114,18 +126,21 @@ func (s *Server) SendCommand(channel, command string, params map[string]interfac
 	}
 }
 
-// GetChannelKey returns the first active channel key, or generates a new one
-// if no channels exist. This is used by the MCP server to find the current
-// plugin connection.
+// GetChannelKey returns the preferred active channel key, or a deterministic
+// active fallback if no preferred channel is currently connected.
 func (s *Server) GetChannelKey() string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	for ch := range s.channels {
-		if len(s.channels[ch]) > 0 {
-			return ch
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.preferredChannel != "" {
+		if conns, ok := s.channels[s.preferredChannel]; ok && len(conns) > 0 {
+			return s.preferredChannel
 		}
 	}
-	return ""
+
+	next := firstActiveChannelLocked(s.channels)
+	s.preferredChannel = next
+	return next
 }
 
 // HasChannel returns true if the named channel has at least one connection.
@@ -233,16 +248,30 @@ func (s *Server) writePump(conn *Conn) {
 // routeMessage handles incoming messages based on their type.
 func (s *Server) routeMessage(conn *Conn, msg *Message, raw []byte) {
 	switch msg.Type {
+	case "ping":
+		pong, _ := json.Marshal(Message{Type: "pong"})
+		conn.sendCh <- pong
+
 	case "join":
 		s.handleJoin(conn, msg)
 
-	case "response", "error":
-		// Route to pending command
-		s.pendingMu.Lock()
-		ch, ok := s.pending[msg.ID]
-		s.pendingMu.Unlock()
+	case "response", "result", "error":
+		if !s.routePendingResponse(msg) && conn.channel != "" {
+			// Keep CLI clients working by forwarding unmatched responses.
+			s.broadcast(conn.channel, raw, conn.id)
+		}
+
+	case "message":
+		inner, ok := extractWrappedResponse(msg)
 		if ok {
-			ch <- msg
+			if !s.routePendingResponse(inner) && conn.channel != "" {
+				// Broadcast wrapped envelope for WebSocket clients waiting on this ID.
+				s.broadcast(conn.channel, raw, conn.id)
+			}
+			return
+		}
+		if conn.channel != "" {
+			s.broadcast(conn.channel, raw, conn.id)
 		}
 
 	case "progress_update":
@@ -255,6 +284,58 @@ func (s *Server) routeMessage(conn *Conn, msg *Message, raw []byte) {
 			s.broadcast(conn.channel, raw, conn.id)
 		}
 	}
+}
+
+func (s *Server) routePendingResponse(msg *Message) bool {
+	if msg.ID == "" {
+		return false
+	}
+
+	s.pendingMu.Lock()
+	ch, ok := s.pending[msg.ID]
+	s.pendingMu.Unlock()
+	if ok {
+		ch <- msg
+		return true
+	}
+	return false
+}
+
+func extractWrappedResponse(msg *Message) (*Message, bool) {
+	if len(msg.Message) == 0 {
+		return nil, false
+	}
+
+	// Presence checks (instead of truthiness) prevent falsey result values from timing out.
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal(msg.Message, &payload); err != nil {
+		return nil, false
+	}
+
+	idRaw, hasID := payload["id"]
+	_, hasResult := payload["result"]
+	_, hasError := payload["error"]
+	if !hasID || (!hasResult && !hasError) {
+		return nil, false
+	}
+
+	var id string
+	if err := json.Unmarshal(idRaw, &id); err != nil || id == "" {
+		return nil, false
+	}
+
+	out := &Message{ID: id}
+	if hasResult {
+		out.Type = "response"
+		out.Result = payload["result"]
+	}
+	if hasError {
+		out.Type = "error"
+		var errText string
+		_ = json.Unmarshal(payload["error"], &errText)
+		out.Error = errText
+	}
+	return out, true
 }
 
 // handleJoin adds a connection to a channel.
@@ -271,6 +352,9 @@ func (s *Server) handleJoin(conn *Conn, msg *Message) {
 		s.channels[channel] = make(map[string]*Conn)
 	}
 	s.channels[channel][conn.id] = conn
+	if s.preferredChannel == "" {
+		s.preferredChannel = channel
+	}
 	s.mu.Unlock()
 
 	log.Printf("[ws] %s joined channel %s", conn.id, channel)
@@ -316,11 +400,18 @@ func (s *Server) removeConn(conn *Conn) {
 			delete(s.channels, conn.channel)
 		}
 	}
+	if conn.channel == s.preferredChannel {
+		if conns, ok := s.channels[conn.channel]; !ok || len(conns) == 0 {
+			s.preferredChannel = firstActiveChannelLocked(s.channels)
+		}
+	}
 	log.Printf("[ws] %s left channel %s", conn.id, conn.channel)
 }
 
 // handleStatus returns basic server status as JSON.
 func (s *Server) handleStatus(w http.ResponseWriter, _ *http.Request) {
+	preferred := s.GetChannelKey()
+
 	s.mu.RLock()
 	channels := make(map[string]int)
 	for ch, conns := range s.channels {
@@ -330,7 +421,22 @@ func (s *Server) handleStatus(w http.ResponseWriter, _ *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":   "ok",
-		"channels": channels,
+		"status":           "ok",
+		"channels":         channels,
+		"preferredChannel": preferred,
 	})
+}
+
+func firstActiveChannelLocked(channels map[string]map[string]*Conn) string {
+	names := make([]string, 0, len(channels))
+	for ch, conns := range channels {
+		if len(conns) > 0 {
+			names = append(names, ch)
+		}
+	}
+	if len(names) == 0 {
+		return ""
+	}
+	sort.Strings(names)
+	return names[0]
 }

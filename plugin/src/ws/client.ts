@@ -6,24 +6,28 @@
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
 
 export interface WSClientOptions {
-  port: number;
+  relayUrl: string;
   channelKey: string;
   onMessage: (msg: any) => void;
   onStatusChange: (status: ConnectionStatus) => void;
-  onLog: (message: string, level?: 'info' | 'warn' | 'error') => void;
+  onLog: (message: string, level?: 'info' | 'warn' | 'error' | 'success') => void;
+  onConnectionError?: (code: number, reason: string) => void;
 }
 
 export class WSClient {
   private ws: WebSocket | null = null;
   private options: WSClientOptions;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 20;
+  // 0 = retry forever (turnkey startup if relay starts later).
+  private maxReconnectAttempts = 0;
+  private hasLoggedTroubleshooting = false;
   private baseDelay = 1000;
   private maxDelay = 30000;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private messageQueue: any[] = [];
   private intentionalClose = false;
   private pingInterval: ReturnType<typeof setInterval> | null = null;
+  private awaitingPong = false;
 
   constructor(options: WSClientOptions) {
     this.options = options;
@@ -36,10 +40,10 @@ export class WSClient {
 
     this.intentionalClose = false;
     this.options.onStatusChange('connecting');
-    this.options.onLog(`Connecting to ws://localhost:${this.options.port}...`);
+    this.options.onLog(`Connecting to ${this.options.relayUrl}...`);
 
     try {
-      this.ws = new WebSocket(`ws://localhost:${this.options.port}/ws`);
+      this.ws = new WebSocket(this.options.relayUrl);
     } catch (err: any) {
       this.options.onLog(`Failed to create WebSocket: ${err.message}`, 'error');
       this.scheduleReconnect();
@@ -68,6 +72,9 @@ export class WSClient {
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        if (data.type === 'pong') {
+          this.awaitingPong = false;
+        }
         this.options.onMessage(data);
       } catch (err: any) {
         this.options.onLog(`Invalid message: ${err.message}`, 'warn');
@@ -79,14 +86,38 @@ export class WSClient {
       if (this.intentionalClose) {
         this.options.onStatusChange('disconnected');
         this.options.onLog('Disconnected');
-      } else {
-        this.options.onLog(`Connection lost (code: ${event.code}). Reconnecting...`, 'warn');
-        this.scheduleReconnect();
+        return;
       }
+
+      // Actionable error messages based on close code
+      if (event.code === 1006) {
+        this.options.onLog('Relay not running or unreachable.', 'error');
+        this.options.onLog('Start it with: ai-happy-design relay start', 'warn');
+      } else if (event.code === 1008 || event.code === 1003) {
+        this.options.onLog('Relay rejected the connection (code ' + event.code + '). Check your channel key.', 'error');
+      } else {
+        this.options.onLog('Connection lost (code: ' + event.code + '). Reconnecting...', 'warn');
+      }
+
+      if (this.options.onConnectionError) {
+        this.options.onConnectionError(event.code, event.reason || '');
+      }
+
+      // Log troubleshooting steps on first failure only
+      if (!this.hasLoggedTroubleshooting) {
+        this.hasLoggedTroubleshooting = true;
+        this.options.onLog('--- Troubleshooting ---', 'info');
+        this.options.onLog('1. Run: ai-happy-design relay start', 'info');
+        this.options.onLog('2. Check: ai-happy-design relay status', 'info');
+        this.options.onLog('3. Verify the relay URL matches the port', 'info');
+        this.options.onLog('-----------------------', 'info');
+      }
+
+      this.scheduleReconnect();
     };
 
     this.ws.onerror = () => {
-      this.options.onLog('WebSocket error', 'error');
+      this.options.onLog('WebSocket error — is the relay running?', 'error');
     };
   }
 
@@ -135,7 +166,7 @@ export class WSClient {
   }
 
   private scheduleReconnect(): void {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+    if (this.maxReconnectAttempts > 0 && this.reconnectAttempts >= this.maxReconnectAttempts) {
       this.options.onStatusChange('disconnected');
       this.options.onLog('Max reconnect attempts reached. Please reconnect manually.', 'error');
       return;
@@ -150,7 +181,10 @@ export class WSClient {
       this.maxDelay
     );
 
-    this.options.onLog(`Reconnecting in ${(delay / 1000).toFixed(1)}s (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+    const attemptLabel = this.maxReconnectAttempts > 0
+      ? `${this.reconnectAttempts}/${this.maxReconnectAttempts}`
+      : `${this.reconnectAttempts}`;
+    this.options.onLog(`Reconnecting in ${(delay / 1000).toFixed(1)}s (attempt ${attemptLabel})...`);
 
     this.reconnectTimer = setTimeout(() => {
       this.connect();
@@ -167,7 +201,18 @@ export class WSClient {
 
   private startPing(): void {
     this.stopPing();
+    this.awaitingPong = false;
     this.pingInterval = setInterval(() => {
+      if (this.awaitingPong) {
+        // No pong received since last ping — connection is dead
+        this.options.onLog('No response from relay — connection lost', 'error');
+        this.awaitingPong = false;
+        if (this.ws) {
+          this.ws.close();
+        }
+        return;
+      }
+      this.awaitingPong = true;
       this.sendRaw({ type: 'ping' });
     }, 30000);
   }

@@ -1,0 +1,30 @@
+[
+  {
+    "name": "createCard",
+    "command": "shape.create_rectangle",
+    "params": {
+      "name": "Card",
+      "x": 40,
+      "y": 40,
+      "width": 220,
+      "height": 120,
+      "color": "#E2E8F0"
+    }
+  },
+  {
+    "name": "cardFill",
+    "command": "paint.set_solid",
+    "params": {
+      "nodeId": "${{steps.createCard.result.id}}",
+      "color": "#2563EB"
+    }
+  },
+  {
+    "name": "cardOpacity",
+    "command": "node.set_opacity",
+    "params": {
+      "nodeId": "${{steps.createCard.result.id}}",
+      "opacity": 0.92
+    }
+  }
+]

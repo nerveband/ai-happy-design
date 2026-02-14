@@ -8,7 +8,7 @@ const codeConfig = {
   entryPoints: ['src/main.ts'],
   bundle: true,
   outfile: 'dist/code.js',
-  target: 'es2020',
+  target: 'es6',
   format: 'iife',
   minify: !isWatch,
 };
@@ -18,7 +18,7 @@ const uiConfig = {
   entryPoints: ['src/ui/app.ts'],
   bundle: true,
   outfile: 'dist/ui.js',
-  target: 'es2020',
+  target: 'es6',
   format: 'iife',
   minify: !isWatch,
 };

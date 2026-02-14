@@ -1,45 +1,194 @@
-# AI Happy Design v2
+<p align="center">
+  <img src="resource/icon-64.png" alt="AI Happy Design" width="64" height="64">
+</p>
 
-A single Go binary that serves as both an MCP (Model Context Protocol) server for AI code editors and a CLI for direct Figma manipulation. Communicates with a Figma plugin through an embedded WebSocket relay.
+# AI Happy Design
 
-## Features
+**Give AI full control of your Figma canvas.**
 
-- **MCP Server** (stdio) for Claude Code, Cursor, Windsurf, and other AI editors
-- **WebSocket relay** for real-time communication with the Figma plugin
-- **CLI mode** for direct interaction with connected Figma sessions
-- **17 domain tools** covering paint, shape, text, layout, node, layer, component, style, variable, effect, boolean, page, document, export, bulk operations, self-documentation, and connection management
+A single Go binary that connects any MCP-compatible LLM (Claude, GPT, etc.) to Figma through a local WebSocket relay. Design, edit, and export — all from natural language or CLI commands.
+
+Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveband/ai-happy-design) | MIT License
+
+---
+
+## Architecture
+
+```
+AI / LLM              CLI
+   |                    |
+   v                    v
+[MCP Server] -----> [WebSocket Relay] <-----> [Figma Plugin]
+                    localhost:3055
+```
+
+One binary. Three modes: MCP server (for AI), CLI (for humans), relay (WebSocket bridge to Figma).
+
+## What's Included
+
+- **14 tool domains**: paint, shape, text, layout, node, layer, component, style, variable, effect, boolean, page, document, export
+- **Batch operations**: Chain 150+ commands in one payload with step interpolation (`${{steps.name.result.id}}`)
+- **Design intelligence**: Built-in design guide the LLM can call to learn typography, balance, visual hierarchy, and CSS-to-Figma translation
+- **Local only**: Everything on localhost. Nothing leaves your machine.
 
 ## Quick Start
 
+### 1. Install
+
+Download the latest binary from [GitHub Releases](https://github.com/nerveband/ai-happy-design/releases):
+
 ```bash
-# Build
-make build
+# macOS (Apple Silicon)
+curl -L https://github.com/nerveband/ai-happy-design/releases/latest/download/ai-happy-design_Darwin_arm64.tar.gz | tar xz
+sudo mv ai-happy-design /usr/local/bin/
 
-# Start MCP server (stdio + WebSocket relay)
-./bin/ai-happy-design mcp
+# macOS (Intel)
+curl -L https://github.com/nerveband/ai-happy-design/releases/latest/download/ai-happy-design_Darwin_x86_64.tar.gz | tar xz
+sudo mv ai-happy-design /usr/local/bin/
 
-# Start WebSocket relay only
-./bin/ai-happy-design ws
-
-# Connect to a plugin channel
-./bin/ai-happy-design connect happy-unicorn-42
+# Or build from source:
+make build-plugin   # Build Figma plugin (requires Node.js)
+make build          # Sync plugin + build Go binary
 ```
 
-## MCP Configuration
+### 2. Setup Plugin
 
-Add to your editor's MCP config:
+```bash
+ai-happy-design setup
+```
+
+This extracts the embedded Figma plugin and opens Finder to the manifest file.
+
+1. Figma desktop → **Plugins > Development > Import plugin from manifest**
+2. Select the revealed `manifest.json`
+3. Run: **Plugins > AI Happy Design**
+
+### 3. Start
+
+```bash
+# For AI/LLM usage (recommended):
+ai-happy-design mcp
+
+# For manual CLI testing:
+ai-happy-design ws
+```
+
+### 4. Verify
+
+```bash
+ai-happy-design tools --json       # List all tools
+ai-happy-design command document.get_info   # Test connection
+```
+
+### 5. Upgrade
+
+```bash
+ai-happy-design upgrade
+```
+
+The CLI checks for updates automatically (once per day) and shows a hint when a new version is available.
+
+## Connect Your AI
+
+Add to your MCP client config (Claude Desktop, Cursor, etc.):
 
 ```json
 {
   "mcpServers": {
     "ai-happy-design": {
-      "command": "/path/to/ai-happy-design",
+      "command": "ai-happy-design",
       "args": ["mcp"]
     }
   }
 }
 ```
 
+### First Prompt
+
+Tell the AI to discover tools first:
+
+> "Call describe(action='catalog') to see all available Figma design tools, then design an Instagram post about [topic]."
+
+### How the AI Learns to Design
+
+The binary teaches itself to the LLM through two discovery endpoints:
+
+| Command | What it returns |
+|---------|----------------|
+| `describe(action="catalog")` | Full tool catalog with examples, batch patterns, design playbook |
+| `describe(action="design_guide")` | Focused design guide: CSS-to-Figma mappings, visual hierarchy, balance rules, typography scales |
+
+The LLM calls these on demand to learn how to create professional Figma designs.
+
+## CLI Usage
+
+### Single command
+```bash
+ai-happy-design command paint.set_solid -p '{"nodeId":"1:2","color":"#2563EB"}'
+```
+
+### Batch operations
+```bash
+ai-happy-design batch -f payload.json
+# or inline:
+ai-happy-design batch -o '[{"name":"card","command":"node.create_frame","params":{"width":320,"height":200}}]'
+```
+
+### Relay management
+```bash
+ai-happy-design relay start      # Background start
+ai-happy-design relay status     # Check connection
+ai-happy-design relay logs       # View logs
+ai-happy-design relay stop       # Stop
+```
+
+### Channel resolution order
+1. Positional argument
+2. `--channel` flag
+3. `AHD_CHANNEL` env var
+4. Relay's active channel
+
+## Do's and Don'ts
+
+**Do:**
+- Call `describe(action="catalog")` before building commands
+- Use batch (`bulk.execute`) for multi-element designs (3+ elements)
+- Use auto-layout frames as containers, not rectangles
+- Export at scale=2 for crisp output
+- Name every element descriptively
+
+**Don't:**
+- Create cards as rectangles with floating text (use frames + auto-layout)
+- Leave default names like "Frame 47"
+- Use text below 16px on 1080px social media canvases
+- Mix padding/spacing values across sibling cards
+- Skip the balance check on sibling elements
+
+## Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| Plugin "Disconnected" | Start relay: `ai-happy-design mcp` |
+| Commands fail | Run `describe(action="catalog")` to rediscover tools |
+| Wrong port | Edit Relay URL in plugin UI |
+| Channel mismatch | Copy key from plugin, pass via `--channel` |
+| Plugin won't load | Run `ai-happy-design setup --force` to re-extract |
+
+## Prerequisites
+
+- Go 1.21+ (only for building from source)
+- Node.js 18+ (only for building from source)
+- Figma desktop app
+
+## Documentation
+
+See `docs/` for detailed guides:
+- [Getting Started](docs/getting-started.md)
+- [LLM Integration](docs/llm-integration.md)
+- [CLI Batch & Payloads](docs/cli-batch-and-payloads.md)
+- [Image Fill Contract](docs/image-fill-contract.md)
+- [Troubleshooting](docs/troubleshooting.md)
+
 ## License
 
-MIT License - see LICENSE file.
+MIT — see [LICENSE](LICENSE).

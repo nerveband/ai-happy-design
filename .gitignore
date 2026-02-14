@@ -1,7 +1,9 @@
 bin/
+/ai-happy-design
 *.exe
 .env
 .DS_Store
 node_modules/
 plugin/node_modules/
 plugin/dist/
+internal/plugin/files/

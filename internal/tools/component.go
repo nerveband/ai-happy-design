@@ -6,7 +6,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/nerveband/ai-happy-design-v2/internal/figma"
+	"github.com/nerveband/ai-happy-design/internal/figma"
 )
 
 // RegisterComponentTool registers the "component" tool for component and variant operations.

@@ -1,14 +1,51 @@
 {
   "name": "AI Happy Design",
-  "id": "ai-happy-design-v2",
+  "id": "ai-happy-design",
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/ui.html",
+  "documentAccess": "dynamic-page",
   "capabilities": [],
   "enableProposedApi": true,
   "editorType": ["figma", "figjam"],
   "networkAccess": {
-    "allowedDomains": ["none"],
-    "devAllowedDomains": ["http://localhost:*", "ws://localhost:*"]
+    "allowedDomains": [
+      "https://images.unsplash.com",
+      "https://picsum.photos",
+      "https://placehold.co",
+      "https://raw.githubusercontent.com"
+    ],
+    "devAllowedDomains": [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "http://localhost:8080",
+      "http://localhost:3055",
+      "http://localhost:3056",
+      "http://localhost:3057",
+      "http://localhost:3058",
+      "http://localhost:3059",
+      "http://localhost:3060",
+      "http://localhost:3061",
+      "http://localhost:3062",
+      "http://localhost:3063",
+      "http://localhost:3064",
+      "http://localhost:3065",
+      "https://localhost:3000",
+      "https://localhost:5173",
+      "https://localhost:8080",
+      "https://localhost:3055",
+      "https://localhost:3056",
+      "ws://localhost:3055",
+      "ws://localhost:3056",
+      "ws://localhost:3057",
+      "ws://localhost:3058",
+      "ws://localhost:3059",
+      "ws://localhost:3060",
+      "ws://localhost:3061",
+      "ws://localhost:3062",
+      "ws://localhost:3063",
+      "ws://localhost:3064",
+      "ws://localhost:3065"
+    ]
   }
 }

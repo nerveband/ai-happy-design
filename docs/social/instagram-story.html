@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>AI Happy Design - Instagram Story</title>
+<style>
+  /* ── Reset & Page ─────────────────────────────────── */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  /* ── Story Canvas ─────────────────────────────────── */
+  .story {
+    position: relative;
+    width: 1080px;
+    height: 1920px;
+    background: linear-gradient(175deg, #1A1A1A 0%, #0D0D0D 40%, #141410 70%, #1A1A1A 100%);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  /* ── Ambient Background Glows ─────────────────────── */
+  .story::before {
+    content: '';
+    position: absolute;
+    top: -200px;
+    left: -200px;
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(255,214,0,0.12) 0%, transparent 70%);
+    animation: ambientDrift 8s ease-in-out infinite alternate;
+  }
+  .story::after {
+    content: '';
+    position: absolute;
+    bottom: 100px;
+    right: -150px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(255,214,0,0.08) 0%, transparent 65%);
+    animation: ambientDrift 10s ease-in-out infinite alternate-reverse;
+  }
+
+  @keyframes ambientDrift {
+    0%   { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(40px, 30px) scale(1.1); }
+  }
+
+  /* ── 1. TOP: Geometric Pattern ────────────────────── */
+  .geo-zone {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 420px;
+    overflow: hidden;
+  }
+
+  .geo-shape {
+    position: absolute;
+    border: 2px solid rgba(255,214,0,0.25);
+    animation: floatGeo 6s ease-in-out infinite;
+  }
+  .geo-shape.filled {
+    border: none;
+  }
+
+  /* Individual geometric elements */
+  .geo-1 {
+    width: 180px; height: 180px;
+    top: 30px; left: 60px;
+    background: linear-gradient(135deg, rgba(255,214,0,0.15), transparent);
+    transform: rotate(15deg);
+    animation-delay: 0s;
+    animation-duration: 7s;
+  }
+  .geo-2 {
+    width: 120px; height: 120px;
+    top: 80px; right: 120px;
+    border-color: rgba(255,214,0,0.35);
+    border-radius: 50%;
+    animation-delay: -1s;
+    animation-duration: 5s;
+    box-shadow: 0 0 40px rgba(255,214,0,0.08);
+  }
+  .geo-3 {
+    width: 240px; height: 240px;
+    top: -60px; left: 380px;
+    border-color: rgba(255,214,0,0.12);
+    transform: rotate(45deg);
+    animation-delay: -2s;
+    animation-duration: 9s;
+  }
+  .geo-4 {
+    width: 80px; height: 80px;
+    top: 160px; left: 280px;
+    background: rgba(255,214,0,0.1);
+    border-radius: 16px;
+    transform: rotate(25deg);
+    animation-delay: -3s;
+    animation-duration: 6s;
+  }
+  .geo-5 {
+    width: 60px; height: 60px;
+    top: 50px; right: 300px;
+    background: linear-gradient(135deg, #FFD600, #FFB300);
+    border-radius: 12px;
+    transform: rotate(30deg);
+    animation-delay: -1.5s;
+    animation-duration: 8s;
+    box-shadow: 0 8px 32px rgba(255,214,0,0.3);
+  }
+  .geo-6 {
+    width: 160px; height: 160px;
+    top: 200px; right: 40px;
+    border-color: rgba(255,214,0,0.18);
+    transform: rotate(-20deg);
+    animation-delay: -4s;
+    animation-duration: 7s;
+  }
+  .geo-7 {
+    width: 100px; height: 100px;
+    top: 10px; left: 800px;
+    border-color: rgba(255,214,0,0.2);
+    border-radius: 50%;
+    animation-delay: -0.5s;
+    animation-duration: 6s;
+  }
+  .geo-8 {
+    width: 40px; height: 40px;
+    top: 300px; left: 150px;
+    background: rgba(255,214,0,0.2);
+    border-radius: 50%;
+    animation-delay: -2.5s;
+    animation-duration: 5s;
+    box-shadow: 0 0 20px rgba(255,214,0,0.15);
+  }
+  .geo-9 {
+    width: 200px; height: 3px;
+    top: 260px; left: 500px;
+    background: linear-gradient(90deg, transparent, rgba(255,214,0,0.2), transparent);
+    border: none;
+    animation-delay: -1s;
+    animation-duration: 4s;
+  }
+  .geo-10 {
+    width: 140px; height: 140px;
+    top: -20px; left: 700px;
+    border-color: rgba(255,214,0,0.1);
+    transform: rotate(60deg);
+    animation-delay: -3.5s;
+    animation-duration: 8s;
+  }
+
+  /* Diagonal accent line */
+  .geo-line {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 5%, rgba(255,214,0,0.3) 30%, rgba(255,214,0,0.5) 50%, rgba(255,214,0,0.3) 70%, transparent 95%);
+    animation: linePulse 3s ease-in-out infinite;
+  }
+
+  @keyframes floatGeo {
+    0%, 100% { transform: translateY(0) rotate(var(--rot, 15deg)); }
+    50%      { transform: translateY(-12px) rotate(var(--rot, 15deg)); }
+  }
+  @keyframes linePulse {
+    0%, 100% { opacity: 0.6; }
+    50%      { opacity: 1; }
+  }
+
+  /* ── 2. HERO: Title ───────────────────────────────── */
+  .hero {
+    position: absolute;
+    top: 400px;
+    width: 100%;
+    text-align: center;
+    padding: 0 60px;
+    animation: fadeSlideUp 1s ease-out 0.2s both;
+  }
+
+  .hero-title {
+    font-size: 96px;
+    font-weight: 900;
+    letter-spacing: -2px;
+    line-height: 1.05;
+    color: #FFFFFF;
+    text-shadow:
+      0 4px 0 rgba(0,0,0,0.4),
+      0 8px 20px rgba(0,0,0,0.5),
+      0 0 80px rgba(255,214,0,0.15);
+  }
+  .hero-title .yellow {
+    color: #FFD600;
+    text-shadow:
+      0 4px 0 rgba(180,150,0,0.5),
+      0 8px 20px rgba(0,0,0,0.4),
+      0 0 60px rgba(255,214,0,0.3);
+    animation: titleGlow 3s ease-in-out infinite;
+  }
+
+  @keyframes titleGlow {
+    0%, 100% { text-shadow: 0 4px 0 rgba(180,150,0,0.5), 0 8px 20px rgba(0,0,0,0.4), 0 0 60px rgba(255,214,0,0.3); }
+    50%      { text-shadow: 0 4px 0 rgba(180,150,0,0.5), 0 8px 20px rgba(0,0,0,0.4), 0 0 100px rgba(255,214,0,0.45); }
+  }
+
+  /* ── 3. TAGLINE: Pill Badge ───────────────────────── */
+  .tagline-wrap {
+    position: absolute;
+    top: 660px;
+    width: 100%;
+    text-align: center;
+    animation: fadeSlideUp 1s ease-out 0.5s both;
+  }
+
+  .tagline {
+    display: inline-block;
+    padding: 18px 52px;
+    background: linear-gradient(135deg, rgba(255,214,0,0.12) 0%, rgba(255,214,0,0.06) 100%);
+    border: 1.5px solid rgba(255,214,0,0.3);
+    border-radius: 60px;
+    font-size: 32px;
+    font-weight: 600;
+    color: #FFD600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    backdrop-filter: blur(8px);
+    box-shadow:
+      0 4px 30px rgba(255,214,0,0.08),
+      inset 0 1px 0 rgba(255,214,0,0.1);
+  }
+
+  /* ── 4. FEATURE CARDS ─────────────────────────────── */
+  .cards {
+    position: absolute;
+    top: 780px;
+    width: 100%;
+    padding: 0 70px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    padding: 30px 36px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 24px;
+    backdrop-filter: blur(12px);
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.3),
+      0 2px 8px rgba(0,0,0,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.05);
+    transition: transform 0.3s ease;
+  }
+
+  .card:nth-child(1) {
+    transform: rotate(-0.8deg);
+    animation: fadeSlideUp 0.8s ease-out 0.7s both;
+  }
+  .card:nth-child(2) {
+    transform: rotate(0.5deg);
+    animation: fadeSlideUp 0.8s ease-out 0.9s both;
+  }
+  .card:nth-child(3) {
+    transform: rotate(-0.4deg);
+    animation: fadeSlideUp 0.8s ease-out 1.1s both;
+  }
+  .card:nth-child(4) {
+    transform: rotate(0.7deg);
+    animation: fadeSlideUp 0.8s ease-out 1.3s both;
+  }
+
+  .card-icon {
+    flex-shrink: 0;
+    width: 72px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    background: linear-gradient(135deg, #FFD600, #FFB300);
+    border-radius: 18px;
+    box-shadow:
+      0 4px 16px rgba(255,214,0,0.25),
+      0 0 0 3px rgba(255,214,0,0.08);
+    animation: iconPulse 4s ease-in-out infinite;
+  }
+  .card:nth-child(2) .card-icon { animation-delay: -1s; }
+  .card:nth-child(3) .card-icon { animation-delay: -2s; }
+  .card:nth-child(4) .card-icon { animation-delay: -3s; }
+
+  @keyframes iconPulse {
+    0%, 100% { box-shadow: 0 4px 16px rgba(255,214,0,0.25), 0 0 0 3px rgba(255,214,0,0.08); }
+    50%      { box-shadow: 0 4px 24px rgba(255,214,0,0.35), 0 0 0 6px rgba(255,214,0,0.06); }
+  }
+
+  .card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .card-label {
+    font-size: 34px;
+    font-weight: 800;
+    color: #FFFFFF;
+    letter-spacing: -0.5px;
+  }
+  .card-sub {
+    font-size: 22px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.45);
+  }
+
+  /* Accent dot on each card */
+  .card::after {
+    content: '';
+    position: absolute;
+    top: 16px;
+    right: 24px;
+    width: 8px;
+    height: 8px;
+    background: #FFD600;
+    border-radius: 50%;
+    opacity: 0.5;
+    box-shadow: 0 0 8px rgba(255,214,0,0.4);
+  }
+
+  /* ── 5. TERMINAL MOCKUP ───────────────────────────── */
+  .terminal-wrap {
+    position: absolute;
+    top: 1300px;
+    width: 100%;
+    padding: 0 70px;
+    animation: fadeSlideUp 0.8s ease-out 1.5s both;
+  }
+
+  .terminal {
+    position: relative;
+    background: linear-gradient(180deg, #1E1E1E 0%, #171717 100%);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow:
+      0 20px 60px rgba(0,0,0,0.5),
+      0 4px 16px rgba(0,0,0,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 24px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .terminal-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+  }
+  .terminal-dot.red    { background: #FF5F56; box-shadow: 0 0 6px rgba(255,95,86,0.3); }
+  .terminal-dot.yellow { background: #FFBD2E; box-shadow: 0 0 6px rgba(255,189,46,0.3); }
+  .terminal-dot.green  { background: #27C93F; box-shadow: 0 0 6px rgba(39,201,63,0.3); }
+
+  .terminal-body {
+    padding: 28px 32px 32px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 26px;
+    line-height: 1.7;
+  }
+
+  .term-prompt {
+    color: rgba(255,255,255,0.4);
+  }
+  .term-cmd {
+    color: #FFD600;
+    font-weight: 600;
+  }
+  .term-success {
+    color: #27C93F;
+    font-weight: 500;
+  }
+  .term-text {
+    color: rgba(255,255,255,0.7);
+  }
+
+  /* Blinking cursor */
+  .term-cursor {
+    display: inline-block;
+    width: 14px;
+    height: 28px;
+    background: #FFD600;
+    vertical-align: text-bottom;
+    margin-left: 4px;
+    animation: cursorBlink 1.2s step-end infinite;
+  }
+  @keyframes cursorBlink {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0; }
+  }
+
+  /* ── 6. CTA: Open Source Badge ────────────────────── */
+  .cta {
+    position: absolute;
+    top: 1610px;
+    width: 100%;
+    text-align: center;
+    animation: fadeSlideUp 0.8s ease-out 1.7s both;
+  }
+
+  .oss-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 36px;
+    background: linear-gradient(135deg, #FFD600, #FFC200);
+    border-radius: 50px;
+    font-size: 26px;
+    font-weight: 800;
+    color: #1A1A1A;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    box-shadow:
+      0 6px 24px rgba(255,214,0,0.3),
+      0 2px 8px rgba(0,0,0,0.2);
+    margin-bottom: 20px;
+  }
+  .oss-badge .oss-dot {
+    width: 10px;
+    height: 10px;
+    background: #1A1A1A;
+    border-radius: 50%;
+  }
+
+  .cta-url {
+    display: block;
+    font-size: 26px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.5px;
+    margin-top: 16px;
+  }
+  .cta-url span {
+    color: rgba(255,214,0,0.7);
+    font-weight: 600;
+  }
+
+  /* ── 7. BOTTOM: Attribution ───────────────────────── */
+  .bottom {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    padding: 0 60px 60px;
+    animation: fadeSlideUp 0.8s ease-out 1.9s both;
+  }
+
+  .bottom-divider {
+    width: 120px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,214,0,0.3), transparent);
+    margin: 0 auto 28px;
+  }
+
+  .bottom-made {
+    font-size: 24px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 8px;
+  }
+  .bottom-name {
+    font-size: 30px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 6px;
+  }
+  .bottom-site {
+    font-size: 22px;
+    font-weight: 500;
+    color: rgba(255,214,0,0.5);
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Shared Animations ────────────────────────────── */
+  @keyframes fadeSlideUp {
+    0%   { opacity: 0; transform: translateY(30px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Grain Overlay for Premium Texture ────────────── */
+  .grain {
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 128px 128px;
+  }
+
+  /* ── Edge Vignette ────────────────────────────────── */
+  .vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%);
+  }
+
+  /* ── Floating Particles ───────────────────────────── */
+  .particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(255,214,0,0.4);
+    border-radius: 50%;
+    animation: particleFloat linear infinite;
+    pointer-events: none;
+  }
+  .particle:nth-child(1)  { left: 8%;   top: 20%;  animation-duration: 12s; animation-delay: 0s;   width: 3px; height: 3px; }
+  .particle:nth-child(2)  { left: 25%;  top: 45%;  animation-duration: 15s; animation-delay: -3s;  width: 5px; height: 5px; opacity: 0.3; }
+  .particle:nth-child(3)  { left: 72%;  top: 30%;  animation-duration: 10s; animation-delay: -6s;  width: 3px; height: 3px; }
+  .particle:nth-child(4)  { left: 90%;  top: 55%;  animation-duration: 14s; animation-delay: -2s;  width: 4px; height: 4px; opacity: 0.25; }
+  .particle:nth-child(5)  { left: 50%;  top: 75%;  animation-duration: 11s; animation-delay: -5s;  width: 3px; height: 3px; }
+  .particle:nth-child(6)  { left: 15%;  top: 85%;  animation-duration: 13s; animation-delay: -8s;  width: 4px; height: 4px; opacity: 0.35; }
+  .particle:nth-child(7)  { left: 65%;  top: 10%;  animation-duration: 16s; animation-delay: -1s;  width: 5px; height: 5px; opacity: 0.2; }
+  .particle:nth-child(8)  { left: 40%;  top: 60%;  animation-duration: 9s;  animation-delay: -4s;  width: 3px; height: 3px; }
+
+  @keyframes particleFloat {
+    0%   { transform: translateY(0) translateX(0); opacity: 0; }
+    10%  { opacity: 0.4; }
+    90%  { opacity: 0.4; }
+    100% { transform: translateY(-200px) translateX(30px); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="story">
+
+  <!-- Floating Particles -->
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+
+  <!-- 1. TOP: Geometric Pattern -->
+  <div class="geo-zone">
+    <div class="geo-shape geo-1"></div>
+    <div class="geo-shape geo-2"></div>
+    <div class="geo-shape geo-3"></div>
+    <div class="geo-shape geo-4 filled"></div>
+    <div class="geo-shape geo-5 filled"></div>
+    <div class="geo-shape geo-6"></div>
+    <div class="geo-shape geo-7"></div>
+    <div class="geo-shape geo-8 filled"></div>
+    <div class="geo-shape geo-9 filled"></div>
+    <div class="geo-shape geo-10"></div>
+    <div class="geo-line"></div>
+  </div>
+
+  <!-- 2. HERO: Title -->
+  <div class="hero">
+    <div class="hero-title">
+      <span class="yellow">AI</span> Happy<br>Design
+    </div>
+  </div>
+
+  <!-- 3. TAGLINE: Pill Badge -->
+  <div class="tagline-wrap">
+    <div class="tagline">Figma + AI, wired up</div>
+  </div>
+
+  <!-- 4. FEATURE CARDS -->
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">&#9889;</div>
+      <div class="card-text">
+        <div class="card-label">106 Figma Actions</div>
+        <div class="card-sub">Full design control</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon">&#9711;</div>
+      <div class="card-text">
+        <div class="card-label">Local Relay Server</div>
+        <div class="card-sub">Private &amp; secure</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon">&#9654;</div>
+      <div class="card-text">
+        <div class="card-label">CLI + MCP + Plugin</div>
+        <div class="card-sub">Complete toolchain</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon">&#10024;</div>
+      <div class="card-text">
+        <div class="card-label">Claude, Cursor &amp; more</div>
+        <div class="card-sub">Any AI client</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. TERMINAL MOCKUP -->
+  <div class="terminal-wrap">
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot red"></div>
+        <div class="terminal-dot yellow"></div>
+        <div class="terminal-dot green"></div>
+      </div>
+      <div class="terminal-body">
+        <div><span class="term-prompt">$ </span><span class="term-cmd">ai-happy-design mcp</span></div>
+        <div><span class="term-success">&#10003;</span> <span class="term-text">Relay started on :3055</span></div>
+        <div><span class="term-success">&#10003;</span> <span class="term-text">Plugin connected</span><span class="term-cursor"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. CTA -->
+  <div class="cta">
+    <div class="oss-badge">
+      <span class="oss-dot"></span>
+      Open Source
+      <span class="oss-dot"></span>
+    </div>
+    <span class="cta-url">github.com/<span>nerveband/ai-happy-design</span></span>
+  </div>
+
+  <!-- 7. BOTTOM: Attribution -->
+  <div class="bottom">
+    <div class="bottom-divider"></div>
+    <div class="bottom-made">Made by</div>
+    <div class="bottom-name">Ashraf Ali</div>
+    <div class="bottom-site">ashrafali.net</div>
+  </div>
+
+  <!-- Texture & Vignette Overlays -->
+  <div class="grain"></div>
+  <div class="vignette"></div>
+</div>
+
+</body>
+</html>

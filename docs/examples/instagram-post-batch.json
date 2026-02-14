@@ -1,0 +1,226 @@
+[
+  {"name":"frame","command":"node.create_frame","params":{"name":"AI Happy Design - IG Post","x":1200,"y":0,"width":1080,"height":1080}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.frame.result.id}}","color":{"r":0.102,"g":0.102,"b":0.102}}},
+  {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.frame.result.id}}","radius":0}},
+
+  {"name":"topStripe","command":"shape.create_rectangle","params":{"x":1200,"y":0,"width":1080,"height":4,"name":"Top Stripe"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.topStripe.result.id}}","color":{"r":1,"g":0.84,"b":0}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.topStripe.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"botStripe","command":"shape.create_rectangle","params":{"x":1200,"y":1078,"width":1080,"height":2,"name":"Bottom Stripe"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.botStripe.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.3}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.botStripe.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"ringOuter","command":"shape.create_ellipse","params":{"x":1210,"y":10,"width":160,"height":160,"name":"Ring Outer"}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.ringOuter.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.15},"width":3}},
+  {"command":"paint.remove_fill","params":{"nodeId":"${{steps.ringOuter.result.id}}","index":0}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.ringOuter.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"ringInner","command":"shape.create_ellipse","params":{"x":1242,"y":42,"width":96,"height":96,"name":"Ring Inner"}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.ringInner.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.1},"width":2}},
+  {"command":"paint.remove_fill","params":{"nodeId":"${{steps.ringInner.result.id}}","index":0}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.ringInner.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"diamond","command":"shape.create_rectangle","params":{"x":1270,"y":70,"width":40,"height":40,"name":"Diamond"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.diamond.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.08}}},
+  {"command":"node.rotate","params":{"nodeId":"${{steps.diamond.result.id}}","rotation":45}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.diamond.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"lineH","command":"shape.create_line","params":{"x":2060,"y":960,"endX":2240,"endY":960,"name":"Deco Line H"}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.lineH.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.15},"width":1}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.lineH.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"lineV","command":"shape.create_line","params":{"x":2160,"y":860,"endX":2160,"endY":1040,"name":"Deco Line V"}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.lineV.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.15},"width":1}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.lineV.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"sideL","command":"shape.create_line","params":{"x":1232,"y":80,"endX":1232,"endY":200,"name":"Side Line Left"}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.sideL.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.12},"width":1}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.sideL.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"sideR","command":"shape.create_line","params":{"x":2248,"y":880,"endX":2248,"endY":1000,"name":"Side Line Right"}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.sideR.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.12},"width":1}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.sideR.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"badgeLineL","command":"shape.create_line","params":{"x":1630,"y":200,"endX":1662,"endY":200,"name":"Badge Line L"}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.badgeLineL.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.7},"width":1.5}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.badgeLineL.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"badgeText","command":"text.create","params":{"text":"FIGMA PLUGIN","x":1672,"y":192,"name":"Badge Text"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.badgeText.result.id}}","size":13}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.badgeText.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.7}}},
+  {"command":"text.set_letter_spacing","params":{"nodeId":"${{steps.badgeText.result.id}}","letterSpacing":4}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.badgeText.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"badgeLineR","command":"shape.create_line","params":{"x":1810,"y":200,"endX":1842,"endY":200,"name":"Badge Line R"}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.badgeLineR.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.7},"width":1.5}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.badgeLineR.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"iconTL","command":"shape.create_rectangle","params":{"x":1704,"y":230,"width":24,"height":24,"name":"Icon TL"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.iconTL.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.9}}},
+  {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.iconTL.result.id}}","radius":6}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.iconTL.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"iconTR","command":"shape.create_ellipse","params":{"x":1740,"y":230,"width":24,"height":24,"name":"Icon TR"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.iconTR.result.id}}","color":{"r":1,"g":0.72,"b":0,"a":0.7}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.iconTR.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"iconBL","command":"shape.create_ellipse","params":{"x":1710,"y":260,"width":20,"height":20,"name":"Icon BL"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.iconBL.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.5}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.iconBL.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"iconBR","command":"shape.create_rectangle","params":{"x":1740,"y":260,"width":18,"height":18,"name":"Icon BR"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.iconBR.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.35}}},
+  {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.iconBR.result.id}}","radius":3}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.iconBR.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"iconCenter","command":"shape.create_ellipse","params":{"x":1733,"y":255,"width":8,"height":8,"name":"Icon Center"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.iconCenter.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.8}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.iconCenter.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"titleAI","command":"text.create","params":{"text":"AI","x":1580,"y":300,"name":"Title AI"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.titleAI.result.id}}","size":72}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.titleAI.result.id}}","weight":800}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.titleAI.result.id}}","color":{"r":1,"g":0.84,"b":0}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.titleAI.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"titleRest","command":"text.create","params":{"text":"Happy Design","x":1680,"y":300,"name":"Title Happy Design"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.titleRest.result.id}}","size":72}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.titleRest.result.id}}","weight":800}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.titleRest.result.id}}","color":{"r":1,"g":1,"b":1}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.titleRest.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"subtitle","command":"text.create","params":{"text":"Figma + AI, wired up","x":1640,"y":390,"name":"Subtitle"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.subtitle.result.id}}","size":24}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.subtitle.result.id}}","color":{"r":0.69,"g":0.69,"b":0.69}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.subtitle.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"card1bg","command":"shape.create_rectangle","params":{"x":1400,"y":450,"width":310,"height":160,"name":"Card 1 - Actions"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.card1bg.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.08}}},
+  {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.card1bg.result.id}}","radius":16}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.card1bg.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.15},"width":1}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.card1bg.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"card1num","command":"text.create","params":{"text":"106","x":1420,"y":475,"name":"Card 1 Number"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.card1num.result.id}}","size":32}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.card1num.result.id}}","weight":800}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.card1num.result.id}}","color":{"r":1,"g":0.84,"b":0}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.card1num.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"card1label","command":"text.create","params":{"text":"Actions","x":1420,"y":515,"name":"Card 1 Label"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.card1label.result.id}}","size":14}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.card1label.result.id}}","weight":600}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.card1label.result.id}}","color":{"r":1,"g":1,"b":1}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.card1label.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"card1sub","command":"text.create","params":{"text":"Full Figma API coverage","x":1420,"y":538,"name":"Card 1 Sub"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.card1sub.result.id}}","size":12}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.card1sub.result.id}}","color":{"r":0.53,"g":0.53,"b":0.53}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.card1sub.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"card2bg","command":"shape.create_rectangle","params":{"x":1726,"y":450,"width":310,"height":160,"name":"Card 2 - Stack"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.card2bg.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.04}}},
+  {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.card2bg.result.id}}","radius":16}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.card2bg.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.07},"width":1}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.card2bg.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"card2title","command":"text.create","params":{"text":"CLI + MCP + Plugin","x":1746,"y":490,"name":"Card 2 Title"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.card2title.result.id}}","size":18}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.card2title.result.id}}","weight":700}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.card2title.result.id}}","color":{"r":1,"g":0.72,"b":0.33}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.card2title.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"card2sub","command":"text.create","params":{"text":"Three interfaces, one server","x":1746,"y":518,"name":"Card 2 Sub"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.card2sub.result.id}}","size":12}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.card2sub.result.id}}","color":{"r":0.53,"g":0.53,"b":0.53}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.card2sub.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"card3bg","command":"shape.create_rectangle","params":{"x":1400,"y":626,"width":310,"height":140,"name":"Card 3 - Local"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.card3bg.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.04}}},
+  {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.card3bg.result.id}}","radius":16}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.card3bg.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.07},"width":1}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.card3bg.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"card3title","command":"text.create","params":{"text":"Zero cloud","x":1420,"y":660,"name":"Card 3 Title"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.card3title.result.id}}","size":16}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.card3title.result.id}}","weight":700}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.card3title.result.id}}","color":{"r":1,"g":1,"b":1}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.card3title.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"card3sub","command":"text.create","params":{"text":"Local relay. Your data stays.","x":1420,"y":685,"name":"Card 3 Sub"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.card3sub.result.id}}","size":12}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.card3sub.result.id}}","color":{"r":0.6,"g":0.6,"b":0.6}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.card3sub.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"card4bg","command":"shape.create_rectangle","params":{"x":1726,"y":626,"width":310,"height":140,"name":"Card 4 - Compat"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.card4bg.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.04}}},
+  {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.card4bg.result.id}}","radius":16}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.card4bg.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.07},"width":1}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.card4bg.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"card4title","command":"text.create","params":{"text":"Works with","x":1746,"y":660,"name":"Card 4 Title"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.card4title.result.id}}","size":15}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.card4title.result.id}}","weight":700}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.card4title.result.id}}","color":{"r":1,"g":1,"b":1}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.card4title.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"card4sub","command":"text.create","params":{"text":"Claude, Cursor, and more","x":1746,"y":685,"name":"Card 4 Sub"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.card4sub.result.id}}","size":12}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.card4sub.result.id}}","color":{"r":0.73,"g":0.73,"b":0.73}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.card4sub.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"divider","command":"shape.create_line","params":{"x":1640,"y":800,"endX":1840,"endY":800,"name":"Divider"}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.divider.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.25},"width":1}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.divider.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"badgeBG","command":"shape.create_rectangle","params":{"x":1570,"y":825,"width":320,"height":40,"name":"OS Badge BG"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.badgeBG.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.04}}},
+  {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.badgeBG.result.id}}","radius":100}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.badgeBG.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.06},"width":1}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.badgeBG.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"greenDot","command":"shape.create_ellipse","params":{"x":1592,"y":839,"width":6,"height":6,"name":"Green Dot"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.greenDot.result.id}}","color":{"r":0.13,"g":0.77,"b":0.37}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.greenDot.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"osBadge","command":"text.create","params":{"text":"Open source · MIT License","x":1610,"y":832,"name":"OS Badge Text"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.osBadge.result.id}}","size":14}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.osBadge.result.id}}","color":{"r":0.8,"g":0.8,"b":0.8}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.osBadge.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"footerRepo","command":"text.create","params":{"text":"github.com/nerveband/ai-happy-design","x":1256,"y":1010,"name":"Footer Repo"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.footerRepo.result.id}}","size":13}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.footerRepo.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.6}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.footerRepo.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"footerAuthor","command":"text.create","params":{"text":"by Ashraf Ali","x":1256,"y":1030,"name":"Footer Author"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.footerAuthor.result.id}}","size":12}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.footerAuthor.result.id}}","color":{"r":0.4,"g":0.4,"b":0.4}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.footerAuthor.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"footerYear","command":"text.create","params":{"text":"2025","x":2220,"y":1020,"name":"Footer Year"}},
+  {"command":"text.set_size","params":{"nodeId":"${{steps.footerYear.result.id}}","size":11}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.footerYear.result.id}}","color":{"r":0.33,"g":0.33,"b":0.33}}},
+  {"command":"text.set_letter_spacing","params":{"nodeId":"${{steps.footerYear.result.id}}","letterSpacing":2}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.footerYear.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"p1","command":"shape.create_ellipse","params":{"x":1958,"y":194,"width":4,"height":4,"name":"Particle 1"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.p1.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.3}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.p1.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"p2","command":"shape.create_ellipse","params":{"x":1362,"y":378,"width":3,"height":3,"name":"Particle 2"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.p2.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.2}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.p2.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"p3","command":"shape.create_ellipse","params":{"x":2150,"y":756,"width":5,"height":5,"name":"Particle 3"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.p3.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.15}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.p3.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"p4","command":"shape.create_ellipse","params":{"x":1470,"y":648,"width":2,"height":2,"name":"Particle 4"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.p4.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.15}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.p4.result.id}}","parentId":"${{steps.frame.result.id}}"}},
+
+  {"name":"p5","command":"shape.create_ellipse","params":{"x":1848,"y":130,"width":3,"height":3,"name":"Particle 5"}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.p5.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.2}}},
+  {"command":"layer.move_to_parent","params":{"nodeId":"${{steps.p5.result.id}}","parentId":"${{steps.frame.result.id}}"}}
+]

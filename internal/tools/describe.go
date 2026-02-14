@@ -2,25 +2,28 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/nerveband/ai-happy-design-v2/internal/figma"
+	"github.com/nerveband/ai-happy-design/internal/figma"
 )
 
 // toolDescriptions provides self-documentation for all tools.
 var toolDescriptions = map[string]map[string]string{
 	"paint": {
-		"set_solid":     "Set a solid fill color on a node. Params: nodeId, color (hex), opacity",
-		"set_gradient":  "Set a gradient fill. Params: nodeId, gradientType, stops (JSON)",
-		"set_image":     "Set an image fill from base64 data. Params: nodeId, imageData, scaleMode",
-		"set_image_url": "Set an image fill from URL. Params: nodeId, imageUrl, scaleMode",
-		"add_fill":      "Add a fill to existing fills. Params: nodeId, color, opacity",
-		"remove_fill":   "Remove a fill by index. Params: nodeId, fillIndex",
-		"get_fills":     "Get all fills on a node. Params: nodeId",
-		"set_stroke":    "Set stroke color and weight. Params: nodeId, color, opacity, strokeWeight, strokeAlign",
+		"set_solid":               "Set a solid fill color on a node. Params: nodeId, color (hex), opacity",
+		"set_gradient":            "Set a gradient fill. Params: nodeId, gradientType, stops (JSON)",
+		"set_image":               "Set an image fill from base64 data. Params: nodeId, imageData (base64 or data URL), scaleMode",
+		"set_image_fill":          "Alias of set_image for MCP/CLI parity.",
+		"set_image_url":           "Set an image fill from URL. Params: nodeId, url, scaleMode. Plugin tries createImageAsync first, then fetch fallback.",
+		"set_image_fill_from_url": "Alias of set_image_url for MCP/CLI parity.",
+		"add_fill":                "Add a fill to existing fills. Params: nodeId, color, opacity",
+		"remove_fill":             "Remove a fill by index. Params: nodeId, fillIndex",
+		"get_fills":               "Get all fills on a node. Params: nodeId",
+		"set_stroke":              "Set stroke color and weight. Params: nodeId, color, opacity, strokeWeight, strokeAlign",
 	},
 	"shape": {
 		"create_rectangle": "Create a rectangle. Params: name, x, y, width, height, parentId, color, cornerRadius",
@@ -70,14 +73,14 @@ var toolDescriptions = map[string]map[string]string{
 		"clone":          "Clone a node. Params: nodeId",
 	},
 	"layer": {
-		"set_order":     "Set layer order. Params: nodeId, index",
-		"bring_forward": "Bring one layer forward. Params: nodeId",
-		"send_backward": "Send one layer backward. Params: nodeId",
+		"set_order":      "Set layer order. Params: nodeId, index",
+		"bring_forward":  "Bring one layer forward. Params: nodeId",
+		"send_backward":  "Send one layer backward. Params: nodeId",
 		"bring_to_front": "Bring to front. Params: nodeId",
-		"send_to_back":  "Send to back. Params: nodeId",
-		"group":         "Group nodes. Params: nodeIds (comma-separated)",
-		"ungroup":       "Ungroup a group. Params: nodeId",
-		"insert_child":  "Insert a child into a parent. Params: parentId, childId, index",
+		"send_to_back":   "Send to back. Params: nodeId",
+		"group":          "Group nodes. Params: nodeIds (comma-separated)",
+		"ungroup":        "Ungroup a group. Params: nodeId",
+		"insert_child":   "Insert a child into a parent. Params: parentId, childId, index",
 	},
 	"component": {
 		"create":          "Create component from node. Params: nodeId, name",
@@ -141,7 +144,7 @@ var toolDescriptions = map[string]map[string]string{
 		"pdf":   "Export as PDF. Params: nodeId, scale",
 	},
 	"bulk": {
-		"execute": "Execute multiple operations. Params: operations (JSON array of {command, params})",
+		"execute": "Execute multiple operations with retry and optional interpolation. Params: operations (JSON array of {name?, command, params}), continueOnError, retries, retryDelayMs, interpolate",
 	},
 	"connect": {
 		"join":       "Join a channel. Params: channelKey",
@@ -150,12 +153,26 @@ var toolDescriptions = map[string]map[string]string{
 	},
 }
 
+// ToolCatalog returns a copy of the server tool/action descriptions for
+// machine-readable discovery in CLI or external integrations.
+func ToolCatalog() map[string]map[string]string {
+	out := make(map[string]map[string]string, len(toolDescriptions))
+	for tool, actions := range toolDescriptions {
+		actionCopy := make(map[string]string, len(actions))
+		for action, desc := range actions {
+			actionCopy[action] = desc
+		}
+		out[tool] = actionCopy
+	}
+	return out
+}
+
 // RegisterDescribeTool registers the "describe" tool for self-documentation.
 func RegisterDescribeTool(s *server.MCPServer, _ *figma.Commander) {
 	tool := mcp.NewTool("describe",
 		mcp.WithDescription("Get help and documentation for tools and actions. Use this to discover available operations."),
 		mcp.WithString("action", mcp.Required(), mcp.Description("Action to perform"),
-			mcp.Enum("tool", "action", "all")),
+			mcp.Enum("tool", "action", "all", "catalog", "design_guide", "setup")),
 		mcp.WithString("toolName", mcp.Description("Name of the tool to describe")),
 		mcp.WithString("actionName", mcp.Description("Name of the action within a tool")),
 	)
@@ -201,6 +218,7 @@ func RegisterDescribeTool(s *server.MCPServer, _ *figma.Commander) {
 			var sb strings.Builder
 			sb.WriteString("AI Happy Design v2 - Available Tools and Actions\n")
 			sb.WriteString("=================================================\n\n")
+			sb.WriteString("Tip: for LLM-friendly examples and playbook, call describe with action='catalog'.\n\n")
 			for toolName, actions := range toolDescriptions {
 				sb.WriteString(fmt.Sprintf("%s:\n", toolName))
 				for name, desc := range actions {
@@ -209,6 +227,25 @@ func RegisterDescribeTool(s *server.MCPServer, _ *figma.Commander) {
 				sb.WriteString("\n")
 			}
 			return mcp.NewToolResultText(sb.String()), nil
+
+		case "catalog":
+			catalog := LLMCatalog()
+			data, err := json.MarshalIndent(catalog, "", "  ")
+			if err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("failed to build catalog: %v", err)), nil
+			}
+			return mcp.NewToolResultText(string(data)), nil
+
+		case "design_guide":
+			guide := DesignGuide()
+			data, err := json.MarshalIndent(guide, "", "  ")
+			if err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("failed to build design guide: %v", err)), nil
+			}
+			return mcp.NewToolResultText(string(data)), nil
+
+		case "setup":
+			return mcp.NewToolResultText(SetupInstructions()), nil
 
 		default:
 			return mcp.NewToolResultError(fmt.Sprintf("unknown describe action: %s", action)), nil

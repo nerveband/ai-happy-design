@@ -1,0 +1,1518 @@
+{
+  "operations": [
+    {
+      "name": "frame1",
+      "command": "node.create_frame",
+      "params": {
+        "name": "Story 1 - Hook",
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1920
+      }
+    },
+    {
+      "command": "paint.set_gradient",
+      "params": {
+        "nodeId": "${{steps.frame1.result.id}}",
+        "gradientType": "LINEAR",
+        "stops": [
+          {
+            "position": 0,
+            "color": {
+              "r": 0.06,
+              "g": 0.04,
+              "b": 0.16
+            }
+          },
+          {
+            "position": 1,
+            "color": {
+              "r": 0.12,
+              "g": 0.08,
+              "b": 0.24
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "f1_deco1",
+      "command": "shape.create_ellipse",
+      "params": {
+        "name": "Deco Glow 1",
+        "x": 600,
+        "y": 200,
+        "width": 480,
+        "height": 480
+      }
+    },
+    {
+      "command": "paint.set_solid",
+      "params": {
+        "nodeId": "${{steps.f1_deco1.result.id}}",
+        "color": {
+          "r": 0.6,
+          "g": 0.3,
+          "b": 1
+        },
+        "opacity": 0.08
+      }
+    },
+    {
+      "command": "layer.insert_child",
+      "params": {
+        "parentId": "${{steps.frame1.result.id}}",
+        "childId": "${{steps.f1_deco1.result.id}}"
+      }
+    },
+    {
+      "command": "layer.send_to_back",
+      "params": {
+        "nodeId": "${{steps.f1_deco1.result.id}}"
+      }
+    },
+    {
+      "command": "effect.add_blur",
+      "params": {
+        "nodeId": "${{steps.f1_deco1.result.id}}",
+        "blurType": "LAYER_BLUR",
+        "radius": 80
+      }
+    },
+    {
+      "name": "f1_deco2",
+      "command": "shape.create_ellipse",
+      "params": {
+        "name": "Deco Glow 2",
+        "x": -100,
+        "y": 1200,
+        "width": 400,
+        "height": 400
+      }
+    },
+    {
+      "command": "paint.set_solid",
+      "params": {
+        "nodeId": "${{steps.f1_deco2.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 0.5,
+          "b": 0.2
+        },
+        "opacity": 0.06
+      }
+    },
+    {
+      "command": "layer.insert_child",
+      "params": {
+        "parentId": "${{steps.frame1.result.id}}",
+        "childId": "${{steps.f1_deco2.result.id}}"
+      }
+    },
+    {
+      "command": "layer.send_to_back",
+      "params": {
+        "nodeId": "${{steps.f1_deco2.result.id}}"
+      }
+    },
+    {
+      "command": "effect.add_blur",
+      "params": {
+        "nodeId": "${{steps.f1_deco2.result.id}}",
+        "blurType": "LAYER_BLUR",
+        "radius": 60
+      }
+    },
+    {
+      "name": "f1_content",
+      "command": "node.create_frame",
+      "params": {
+        "name": "Content 1",
+        "parentId": "${{steps.frame1.result.id}}",
+        "width": 1080,
+        "height": 1920
+      }
+    },
+    {
+      "command": "paint.set_solid",
+      "params": {
+        "nodeId": "${{steps.f1_content.result.id}}",
+        "color": {
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "a": 0
+        }
+      }
+    },
+    {
+      "command": "layout.set_auto_layout",
+      "params": {
+        "nodeId": "${{steps.f1_content.result.id}}",
+        "direction": "VERTICAL",
+        "itemSpacing": 32,
+        "paddingTop": 240,
+        "paddingBottom": 120,
+        "paddingLeft": 80,
+        "paddingRight": 80,
+        "primaryAxisAlign": "CENTER",
+        "counterAxisAlign": "CENTER"
+      }
+    },
+    {
+      "name": "f1_badge",
+      "command": "node.create_frame",
+      "params": {
+        "name": "Badge",
+        "parentId": "${{steps.f1_content.result.id}}",
+        "width": 200,
+        "height": 48
+      }
+    },
+    {
+      "command": "paint.set_solid",
+      "params": {
+        "nodeId": "${{steps.f1_badge.result.id}}",
+        "color": {
+          "r": 0.6,
+          "g": 0.3,
+          "b": 1
+        },
+        "opacity": 0.15
+      }
+    },
+    {
+      "command": "node.set_corner_radius",
+      "params": {
+        "nodeId": "${{steps.f1_badge.result.id}}",
+        "radius": 24
+      }
+    },
+    {
+      "command": "layout.set_auto_layout",
+      "params": {
+        "nodeId": "${{steps.f1_badge.result.id}}",
+        "direction": "HORIZONTAL",
+        "itemSpacing": 8,
+        "padding": 12,
+        "primaryAxisAlign": "CENTER",
+        "counterAxisAlign": "CENTER"
+      }
+    },
+    {
+      "command": "paint.set_stroke",
+      "params": {
+        "nodeId": "${{steps.f1_badge.result.id}}",
+        "color": {
+          "r": 0.6,
+          "g": 0.3,
+          "b": 1,
+          "a": 0.2
+        },
+        "strokeWeight": 1
+      }
+    },
+    {
+      "name": "f1_badge_text",
+      "command": "text.create",
+      "params": {
+        "text": "NEW TOOL",
+        "parentId": "${{steps.f1_badge.result.id}}",
+        "fontSize": 18,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f1_badge_text.result.id}}",
+        "weight": 600
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f1_badge_text.result.id}}",
+        "color": {
+          "r": 0.7,
+          "g": 0.5,
+          "b": 1
+        }
+      }
+    },
+    {
+      "command": "text.set_case",
+      "params": {
+        "nodeId": "${{steps.f1_badge_text.result.id}}",
+        "textCase": "UPPER"
+      }
+    },
+    {
+      "command": "text.set_spacing",
+      "params": {
+        "nodeId": "${{steps.f1_badge_text.result.id}}",
+        "letterSpacing": 3
+      }
+    },
+    {
+      "name": "f1_hero",
+      "command": "text.create",
+      "params": {
+        "text": "Design in Figma\nwith AI",
+        "parentId": "${{steps.f1_content.result.id}}",
+        "fontSize": 72,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f1_hero.result.id}}",
+        "weight": 800
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f1_hero.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1
+        }
+      }
+    },
+    {
+      "command": "text.set_align",
+      "params": {
+        "nodeId": "${{steps.f1_hero.result.id}}",
+        "textAlign": "CENTER"
+      }
+    },
+    {
+      "command": "text.set_spacing",
+      "params": {
+        "nodeId": "${{steps.f1_hero.result.id}}",
+        "lineHeight": 110
+      }
+    },
+    {
+      "name": "f1_sub",
+      "command": "text.create",
+      "params": {
+        "text": "One command. Full canvas control.\nNo more manual pixel pushing.",
+        "parentId": "${{steps.f1_content.result.id}}",
+        "fontSize": 28,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f1_sub.result.id}}",
+        "weight": 400
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f1_sub.result.id}}",
+        "color": {
+          "r": 0.65,
+          "g": 0.65,
+          "b": 0.7
+        }
+      }
+    },
+    {
+      "command": "text.set_align",
+      "params": {
+        "nodeId": "${{steps.f1_sub.result.id}}",
+        "textAlign": "CENTER"
+      }
+    },
+    {
+      "command": "text.set_spacing",
+      "params": {
+        "nodeId": "${{steps.f1_sub.result.id}}",
+        "lineHeight": 150
+      }
+    },
+    {
+      "name": "f1_arrow",
+      "command": "text.create",
+      "params": {
+        "text": "Swipe to learn more \u2192",
+        "parentId": "${{steps.f1_content.result.id}}",
+        "fontSize": 20,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f1_arrow.result.id}}",
+        "weight": 500
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f1_arrow.result.id}}",
+        "color": {
+          "r": 0.6,
+          "g": 0.3,
+          "b": 1
+        }
+      }
+    },
+    {
+      "command": "text.set_align",
+      "params": {
+        "nodeId": "${{steps.f1_arrow.result.id}}",
+        "textAlign": "CENTER"
+      }
+    },
+    {
+      "name": "frame2",
+      "command": "node.create_frame",
+      "params": {
+        "name": "Story 2 - Features",
+        "x": 1160,
+        "y": 0,
+        "width": 1080,
+        "height": 1920
+      }
+    },
+    {
+      "command": "paint.set_gradient",
+      "params": {
+        "nodeId": "${{steps.frame2.result.id}}",
+        "gradientType": "LINEAR",
+        "stops": [
+          {
+            "position": 0,
+            "color": {
+              "r": 0.06,
+              "g": 0.04,
+              "b": 0.16
+            }
+          },
+          {
+            "position": 1,
+            "color": {
+              "r": 0.12,
+              "g": 0.08,
+              "b": 0.24
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "f2_deco1",
+      "command": "shape.create_ellipse",
+      "params": {
+        "name": "Deco Glow",
+        "x": 700,
+        "y": 800,
+        "width": 500,
+        "height": 500
+      }
+    },
+    {
+      "command": "paint.set_solid",
+      "params": {
+        "nodeId": "${{steps.f2_deco1.result.id}}",
+        "color": {
+          "r": 0.2,
+          "g": 0.6,
+          "b": 1
+        },
+        "opacity": 0.06
+      }
+    },
+    {
+      "command": "layer.insert_child",
+      "params": {
+        "parentId": "${{steps.frame2.result.id}}",
+        "childId": "${{steps.f2_deco1.result.id}}"
+      }
+    },
+    {
+      "command": "layer.send_to_back",
+      "params": {
+        "nodeId": "${{steps.f2_deco1.result.id}}"
+      }
+    },
+    {
+      "command": "effect.add_blur",
+      "params": {
+        "nodeId": "${{steps.f2_deco1.result.id}}",
+        "blurType": "LAYER_BLUR",
+        "radius": 80
+      }
+    },
+    {
+      "name": "f2_content",
+      "command": "node.create_frame",
+      "params": {
+        "name": "Content 2",
+        "parentId": "${{steps.frame2.result.id}}",
+        "width": 1080,
+        "height": 1920
+      }
+    },
+    {
+      "command": "paint.set_solid",
+      "params": {
+        "nodeId": "${{steps.f2_content.result.id}}",
+        "color": {
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "a": 0
+        }
+      }
+    },
+    {
+      "command": "layout.set_auto_layout",
+      "params": {
+        "nodeId": "${{steps.f2_content.result.id}}",
+        "direction": "VERTICAL",
+        "itemSpacing": 40,
+        "paddingTop": 160,
+        "paddingBottom": 120,
+        "paddingLeft": 64,
+        "paddingRight": 64,
+        "primaryAxisAlign": "MIN",
+        "counterAxisAlign": "CENTER"
+      }
+    },
+    {
+      "name": "f2_title",
+      "command": "text.create",
+      "params": {
+        "text": "What It Does",
+        "parentId": "${{steps.f2_content.result.id}}",
+        "fontSize": 48,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f2_title.result.id}}",
+        "weight": 700
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f2_title.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1
+        }
+      }
+    },
+    {
+      "command": "text.set_align",
+      "params": {
+        "nodeId": "${{steps.f2_title.result.id}}",
+        "textAlign": "CENTER"
+      }
+    },
+    {
+      "name": "f2_card_row1",
+      "command": "node.create_frame",
+      "params": {
+        "name": "Card Row 1",
+        "parentId": "${{steps.f2_content.result.id}}",
+        "width": 952,
+        "height": 240
+      }
+    },
+    {
+      "command": "paint.set_solid",
+      "params": {
+        "nodeId": "${{steps.f2_card_row1.result.id}}",
+        "color": {
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "a": 0
+        }
+      }
+    },
+    {
+      "command": "layout.set_auto_layout",
+      "params": {
+        "nodeId": "${{steps.f2_card_row1.result.id}}",
+        "direction": "HORIZONTAL",
+        "itemSpacing": 16
+      }
+    },
+    {
+      "name": "f2_card1",
+      "command": "node.create_frame",
+      "params": {
+        "name": "Card - Batch",
+        "parentId": "${{steps.f2_card_row1.result.id}}",
+        "width": 468,
+        "height": 240
+      }
+    },
+    {
+      "command": "paint.set_solid",
+      "params": {
+        "nodeId": "${{steps.f2_card1.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 0.04
+        }
+      }
+    },
+    {
+      "command": "node.set_corner_radius",
+      "params": {
+        "nodeId": "${{steps.f2_card1.result.id}}",
+        "radius": 20
+      }
+    },
+    {
+      "command": "paint.set_stroke",
+      "params": {
+        "nodeId": "${{steps.f2_card1.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 0.07
+        },
+        "strokeWeight": 1
+      }
+    },
+    {
+      "command": "layout.set_auto_layout",
+      "params": {
+        "nodeId": "${{steps.f2_card1.result.id}}",
+        "direction": "VERTICAL",
+        "itemSpacing": 12,
+        "padding": 28
+      }
+    },
+    {
+      "command": "layout.set_sizing",
+      "params": {
+        "nodeId": "${{steps.f2_card1.result.id}}",
+        "primaryAxisSizing": "FIXED"
+      }
+    },
+    {
+      "name": "f2_c1_num",
+      "command": "text.create",
+      "params": {
+        "text": "150+",
+        "parentId": "${{steps.f2_card1.result.id}}",
+        "fontSize": 48,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f2_c1_num.result.id}}",
+        "weight": 800
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f2_c1_num.result.id}}",
+        "color": {
+          "r": 0.6,
+          "g": 0.3,
+          "b": 1
+        }
+      }
+    },
+    {
+      "name": "f2_c1_title",
+      "command": "text.create",
+      "params": {
+        "text": "Batch Commands",
+        "parentId": "${{steps.f2_card1.result.id}}",
+        "fontSize": 24,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f2_c1_title.result.id}}",
+        "weight": 600
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f2_c1_title.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1
+        }
+      }
+    },
+    {
+      "name": "f2_c1_desc",
+      "command": "text.create",
+      "params": {
+        "text": "Chain operations in\none payload. Fast.",
+        "parentId": "${{steps.f2_card1.result.id}}",
+        "fontSize": 18,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f2_c1_desc.result.id}}",
+        "color": {
+          "r": 0.55,
+          "g": 0.55,
+          "b": 0.6
+        }
+      }
+    },
+    {
+      "command": "text.set_spacing",
+      "params": {
+        "nodeId": "${{steps.f2_c1_desc.result.id}}",
+        "lineHeight": 140
+      }
+    },
+    {
+      "name": "f2_card2",
+      "command": "node.create_frame",
+      "params": {
+        "name": "Card - Tools",
+        "parentId": "${{steps.f2_card_row1.result.id}}",
+        "width": 468,
+        "height": 240
+      }
+    },
+    {
+      "command": "paint.set_solid",
+      "params": {
+        "nodeId": "${{steps.f2_card2.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 0.04
+        }
+      }
+    },
+    {
+      "command": "node.set_corner_radius",
+      "params": {
+        "nodeId": "${{steps.f2_card2.result.id}}",
+        "radius": 20
+      }
+    },
+    {
+      "command": "paint.set_stroke",
+      "params": {
+        "nodeId": "${{steps.f2_card2.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 0.07
+        },
+        "strokeWeight": 1
+      }
+    },
+    {
+      "command": "layout.set_auto_layout",
+      "params": {
+        "nodeId": "${{steps.f2_card2.result.id}}",
+        "direction": "VERTICAL",
+        "itemSpacing": 12,
+        "padding": 28
+      }
+    },
+    {
+      "command": "layout.set_sizing",
+      "params": {
+        "nodeId": "${{steps.f2_card2.result.id}}",
+        "primaryAxisSizing": "FIXED"
+      }
+    },
+    {
+      "name": "f2_c2_num",
+      "command": "text.create",
+      "params": {
+        "text": "14",
+        "parentId": "${{steps.f2_card2.result.id}}",
+        "fontSize": 48,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f2_c2_num.result.id}}",
+        "weight": 800
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f2_c2_num.result.id}}",
+        "color": {
+          "r": 0.6,
+          "g": 0.3,
+          "b": 1
+        }
+      }
+    },
+    {
+      "name": "f2_c2_title",
+      "command": "text.create",
+      "params": {
+        "text": "Tool Domains",
+        "parentId": "${{steps.f2_card2.result.id}}",
+        "fontSize": 24,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f2_c2_title.result.id}}",
+        "weight": 600
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f2_c2_title.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1
+        }
+      }
+    },
+    {
+      "name": "f2_c2_desc",
+      "command": "text.create",
+      "params": {
+        "text": "Paint, text, layout,\nshape, effects & more.",
+        "parentId": "${{steps.f2_card2.result.id}}",
+        "fontSize": 18,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f2_c2_desc.result.id}}",
+        "color": {
+          "r": 0.55,
+          "g": 0.55,
+          "b": 0.6
+        }
+      }
+    },
+    {
+      "command": "text.set_spacing",
+      "params": {
+        "nodeId": "${{steps.f2_c2_desc.result.id}}",
+        "lineHeight": 140
+      }
+    },
+    {
+      "name": "f2_card_row2",
+      "command": "node.create_frame",
+      "params": {
+        "name": "Card Row 2",
+        "parentId": "${{steps.f2_content.result.id}}",
+        "width": 952,
+        "height": 240
+      }
+    },
+    {
+      "command": "paint.set_solid",
+      "params": {
+        "nodeId": "${{steps.f2_card_row2.result.id}}",
+        "color": {
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "a": 0
+        }
+      }
+    },
+    {
+      "command": "layout.set_auto_layout",
+      "params": {
+        "nodeId": "${{steps.f2_card_row2.result.id}}",
+        "direction": "HORIZONTAL",
+        "itemSpacing": 16
+      }
+    },
+    {
+      "name": "f2_card3",
+      "command": "node.create_frame",
+      "params": {
+        "name": "Card - Local",
+        "parentId": "${{steps.f2_card_row2.result.id}}",
+        "width": 468,
+        "height": 240
+      }
+    },
+    {
+      "command": "paint.set_solid",
+      "params": {
+        "nodeId": "${{steps.f2_card3.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 0.04
+        }
+      }
+    },
+    {
+      "command": "node.set_corner_radius",
+      "params": {
+        "nodeId": "${{steps.f2_card3.result.id}}",
+        "radius": 20
+      }
+    },
+    {
+      "command": "paint.set_stroke",
+      "params": {
+        "nodeId": "${{steps.f2_card3.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 0.07
+        },
+        "strokeWeight": 1
+      }
+    },
+    {
+      "command": "layout.set_auto_layout",
+      "params": {
+        "nodeId": "${{steps.f2_card3.result.id}}",
+        "direction": "VERTICAL",
+        "itemSpacing": 12,
+        "padding": 28
+      }
+    },
+    {
+      "command": "layout.set_sizing",
+      "params": {
+        "nodeId": "${{steps.f2_card3.result.id}}",
+        "primaryAxisSizing": "FIXED"
+      }
+    },
+    {
+      "name": "f2_c3_icon",
+      "command": "text.create",
+      "params": {
+        "text": "\ud83d\udd12",
+        "parentId": "${{steps.f2_card3.result.id}}",
+        "fontSize": 40
+      }
+    },
+    {
+      "name": "f2_c3_title",
+      "command": "text.create",
+      "params": {
+        "text": "100% Local",
+        "parentId": "${{steps.f2_card3.result.id}}",
+        "fontSize": 24,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f2_c3_title.result.id}}",
+        "weight": 600
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f2_c3_title.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1
+        }
+      }
+    },
+    {
+      "name": "f2_c3_desc",
+      "command": "text.create",
+      "params": {
+        "text": "Nothing leaves your\nmachine. Ever.",
+        "parentId": "${{steps.f2_card3.result.id}}",
+        "fontSize": 18,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f2_c3_desc.result.id}}",
+        "color": {
+          "r": 0.55,
+          "g": 0.55,
+          "b": 0.6
+        }
+      }
+    },
+    {
+      "command": "text.set_spacing",
+      "params": {
+        "nodeId": "${{steps.f2_c3_desc.result.id}}",
+        "lineHeight": 140
+      }
+    },
+    {
+      "name": "f2_card4",
+      "command": "node.create_frame",
+      "params": {
+        "name": "Card - MCP",
+        "parentId": "${{steps.f2_card_row2.result.id}}",
+        "width": 468,
+        "height": 240
+      }
+    },
+    {
+      "command": "paint.set_solid",
+      "params": {
+        "nodeId": "${{steps.f2_card4.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 0.04
+        }
+      }
+    },
+    {
+      "command": "node.set_corner_radius",
+      "params": {
+        "nodeId": "${{steps.f2_card4.result.id}}",
+        "radius": 20
+      }
+    },
+    {
+      "command": "paint.set_stroke",
+      "params": {
+        "nodeId": "${{steps.f2_card4.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 0.07
+        },
+        "strokeWeight": 1
+      }
+    },
+    {
+      "command": "layout.set_auto_layout",
+      "params": {
+        "nodeId": "${{steps.f2_card4.result.id}}",
+        "direction": "VERTICAL",
+        "itemSpacing": 12,
+        "padding": 28
+      }
+    },
+    {
+      "command": "layout.set_sizing",
+      "params": {
+        "nodeId": "${{steps.f2_card4.result.id}}",
+        "primaryAxisSizing": "FIXED"
+      }
+    },
+    {
+      "name": "f2_c4_icon",
+      "command": "text.create",
+      "params": {
+        "text": "\ud83e\udd16",
+        "parentId": "${{steps.f2_card4.result.id}}",
+        "fontSize": 40
+      }
+    },
+    {
+      "name": "f2_c4_title",
+      "command": "text.create",
+      "params": {
+        "text": "MCP Native",
+        "parentId": "${{steps.f2_card4.result.id}}",
+        "fontSize": 24,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f2_c4_title.result.id}}",
+        "weight": 600
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f2_c4_title.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1
+        }
+      }
+    },
+    {
+      "name": "f2_c4_desc",
+      "command": "text.create",
+      "params": {
+        "text": "Works with Claude,\nGPT, any MCP client.",
+        "parentId": "${{steps.f2_card4.result.id}}",
+        "fontSize": 18,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f2_c4_desc.result.id}}",
+        "color": {
+          "r": 0.55,
+          "g": 0.55,
+          "b": 0.6
+        }
+      }
+    },
+    {
+      "command": "text.set_spacing",
+      "params": {
+        "nodeId": "${{steps.f2_c4_desc.result.id}}",
+        "lineHeight": 140
+      }
+    },
+    {
+      "name": "f2_swipe",
+      "command": "text.create",
+      "params": {
+        "text": "Swipe for download \u2192",
+        "parentId": "${{steps.f2_content.result.id}}",
+        "fontSize": 20,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f2_swipe.result.id}}",
+        "weight": 500
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f2_swipe.result.id}}",
+        "color": {
+          "r": 0.6,
+          "g": 0.3,
+          "b": 1
+        }
+      }
+    },
+    {
+      "command": "text.set_align",
+      "params": {
+        "nodeId": "${{steps.f2_swipe.result.id}}",
+        "textAlign": "CENTER"
+      }
+    },
+    {
+      "name": "frame3",
+      "command": "node.create_frame",
+      "params": {
+        "name": "Story 3 - CTA",
+        "x": 2320,
+        "y": 0,
+        "width": 1080,
+        "height": 1920
+      }
+    },
+    {
+      "command": "paint.set_gradient",
+      "params": {
+        "nodeId": "${{steps.frame3.result.id}}",
+        "gradientType": "LINEAR",
+        "stops": [
+          {
+            "position": 0,
+            "color": {
+              "r": 0.06,
+              "g": 0.04,
+              "b": 0.16
+            }
+          },
+          {
+            "position": 1,
+            "color": {
+              "r": 0.12,
+              "g": 0.08,
+              "b": 0.24
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "f3_deco1",
+      "command": "shape.create_ellipse",
+      "params": {
+        "name": "Deco Glow CTA",
+        "x": 200,
+        "y": 600,
+        "width": 600,
+        "height": 600
+      }
+    },
+    {
+      "command": "paint.set_solid",
+      "params": {
+        "nodeId": "${{steps.f3_deco1.result.id}}",
+        "color": {
+          "r": 0.6,
+          "g": 0.3,
+          "b": 1
+        },
+        "opacity": 0.1
+      }
+    },
+    {
+      "command": "layer.insert_child",
+      "params": {
+        "parentId": "${{steps.frame3.result.id}}",
+        "childId": "${{steps.f3_deco1.result.id}}"
+      }
+    },
+    {
+      "command": "layer.send_to_back",
+      "params": {
+        "nodeId": "${{steps.f3_deco1.result.id}}"
+      }
+    },
+    {
+      "command": "effect.add_blur",
+      "params": {
+        "nodeId": "${{steps.f3_deco1.result.id}}",
+        "blurType": "LAYER_BLUR",
+        "radius": 100
+      }
+    },
+    {
+      "name": "f3_content",
+      "command": "node.create_frame",
+      "params": {
+        "name": "Content 3",
+        "parentId": "${{steps.frame3.result.id}}",
+        "width": 1080,
+        "height": 1920
+      }
+    },
+    {
+      "command": "paint.set_solid",
+      "params": {
+        "nodeId": "${{steps.f3_content.result.id}}",
+        "color": {
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "a": 0
+        }
+      }
+    },
+    {
+      "command": "layout.set_auto_layout",
+      "params": {
+        "nodeId": "${{steps.f3_content.result.id}}",
+        "direction": "VERTICAL",
+        "itemSpacing": 40,
+        "paddingTop": 320,
+        "paddingBottom": 200,
+        "paddingLeft": 80,
+        "paddingRight": 80,
+        "primaryAxisAlign": "CENTER",
+        "counterAxisAlign": "CENTER"
+      }
+    },
+    {
+      "name": "f3_hero",
+      "command": "text.create",
+      "params": {
+        "text": "Try It Free",
+        "parentId": "${{steps.f3_content.result.id}}",
+        "fontSize": 80,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f3_hero.result.id}}",
+        "weight": 800
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f3_hero.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1
+        }
+      }
+    },
+    {
+      "command": "text.set_align",
+      "params": {
+        "nodeId": "${{steps.f3_hero.result.id}}",
+        "textAlign": "CENTER"
+      }
+    },
+    {
+      "name": "f3_sub",
+      "command": "text.create",
+      "params": {
+        "text": "Open source. MIT licensed.\nOne binary. Zero config.",
+        "parentId": "${{steps.f3_content.result.id}}",
+        "fontSize": 28,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f3_sub.result.id}}",
+        "weight": 400
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f3_sub.result.id}}",
+        "color": {
+          "r": 0.65,
+          "g": 0.65,
+          "b": 0.7
+        }
+      }
+    },
+    {
+      "command": "text.set_align",
+      "params": {
+        "nodeId": "${{steps.f3_sub.result.id}}",
+        "textAlign": "CENTER"
+      }
+    },
+    {
+      "command": "text.set_spacing",
+      "params": {
+        "nodeId": "${{steps.f3_sub.result.id}}",
+        "lineHeight": 150
+      }
+    },
+    {
+      "name": "f3_btn",
+      "command": "node.create_frame",
+      "params": {
+        "name": "CTA Button",
+        "parentId": "${{steps.f3_content.result.id}}",
+        "width": 480,
+        "height": 72
+      }
+    },
+    {
+      "command": "paint.set_gradient",
+      "params": {
+        "nodeId": "${{steps.f3_btn.result.id}}",
+        "gradientType": "LINEAR",
+        "stops": [
+          {
+            "position": 0,
+            "color": {
+              "r": 0.5,
+              "g": 0.2,
+              "b": 1
+            }
+          },
+          {
+            "position": 1,
+            "color": {
+              "r": 0.7,
+              "g": 0.3,
+              "b": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "command": "node.set_corner_radius",
+      "params": {
+        "nodeId": "${{steps.f3_btn.result.id}}",
+        "radius": 36
+      }
+    },
+    {
+      "command": "layout.set_auto_layout",
+      "params": {
+        "nodeId": "${{steps.f3_btn.result.id}}",
+        "direction": "HORIZONTAL",
+        "itemSpacing": 0,
+        "padding": 16,
+        "primaryAxisAlign": "CENTER",
+        "counterAxisAlign": "CENTER"
+      }
+    },
+    {
+      "command": "effect.add_shadow",
+      "params": {
+        "nodeId": "${{steps.f3_btn.result.id}}",
+        "shadowType": "DROP_SHADOW",
+        "color": {
+          "r": 0.6,
+          "g": 0.3,
+          "b": 1,
+          "a": 0.3
+        },
+        "offsetX": 0,
+        "offsetY": 8,
+        "radius": 32
+      }
+    },
+    {
+      "name": "f3_btn_text",
+      "command": "text.create",
+      "params": {
+        "text": "Download on GitHub",
+        "parentId": "${{steps.f3_btn.result.id}}",
+        "fontSize": 24,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f3_btn_text.result.id}}",
+        "weight": 700
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f3_btn_text.result.id}}",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1
+        }
+      }
+    },
+    {
+      "name": "f3_url",
+      "command": "text.create",
+      "params": {
+        "text": "github.com/nerveband/ai-happy-design",
+        "parentId": "${{steps.f3_content.result.id}}",
+        "fontSize": 20,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f3_url.result.id}}",
+        "weight": 500
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f3_url.result.id}}",
+        "color": {
+          "r": 0.6,
+          "g": 0.3,
+          "b": 1
+        }
+      }
+    },
+    {
+      "command": "text.set_align",
+      "params": {
+        "nodeId": "${{steps.f3_url.result.id}}",
+        "textAlign": "CENTER"
+      }
+    },
+    {
+      "name": "f3_footer",
+      "command": "text.create",
+      "params": {
+        "text": "Made by Ashraf Ali",
+        "parentId": "${{steps.f3_content.result.id}}",
+        "fontSize": 18,
+        "fontFamily": "Inter"
+      }
+    },
+    {
+      "command": "text.set_weight",
+      "params": {
+        "nodeId": "${{steps.f3_footer.result.id}}",
+        "weight": 400
+      }
+    },
+    {
+      "command": "text.set_color",
+      "params": {
+        "nodeId": "${{steps.f3_footer.result.id}}",
+        "color": {
+          "r": 0.45,
+          "g": 0.45,
+          "b": 0.5
+        }
+      }
+    },
+    {
+      "command": "text.set_align",
+      "params": {
+        "nodeId": "${{steps.f3_footer.result.id}}",
+        "textAlign": "CENTER"
+      }
+    }
+  ],
+  "continueOnError": true,
+  "retries": 1,
+  "retryDelayMs": 250,
+  "interpolate": true
+}

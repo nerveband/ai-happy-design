@@ -2,8 +2,8 @@ package tools
 
 import (
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/nerveband/ai-happy-design-v2/internal/figma"
-	"github.com/nerveband/ai-happy-design-v2/internal/ws"
+	"github.com/nerveband/ai-happy-design/internal/figma"
+	"github.com/nerveband/ai-happy-design/internal/ws"
 )
 
 // RegisterAll registers every domain tool with the MCP server.

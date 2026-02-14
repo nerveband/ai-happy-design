@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/nerveband/ai-happy-design-v2/internal/ws"
+	"github.com/nerveband/ai-happy-design/internal/ws"
 )
 
 // Commander sends commands to the Figma plugin through the WebSocket relay.

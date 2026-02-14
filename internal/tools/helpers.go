@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/nerveband/ai-happy-design-v2/internal/figma"
+	"github.com/nerveband/ai-happy-design/internal/figma"
 )
 
 // sendCommand is a convenience that sends a Figma command and returns an MCP

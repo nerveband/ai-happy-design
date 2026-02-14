@@ -6,7 +6,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/nerveband/ai-happy-design-v2/internal/figma"
+	"github.com/nerveband/ai-happy-design/internal/figma"
 )
 
 // RegisterPaintTool registers the "paint" tool for fill, stroke, and gradient operations.
@@ -14,15 +14,17 @@ func RegisterPaintTool(s *server.MCPServer, commander *figma.Commander) {
 	tool := mcp.NewTool("paint",
 		mcp.WithDescription("Paint operations: fills, strokes, gradients, images. Use action parameter to select operation."),
 		mcp.WithString("action", mcp.Required(), mcp.Description("Action to perform"),
-			mcp.Enum("set_solid", "set_gradient", "set_image", "set_image_url", "add_fill", "remove_fill", "get_fills", "set_stroke")),
+			mcp.Enum("set_solid", "set_gradient", "set_image", "set_image_fill", "set_image_url", "set_image_fill_from_url", "add_fill", "remove_fill", "get_fills", "set_stroke")),
 		mcp.WithString("nodeId", mcp.Description("Target node ID")),
 		mcp.WithString("color", mcp.Description("Hex color string (e.g. #FF0000)")),
 		mcp.WithNumber("opacity", mcp.Description("Opacity from 0 to 1")),
 		mcp.WithString("gradientType", mcp.Description("Gradient type: LINEAR, RADIAL, ANGULAR, DIAMOND"),
 			mcp.Enum("LINEAR", "RADIAL", "ANGULAR", "DIAMOND")),
 		mcp.WithString("stops", mcp.Description("JSON array of gradient stops [{position, color}]")),
+		mcp.WithString("url", mcp.Description("URL of the image to use as fill")),
 		mcp.WithString("imageUrl", mcp.Description("URL of the image to use as fill")),
-		mcp.WithString("imageData", mcp.Description("Base64-encoded image data")),
+		mcp.WithString("imageData", mcp.Description("Base64-encoded image data (raw base64 or data URL prefix).")),
+		mcp.WithNumber("timeoutMs", mcp.Description("Timeout in milliseconds for URL image fetch/createImageAsync path.")),
 		mcp.WithString("scaleMode", mcp.Description("Image scale mode: FILL, FIT, TILE, CROP"),
 			mcp.Enum("FILL", "FIT", "TILE", "CROP")),
 		mcp.WithNumber("strokeWeight", mcp.Description("Stroke weight in pixels")),
@@ -62,7 +64,7 @@ func RegisterPaintTool(s *server.MCPServer, commander *figma.Commander) {
 				"stops":        getStringArg(args, "stops", "[]"),
 			})
 
-		case "set_image":
+		case "set_image", "set_image_fill":
 			nodeId, errResult := requireStringArg(args, "nodeId")
 			if errResult != nil {
 				return errResult, nil
@@ -73,15 +75,21 @@ func RegisterPaintTool(s *server.MCPServer, commander *figma.Commander) {
 				"scaleMode": getStringArg(args, "scaleMode", "FILL"),
 			})
 
-		case "set_image_url":
+		case "set_image_url", "set_image_fill_from_url":
 			nodeId, errResult := requireStringArg(args, "nodeId")
 			if errResult != nil {
 				return errResult, nil
 			}
+			url := getStringArg(args, "url", "")
+			if url == "" {
+				url = getStringArg(args, "imageUrl", "")
+			}
 			return sendCommand(commander, "set_image_fill_url", map[string]interface{}{
 				"nodeId":    nodeId,
-				"imageUrl":  getStringArg(args, "imageUrl", ""),
+				"url":       url,
+				"imageUrl":  url,
 				"scaleMode": getStringArg(args, "scaleMode", "FILL"),
+				"timeoutMs": getFloat64Arg(args, "timeoutMs", 8000),
 			})
 
 		case "add_fill":

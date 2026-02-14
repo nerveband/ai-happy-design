@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Happy Design - Social Post</title>
+<style>
+  /* ─── Reset & Page ──────────────────────────────────────── */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d0d0d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+                 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── Canvas ────────────────────────────────────────────── */
+  .canvas {
+    width: 1080px;
+    height: 1080px;
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 90% 60% at 50% 110%, rgba(255,214,0,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 50% at 80% 20%, rgba(255,214,0,0.04) 0%, transparent 60%),
+      linear-gradient(170deg, #1A1A1A 0%, #111111 40%, #0e0e0e 100%);
+  }
+
+  /* ─── Grain overlay ─────────────────────────────────────── */
+  .canvas::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 256px 256px;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* ─── Decorative grid dots ──────────────────────────────── */
+  .grid-dots {
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+    background-image: radial-gradient(circle, #FFD600 0.8px, transparent 0.8px);
+    background-size: 36px 36px;
+    background-position: 18px 18px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* ─── Top-left geometric cluster ────────────────────────── */
+  .geo-cluster {
+    position: absolute;
+    top: -30px;
+    left: -30px;
+    width: 260px;
+    height: 260px;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .geo-cluster .ring {
+    position: absolute;
+    top: 40px;
+    left: 40px;
+    width: 160px;
+    height: 160px;
+    border: 3px solid rgba(255,214,0,0.15);
+    border-radius: 50%;
+    animation: pulseRing 4s ease-in-out infinite;
+  }
+  .geo-cluster .ring-inner {
+    position: absolute;
+    top: 72px;
+    left: 72px;
+    width: 96px;
+    height: 96px;
+    border: 2px solid rgba(255,214,0,0.10);
+    border-radius: 50%;
+    animation: pulseRing 4s ease-in-out 1s infinite;
+  }
+  .geo-cluster .diamond {
+    position: absolute;
+    top: 90px;
+    left: 90px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255,214,0,0.08);
+    transform: rotate(45deg);
+    border-radius: 4px;
+  }
+
+  @keyframes pulseRing {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.08); opacity: 0.6; }
+  }
+
+  /* ─── Bottom-right decorative shapes ────────────────────── */
+  .corner-deco {
+    position: absolute;
+    bottom: -20px;
+    right: -20px;
+    width: 300px;
+    height: 300px;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .corner-deco .hex {
+    position: absolute;
+    bottom: 60px;
+    right: 60px;
+    width: 100px;
+    height: 100px;
+    background: rgba(255,214,0,0.04);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+  .corner-deco .line-h {
+    position: absolute;
+    bottom: 120px;
+    right: 40px;
+    width: 180px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,214,0,0.15), transparent);
+  }
+  .corner-deco .line-v {
+    position: absolute;
+    bottom: 40px;
+    right: 120px;
+    width: 1px;
+    height: 180px;
+    background: linear-gradient(180deg, transparent, rgba(255,214,0,0.15), transparent);
+  }
+
+  /* ─── Floating ambient orbs ─────────────────────────────── */
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .orb-1 {
+    width: 320px; height: 320px;
+    top: -80px; right: -60px;
+    background: rgba(255,214,0,0.06);
+    animation: floatOrb 8s ease-in-out infinite;
+  }
+  .orb-2 {
+    width: 200px; height: 200px;
+    bottom: 120px; left: -40px;
+    background: rgba(255,180,0,0.04);
+    animation: floatOrb 10s ease-in-out 2s infinite;
+  }
+  .orb-3 {
+    width: 140px; height: 140px;
+    top: 50%; left: 55%;
+    background: rgba(255,214,0,0.03);
+    animation: floatOrb 12s ease-in-out 4s infinite;
+  }
+
+  @keyframes floatOrb {
+    0%, 100% { transform: translate(0, 0); }
+    33% { transform: translate(12px, -18px); }
+    66% { transform: translate(-8px, 10px); }
+  }
+
+  /* ─── Content wrapper ───────────────────────────────────── */
+  .content {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    padding: 64px 56px;
+  }
+
+  /* ─── Top badge ─────────────────────────────────────────── */
+  .top-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .top-badge .line {
+    width: 32px;
+    height: 1.5px;
+    background: linear-gradient(90deg, transparent, #FFD600);
+    animation: glowLine 3s ease-in-out infinite;
+  }
+  .top-badge .line.right {
+    background: linear-gradient(90deg, #FFD600, transparent);
+  }
+  @keyframes glowLine {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+  .top-badge span {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #FFD600;
+    opacity: 0.7;
+  }
+
+  /* ─── Figma-inspired icon ───────────────────────────────── */
+  .figma-icon {
+    width: 72px;
+    height: 72px;
+    margin-bottom: 24px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: iconGlow 4s ease-in-out infinite;
+  }
+  @keyframes iconGlow {
+    0%, 100% { filter: drop-shadow(0 0 12px rgba(255,214,0,0.3)); }
+    50% { filter: drop-shadow(0 0 24px rgba(255,214,0,0.6)); }
+  }
+  .figma-icon svg { width: 100%; height: 100%; }
+
+  /* ─── Title ─────────────────────────────────────────────── */
+  .title {
+    font-size: 72px;
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1;
+    text-align: center;
+    margin-bottom: 6px;
+    position: relative;
+  }
+  .title .word-ai {
+    color: #FFD600;
+    text-shadow:
+      0 0 40px rgba(255,214,0,0.35),
+      0 0 80px rgba(255,214,0,0.15),
+      0 2px 4px rgba(0,0,0,0.5);
+    animation: titleGlow 3s ease-in-out infinite;
+  }
+  .title .word-happy {
+    color: #ffffff;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+  .title .word-design {
+    color: #ffffff;
+    opacity: 0.85;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+  @keyframes titleGlow {
+    0%, 100% { text-shadow: 0 0 40px rgba(255,214,0,0.35), 0 0 80px rgba(255,214,0,0.15), 0 2px 4px rgba(0,0,0,0.5); }
+    50% { text-shadow: 0 0 60px rgba(255,214,0,0.55), 0 0 120px rgba(255,214,0,0.25), 0 2px 4px rgba(0,0,0,0.5); }
+  }
+
+  /* ─── Subtitle ──────────────────────────────────────────── */
+  .subtitle {
+    font-size: 24px;
+    font-weight: 500;
+    color: #b0b0b0;
+    letter-spacing: 1px;
+    margin-bottom: 48px;
+    text-align: center;
+  }
+  .subtitle em {
+    font-style: normal;
+    color: #e0c850;
+  }
+
+  /* ─── Feature cards ─────────────────────────────────────── */
+  .features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+    max-width: 680px;
+    margin-bottom: 48px;
+  }
+
+  .feature-card {
+    position: relative;
+    background: linear-gradient(145deg,
+      rgba(255,255,255,0.06) 0%,
+      rgba(255,255,255,0.02) 100%);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 24px 22px;
+    backdrop-filter: blur(4px);
+    transition: transform 0.3s ease;
+    overflow: hidden;
+  }
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255,214,0,0.3) 50%,
+      transparent 100%);
+    opacity: 0.6;
+  }
+  .feature-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    pointer-events: none;
+  }
+
+  /* Highlight card */
+  .feature-card.highlight {
+    background: linear-gradient(145deg,
+      rgba(255,214,0,0.12) 0%,
+      rgba(255,214,0,0.03) 100%);
+    border-color: rgba(255,214,0,0.15);
+    box-shadow:
+      0 8px 32px rgba(255,214,0,0.08),
+      0 2px 8px rgba(0,0,0,0.3);
+  }
+  .feature-card.highlight::before {
+    opacity: 1;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255,214,0,0.5) 50%,
+      transparent 100%);
+  }
+
+  .card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    font-size: 18px;
+  }
+  .card-icon.yellow {
+    background: rgba(255,214,0,0.12);
+    box-shadow: 0 4px 12px rgba(255,214,0,0.1);
+  }
+  .card-icon.amber {
+    background: rgba(255,180,50,0.10);
+    box-shadow: 0 4px 12px rgba(255,180,50,0.08);
+  }
+  .card-icon.white {
+    background: rgba(255,255,255,0.07);
+    box-shadow: 0 4px 12px rgba(255,255,255,0.04);
+  }
+
+  .card-number {
+    font-size: 32px;
+    font-weight: 800;
+    color: #FFD600;
+    line-height: 1;
+    margin-bottom: 4px;
+    letter-spacing: -1px;
+    text-shadow: 0 0 20px rgba(255,214,0,0.3);
+  }
+  .card-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    opacity: 0.9;
+    line-height: 1.3;
+  }
+  .card-sublabel {
+    font-size: 12px;
+    color: #888;
+    margin-top: 4px;
+    font-weight: 400;
+  }
+
+  /* ─── Divider ───────────────────────────────────────────── */
+  .divider {
+    width: 200px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,214,0,0.25), transparent);
+    margin-bottom: 32px;
+  }
+
+  /* ─── Compatible badge ──────────────────────────────────── */
+  .compat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 40px;
+    padding: 10px 24px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 100px;
+  }
+  .compat-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 8px rgba(34,197,94,0.5);
+    animation: blink 2s ease-in-out infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .compat span {
+    font-size: 14px;
+    font-weight: 500;
+    color: #ccc;
+    letter-spacing: 0.3px;
+  }
+  .compat strong {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* ─── Footer ────────────────────────────────────────────── */
+  .footer {
+    position: absolute;
+    bottom: 40px;
+    left: 56px;
+    right: 56px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    z-index: 10;
+  }
+  .footer-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .footer-repo {
+    font-size: 13px;
+    font-weight: 500;
+    color: #FFD600;
+    opacity: 0.6;
+    letter-spacing: 0.3px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+  .footer-author {
+    font-size: 12px;
+    color: #666;
+    font-weight: 400;
+  }
+  .footer-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .footer-right .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #FFD600;
+    opacity: 0.3;
+  }
+  .footer-right span {
+    font-size: 11px;
+    color: #555;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* ─── Accent stripes ────────────────────────────────────── */
+  .stripe-top {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      #FFD600 20%,
+      #FFB800 50%,
+      #FFD600 80%,
+      transparent 100%);
+    z-index: 20;
+    animation: stripeGlow 4s ease-in-out infinite;
+  }
+  @keyframes stripeGlow {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
+  .stripe-bottom {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255,214,0,0.3) 30%,
+      rgba(255,214,0,0.3) 70%,
+      transparent 100%);
+    z-index: 20;
+  }
+
+  /* ─── Floating particles ────────────────────────────────── */
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .particle-1 {
+    width: 4px; height: 4px;
+    top: 18%; right: 22%;
+    background: #FFD600;
+    opacity: 0.3;
+    animation: drift 6s ease-in-out infinite;
+  }
+  .particle-2 {
+    width: 3px; height: 3px;
+    top: 35%; left: 15%;
+    background: #FFD600;
+    opacity: 0.2;
+    animation: drift 8s ease-in-out 1s infinite;
+  }
+  .particle-3 {
+    width: 5px; height: 5px;
+    bottom: 30%; right: 12%;
+    background: #FFD600;
+    opacity: 0.15;
+    animation: drift 7s ease-in-out 3s infinite;
+  }
+  .particle-4 {
+    width: 2px; height: 2px;
+    top: 60%; left: 25%;
+    background: #fff;
+    opacity: 0.15;
+    animation: drift 9s ease-in-out 2s infinite;
+  }
+  .particle-5 {
+    width: 3px; height: 3px;
+    top: 12%; left: 60%;
+    background: #FFD600;
+    opacity: 0.2;
+    animation: drift 5s ease-in-out 4s infinite;
+  }
+
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0); opacity: var(--base-opacity, 0.2); }
+    25% { transform: translate(8px, -12px); opacity: 0.4; }
+    50% { transform: translate(-4px, -20px); opacity: 0.15; }
+    75% { transform: translate(6px, -8px); opacity: 0.35; }
+  }
+
+  /* ─── Side accent lines ─────────────────────────────────── */
+  .side-line-left {
+    position: absolute;
+    top: 80px;
+    left: 32px;
+    width: 1px;
+    height: 120px;
+    background: linear-gradient(180deg, transparent, rgba(255,214,0,0.12), transparent);
+    z-index: 3;
+  }
+  .side-line-right {
+    position: absolute;
+    bottom: 100px;
+    right: 32px;
+    width: 1px;
+    height: 120px;
+    background: linear-gradient(180deg, transparent, rgba(255,214,0,0.12), transparent);
+    z-index: 3;
+  }
+</style>
+</head>
+<body>
+
+<div class="canvas">
+  <!-- Ambient elements -->
+  <div class="stripe-top"></div>
+  <div class="stripe-bottom"></div>
+  <div class="grid-dots"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="side-line-left"></div>
+  <div class="side-line-right"></div>
+
+  <!-- Geometric decorations -->
+  <div class="geo-cluster">
+    <div class="ring"></div>
+    <div class="ring-inner"></div>
+    <div class="diamond"></div>
+  </div>
+  <div class="corner-deco">
+    <div class="hex"></div>
+    <div class="line-h"></div>
+    <div class="line-v"></div>
+  </div>
+
+  <!-- Floating particles -->
+  <div class="particle particle-1"></div>
+  <div class="particle particle-2"></div>
+  <div class="particle particle-3"></div>
+  <div class="particle particle-4"></div>
+  <div class="particle particle-5"></div>
+
+  <!-- Main content -->
+  <div class="content">
+
+    <!-- Top badge -->
+    <div class="top-badge">
+      <div class="line"></div>
+      <span>Figma Plugin</span>
+      <div class="line right"></div>
+    </div>
+
+    <!-- Icon -->
+    <div class="figma-icon">
+      <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Figma-inspired geometric logomark -->
+        <!-- Top-left rounded square -->
+        <rect x="8" y="8" width="24" height="24" rx="6" fill="#FFD600" opacity="0.9"/>
+        <!-- Top-right rounded square -->
+        <rect x="40" y="8" width="24" height="24" rx="12" fill="#FFB800" opacity="0.7"/>
+        <!-- Bottom-left circle -->
+        <circle cx="20" cy="52" r="12" fill="#FFD600" opacity="0.5"/>
+        <!-- Bottom-right diamond -->
+        <rect x="40" y="40" width="22" height="22" rx="4" fill="#FFD600" opacity="0.35"
+              transform="rotate(0 51 51)"/>
+        <!-- Center connector lines -->
+        <line x1="32" y1="20" x2="40" y2="20" stroke="#FFD600" stroke-width="1.5" opacity="0.4"/>
+        <line x1="20" y1="32" x2="20" y2="40" stroke="#FFD600" stroke-width="1.5" opacity="0.4"/>
+        <line x1="32" y1="50" x2="40" y2="50" stroke="#FFD600" stroke-width="1.5" opacity="0.3"/>
+        <!-- Central bright node -->
+        <circle cx="36" cy="36" r="3" fill="#FFD600" opacity="0.8"/>
+        <circle cx="36" cy="36" r="6" stroke="#FFD600" stroke-width="0.8" opacity="0.3"/>
+      </svg>
+    </div>
+
+    <!-- Title -->
+    <h1 class="title">
+      <span class="word-ai">AI</span>
+      <span class="word-happy"> Happy</span>
+      <span class="word-design"> Design</span>
+    </h1>
+
+    <!-- Subtitle -->
+    <p class="subtitle">Figma <em>+</em> AI, wired up</p>
+
+    <!-- Feature cards -->
+    <div class="features">
+      <!-- Card 1: Actions -->
+      <div class="feature-card highlight">
+        <div class="card-icon yellow">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M11 2L3 12h6l-1 6 8-10h-6l1-6z" stroke="#FFD600" stroke-width="1.5"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="card-number">106</div>
+        <div class="card-label">Actions</div>
+        <div class="card-sublabel">Full Figma API coverage</div>
+      </div>
+
+      <!-- Card 2: Stack -->
+      <div class="feature-card">
+        <div class="card-icon amber">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <rect x="3" y="3" width="6" height="6" rx="1.5" stroke="#FFB855" stroke-width="1.5"/>
+            <rect x="11" y="3" width="6" height="6" rx="1.5" stroke="#FFB855" stroke-width="1.5"/>
+            <rect x="3" y="11" width="6" height="6" rx="1.5" stroke="#FFB855" stroke-width="1.5"/>
+            <rect x="11" y="11" width="6" height="6" rx="1.5" stroke="#FFB855" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="card-label" style="font-size:18px; font-weight:700; margin-bottom:4px; color:#FFB855;">
+          CLI + MCP + Plugin
+        </div>
+        <div class="card-sublabel">Three interfaces, one server</div>
+      </div>
+
+      <!-- Card 3: Local -->
+      <div class="feature-card">
+        <div class="card-icon white">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M10 2a5 5 0 00-5 5v2a3 3 0 00-1 2v4a2 2 0 002 2h8a2 2 0 002-2v-4a3 3 0 00-1-2V7a5 5 0 00-5-5z"
+                  stroke="#aaa" stroke-width="1.5" fill="none"/>
+            <circle cx="10" cy="13" r="1.5" fill="#aaa"/>
+          </svg>
+        </div>
+        <div class="card-label" style="font-size:16px; font-weight:700; margin-bottom:4px;">
+          Zero cloud
+        </div>
+        <div class="card-sublabel" style="color:#999;">Local relay. Your data stays.</div>
+      </div>
+
+      <!-- Card 4: Compatible -->
+      <div class="feature-card">
+        <div class="card-icon yellow">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="7" stroke="#FFD600" stroke-width="1.5"/>
+            <path d="M7 10l2 2 4-4" stroke="#FFD600" stroke-width="1.5"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="card-label" style="font-size:15px; font-weight:700; margin-bottom:4px;">
+          Works with
+        </div>
+        <div class="card-sublabel" style="color:#bbb;">Claude, Cursor, and more</div>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider"></div>
+
+    <!-- Compat badge -->
+    <div class="compat">
+      <div class="compat-dot"></div>
+      <span>Open source &middot; <strong>MIT License</strong></span>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-left">
+      <div class="footer-repo">github.com/nerveband/ai-happy-design</div>
+      <div class="footer-author">by Ashraf Ali</div>
+    </div>
+    <div class="footer-right">
+      <div class="dot"></div>
+      <span>2025</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

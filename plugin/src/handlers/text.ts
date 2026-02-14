@@ -1,32 +1,94 @@
 import { loadFont, loadNodeFonts, resolveFontFamily } from '../utils/fonts';
 
+function parseHexColor(color: any, fallback = { r: 0, g: 0, b: 0, a: 1 }) {
+  if (color && typeof color === 'object' && typeof color.r === 'number') {
+    return {
+      r: color.r,
+      g: color.g,
+      b: color.b,
+      a: typeof color.a === 'number' ? color.a : 1,
+    };
+  }
+
+  if (typeof color !== 'string') return fallback;
+  const raw = color.trim().replace(/^#/, '');
+  if (!(raw.length === 3 || raw.length === 6 || raw.length === 8)) return fallback;
+
+  const hex = raw.length === 3
+    ? raw.split('').map(ch => ch + ch).join('')
+    : raw;
+  const hasAlpha = hex.length === 8;
+  const n = parseInt(hex, 16);
+  if (Number.isNaN(n)) return fallback;
+
+  return {
+    r: ((n >> (hasAlpha ? 24 : 16)) & 0xff) / 255,
+    g: ((n >> (hasAlpha ? 16 : 8)) & 0xff) / 255,
+    b: ((n >> (hasAlpha ? 8 : 0)) & 0xff) / 255,
+    a: hasAlpha ? (n & 0xff) / 255 : 1,
+  };
+}
+
 export async function handleText(action: string, params: any): Promise<any> {
   switch (action) {
+    case 'create_text':
+    case 'add_text':
+    case 'add':
+    case 'new':
     case 'create': return createText(params);
+    case 'set_text':
+    case 'update_text':
+    case 'edit':
     case 'set_content': return setContent(params);
+    case 'font':
+    case 'set_font_family':
     case 'set_font': return setFont(params);
+    case 'size':
+    case 'set_font_size':
+    case 'font_size':
     case 'set_size': return setSize(params);
+    case 'weight':
+    case 'set_font_weight':
+    case 'font_weight':
+    case 'bold':
     case 'set_weight': return setWeight(params);
+    case 'color':
+    case 'set_text_color':
+    case 'text_color':
     case 'set_color': return setColor(params);
+    case 'align':
+    case 'set_text_align':
+    case 'alignment':
     case 'set_align': return setAlign(params);
+    case 'set_spacing': return setSpacing(params);
     case 'set_line_height': return setLineHeight(params);
     case 'set_letter_spacing': return setLetterSpacing(params);
     case 'set_decoration': return setDecoration(params);
     case 'set_case': return setCase(params);
     case 'set_paragraph_spacing': return setParagraphSpacing(params);
+    case 'content':
+    case 'get_text':
+    case 'read':
     case 'get_content': return getContent(params);
-    default: throw new Error(`Unknown text action: ${action}`);
+    case 'get_segments': return getSegments(params);
+    case 'load_font': return loadFontAction(params);
+    case 'set_style_id': return setStyleId(params);
+    default: throw new Error('Unknown text action: ' + action + '. Available: create, set_content, set_font, set_size, set_weight, set_color, set_align, set_spacing, set_line_height, set_letter_spacing, set_decoration, set_case, set_paragraph_spacing, get_content, get_segments, load_font, set_style_id');
   }
 }
 
-function getTextNode(nodeId: string): TextNode {
-  const node = figma.getNodeById(nodeId);
+async function getTextNode(nodeId: string): Promise<TextNode> {
+  const node = await figma.getNodeByIdAsync(nodeId);
   if (!node || node.type !== 'TEXT') throw new Error(`Node ${nodeId} is not a text node`);
   return node as TextNode;
 }
 
 async function createText(params: any) {
-  const { x = 0, y = 0, content = '', fontFamily = 'Inter', fontStyle = 'Regular', fontSize = 16, color, name, parentId, width } = params;
+  const content = params.content ?? params.text ?? '';
+  const fontFamily = params.fontFamily ?? params.family ?? 'Inter';
+  const fontStyle = params.fontStyle ?? params.style ?? 'Regular';
+  const fontSize = params.fontSize ?? params.size ?? 16;
+  const width = params.width;
 
   const family = resolveFontFamily(fontFamily);
   await loadFont(family, fontStyle);
@@ -34,42 +96,53 @@ async function createText(params: any) {
   const text = figma.createText();
   text.fontName = { family, style: fontStyle };
   text.fontSize = fontSize;
-  text.x = x;
-  text.y = y;
-  if (name) text.name = name;
-  if (content) text.characters = content;
-  if (color) {
-    text.fills = [{ type: 'SOLID', color: { r: color.r, g: color.g, b: color.b }, opacity: color.a ?? 1 }];
+  text.x = params.x ?? 0;
+  text.y = params.y ?? 0;
+  if (params.name) text.name = params.name;
+  text.characters = String(content);
+
+  if (params.color) {
+    const c = parseHexColor(params.color);
+    text.fills = [{
+      type: 'SOLID',
+      color: { r: c.r, g: c.g, b: c.b },
+      opacity: c.a,
+    }];
   }
+
   if (width !== undefined) {
     text.resize(width, text.height);
     text.textAutoResize = 'HEIGHT';
+  } else {
+    text.textAutoResize = 'WIDTH_AND_HEIGHT';
   }
 
-  if (parentId) {
-    const parent = figma.getNodeById(parentId);
-    if (parent && 'appendChild' in parent) (parent as FrameNode).appendChild(text);
+  if (params.parentId) {
+    const parent = await figma.getNodeByIdAsync(params.parentId);
+    if (parent && 'appendChild' in parent) {
+      (parent as FrameNode | GroupNode | PageNode).appendChild(text);
+    }
   }
 
   return { id: text.id, name: text.name, type: text.type, width: text.width, height: text.height };
 }
 
 async function setContent(params: any) {
-  const { nodeId, content } = params;
-  const node = getTextNode(nodeId);
+  const node = await getTextNode(params.nodeId);
   await loadNodeFonts(node);
-  node.characters = content;
+  node.characters = String(params.content ?? params.text ?? '');
   return { id: node.id, name: node.name, characters: node.characters };
 }
 
 async function setFont(params: any) {
-  const { nodeId, fontFamily, fontStyle = 'Regular', rangeStart, rangeEnd } = params;
-  const node = getTextNode(nodeId);
+  const node = await getTextNode(params.nodeId);
+  const fontFamily = params.fontFamily ?? params.family ?? 'Inter';
+  const fontStyle = params.fontStyle ?? params.style ?? 'Regular';
   const family = resolveFontFamily(fontFamily);
   await loadFont(family, fontStyle);
 
-  if (rangeStart !== undefined && rangeEnd !== undefined) {
-    node.setRangeFontName(rangeStart, rangeEnd, { family, style: fontStyle });
+  if (params.rangeStart !== undefined && params.rangeEnd !== undefined) {
+    node.setRangeFontName(params.rangeStart, params.rangeEnd, { family, style: fontStyle });
   } else {
     await loadNodeFonts(node);
     node.fontName = { family, style: fontStyle };
@@ -78,12 +151,12 @@ async function setFont(params: any) {
 }
 
 async function setSize(params: any) {
-  const { nodeId, size, rangeStart, rangeEnd } = params;
-  const node = getTextNode(nodeId);
+  const node = await getTextNode(params.nodeId);
+  const size = params.size ?? params.fontSize;
   await loadNodeFonts(node);
 
-  if (rangeStart !== undefined && rangeEnd !== undefined) {
-    node.setRangeFontSize(rangeStart, rangeEnd, size);
+  if (params.rangeStart !== undefined && params.rangeEnd !== undefined) {
+    node.setRangeFontSize(params.rangeStart, params.rangeEnd, size);
   } else {
     node.fontSize = size;
   }
@@ -91,22 +164,31 @@ async function setSize(params: any) {
 }
 
 async function setWeight(params: any) {
-  const { nodeId, weight, rangeStart, rangeEnd } = params;
-  const node = getTextNode(nodeId);
+  const node = await getTextNode(params.nodeId);
+  const weight = params.weight ?? params.fontWeight;
 
-  // Map numeric weights to style names
   const weightMap: Record<number, string> = {
-    100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular',
-    500: 'Medium', 600: 'Semi Bold', 700: 'Bold', 800: 'Extra Bold', 900: 'Black',
+    100: 'Thin',
+    200: 'Extra Light',
+    300: 'Light',
+    400: 'Regular',
+    500: 'Medium',
+    600: 'Semi Bold',
+    700: 'Bold',
+    800: 'Extra Bold',
+    900: 'Black',
   };
-  const styleName = typeof weight === 'string' ? weight : (weightMap[weight] || 'Regular');
+  const numericWeight = typeof weight === 'string' ? parseInt(weight, 10) : weight;
+  const styleName = typeof weight === 'string' && Number.isNaN(numericWeight)
+    ? weight
+    : (weightMap[numericWeight] || 'Regular');
 
   const currentFont = node.fontName;
   const family = currentFont === figma.mixed ? 'Inter' : currentFont.family;
   await loadFont(family, styleName);
 
-  if (rangeStart !== undefined && rangeEnd !== undefined) {
-    node.setRangeFontName(rangeStart, rangeEnd, { family, style: styleName });
+  if (params.rangeStart !== undefined && params.rangeEnd !== undefined) {
+    node.setRangeFontName(params.rangeStart, params.rangeEnd, { family, style: styleName });
   } else {
     node.fontName = { family, style: styleName };
   }
@@ -114,18 +196,18 @@ async function setWeight(params: any) {
 }
 
 async function setColor(params: any) {
-  const { nodeId, color, rangeStart, rangeEnd } = params;
-  const node = getTextNode(nodeId);
+  const node = await getTextNode(params.nodeId);
   await loadNodeFonts(node);
 
+  const c = parseHexColor(params.color);
   const fill: SolidPaint = {
     type: 'SOLID',
-    color: { r: color.r, g: color.g, b: color.b },
-    opacity: color.a ?? 1,
+    color: { r: c.r, g: c.g, b: c.b },
+    opacity: c.a,
   };
 
-  if (rangeStart !== undefined && rangeEnd !== undefined) {
-    node.setRangeFills(rangeStart, rangeEnd, [fill]);
+  if (params.rangeStart !== undefined && params.rangeEnd !== undefined) {
+    node.setRangeFills(params.rangeStart, params.rangeEnd, [fill]);
   } else {
     node.fills = [fill];
   }
@@ -133,26 +215,49 @@ async function setColor(params: any) {
 }
 
 async function setAlign(params: any) {
-  const { nodeId, horizontal, vertical } = params;
-  const node = getTextNode(nodeId);
+  const node = await getTextNode(params.nodeId);
   await loadNodeFonts(node);
 
+  const horizontal = params.horizontal ?? params.textAlign ?? params.textAlignHorizontal;
+  const vertical = params.vertical ?? params.textAlignVertical;
   if (horizontal) node.textAlignHorizontal = horizontal;
   if (vertical) node.textAlignVertical = vertical;
   return { id: node.id, name: node.name };
 }
 
-async function setLineHeight(params: any) {
-  const { nodeId, value, unit = 'PIXELS', rangeStart, rangeEnd } = params;
-  const node = getTextNode(nodeId);
+async function setSpacing(params: any) {
+  const node = await getTextNode(params.nodeId);
   await loadNodeFonts(node);
 
+  if (params.letterSpacing !== undefined) {
+    const unit = params.letterSpacingUnit ?? 'PIXELS';
+    node.letterSpacing = { value: params.letterSpacing, unit: unit === 'PERCENT' ? 'PERCENT' : 'PIXELS' };
+  }
+  if (params.lineHeight !== undefined) {
+    const unit = params.lineHeightUnit ?? 'PIXELS';
+    node.lineHeight = unit === 'AUTO'
+      ? { unit: 'AUTO' }
+      : { value: params.lineHeight, unit: unit === 'PERCENT' ? 'PERCENT' : 'PIXELS' };
+  }
+  if (params.paragraphSpacing !== undefined) {
+    node.paragraphSpacing = params.paragraphSpacing;
+  }
+
+  return { id: node.id, name: node.name };
+}
+
+async function setLineHeight(params: any) {
+  const node = await getTextNode(params.nodeId);
+  await loadNodeFonts(node);
+
+  const value = params.value ?? params.lineHeight;
+  const unit = params.unit ?? params.lineHeightUnit ?? 'PIXELS';
   const lineHeight: LineHeight = unit === 'AUTO'
     ? { unit: 'AUTO' }
     : { value, unit: unit === 'PERCENT' ? 'PERCENT' : 'PIXELS' };
 
-  if (rangeStart !== undefined && rangeEnd !== undefined) {
-    node.setRangeLineHeight(rangeStart, rangeEnd, lineHeight);
+  if (params.rangeStart !== undefined && params.rangeEnd !== undefined) {
+    node.setRangeLineHeight(params.rangeStart, params.rangeEnd, lineHeight);
   } else {
     node.lineHeight = lineHeight;
   }
@@ -160,14 +265,18 @@ async function setLineHeight(params: any) {
 }
 
 async function setLetterSpacing(params: any) {
-  const { nodeId, value, unit = 'PIXELS', rangeStart, rangeEnd } = params;
-  const node = getTextNode(nodeId);
+  const node = await getTextNode(params.nodeId);
   await loadNodeFonts(node);
 
-  const letterSpacing: LetterSpacing = { value, unit: unit === 'PERCENT' ? 'PERCENT' : 'PIXELS' };
+  const value = params.value ?? params.letterSpacing;
+  const unit = params.unit ?? params.letterSpacingUnit ?? 'PIXELS';
+  const letterSpacing: LetterSpacing = {
+    value,
+    unit: unit === 'PERCENT' ? 'PERCENT' : 'PIXELS',
+  };
 
-  if (rangeStart !== undefined && rangeEnd !== undefined) {
-    node.setRangeLetterSpacing(rangeStart, rangeEnd, letterSpacing);
+  if (params.rangeStart !== undefined && params.rangeEnd !== undefined) {
+    node.setRangeLetterSpacing(params.rangeStart, params.rangeEnd, letterSpacing);
   } else {
     node.letterSpacing = letterSpacing;
   }
@@ -175,12 +284,12 @@ async function setLetterSpacing(params: any) {
 }
 
 async function setDecoration(params: any) {
-  const { nodeId, decoration, rangeStart, rangeEnd } = params;
-  const node = getTextNode(nodeId);
+  const node = await getTextNode(params.nodeId);
   await loadNodeFonts(node);
 
-  if (rangeStart !== undefined && rangeEnd !== undefined) {
-    node.setRangeTextDecoration(rangeStart, rangeEnd, decoration);
+  const decoration = params.decoration ?? params.textDecoration;
+  if (params.rangeStart !== undefined && params.rangeEnd !== undefined) {
+    node.setRangeTextDecoration(params.rangeStart, params.rangeEnd, decoration);
   } else {
     node.textDecoration = decoration;
   }
@@ -188,12 +297,12 @@ async function setDecoration(params: any) {
 }
 
 async function setCase(params: any) {
-  const { nodeId, textCase, rangeStart, rangeEnd } = params;
-  const node = getTextNode(nodeId);
+  const node = await getTextNode(params.nodeId);
   await loadNodeFonts(node);
 
-  if (rangeStart !== undefined && rangeEnd !== undefined) {
-    node.setRangeTextCase(rangeStart, rangeEnd, textCase);
+  const textCase = params.textCase ?? params.case;
+  if (params.rangeStart !== undefined && params.rangeEnd !== undefined) {
+    node.setRangeTextCase(params.rangeStart, params.rangeEnd, textCase);
   } else {
     node.textCase = textCase;
   }
@@ -201,16 +310,14 @@ async function setCase(params: any) {
 }
 
 async function setParagraphSpacing(params: any) {
-  const { nodeId, spacing } = params;
-  const node = getTextNode(nodeId);
+  const node = await getTextNode(params.nodeId);
   await loadNodeFonts(node);
-  node.paragraphSpacing = spacing;
+  node.paragraphSpacing = params.spacing ?? params.paragraphSpacing ?? 0;
   return { id: node.id, name: node.name };
 }
 
 async function getContent(params: any) {
-  const { nodeId } = params;
-  const node = getTextNode(nodeId);
+  const node = await getTextNode(params.nodeId);
   return {
     id: node.id,
     name: node.name,
@@ -224,4 +331,28 @@ async function getContent(params: any) {
     textDecoration: node.textDecoration,
     textCase: node.textCase,
   };
+}
+
+async function getSegments(params: any) {
+  const node = await getTextNode(params.nodeId);
+  const property = params.property;
+  const properties = property
+    ? [property]
+    : ['fontName', 'fontSize', 'fills', 'textDecoration', 'textCase', 'lineHeight', 'letterSpacing'];
+  const segments = node.getStyledTextSegments(properties as any);
+  return { id: node.id, name: node.name, segments };
+}
+
+async function loadFontAction(params: any) {
+  const fontFamily = params.fontFamily ?? params.family ?? 'Inter';
+  const fontStyle = params.fontStyle ?? params.style ?? 'Regular';
+  const family = resolveFontFamily(fontFamily);
+  await loadFont(family, fontStyle);
+  return { loaded: true, family, style: fontStyle };
+}
+
+async function setStyleId(params: any) {
+  const node = await getTextNode(params.nodeId);
+  await node.setTextStyleIdAsync(params.styleId ?? '');
+  return { id: node.id, name: node.name, textStyleId: node.textStyleId };
 }

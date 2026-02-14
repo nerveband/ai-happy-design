@@ -2,8 +2,8 @@ package mcp
 
 import (
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/nerveband/ai-happy-design-v2/internal/tools"
-	"github.com/nerveband/ai-happy-design-v2/internal/ws"
+	"github.com/nerveband/ai-happy-design/internal/tools"
+	"github.com/nerveband/ai-happy-design/internal/ws"
 )
 
 // StartServer creates the MCP server, registers all tools, and starts the

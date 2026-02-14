@@ -1,0 +1,209 @@
+[
+  {"name":"root","command":"node.create_frame","params":{"name":"AI Happy Design IG v3","x":3600,"y":0,"width":1080,"height":1080}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.root.result.id}}","color":{"r":0.102,"g":0.102,"b":0.102}}},
+
+  {"name":"topStripe","command":"shape.create_rectangle","params":{"name":"Top Stripe","parentId":"${{steps.root.result.id}}","x":0,"y":0,"width":1080,"height":4}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.topStripe.result.id}}","color":{"r":1,"g":0.84,"b":0}}},
+
+  {"name":"botStripe","command":"shape.create_rectangle","params":{"name":"Bottom Stripe","parentId":"${{steps.root.result.id}}","x":0,"y":1076,"width":1080,"height":4}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.botStripe.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.3}}},
+
+  {"name":"ringOuter","command":"shape.create_ellipse","params":{"name":"Deco Ring Outer","parentId":"${{steps.root.result.id}}","x":-24,"y":-24,"width":176,"height":176}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.ringOuter.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.12},"width":2}},
+  {"command":"paint.remove_fill","params":{"nodeId":"${{steps.ringOuter.result.id}}","index":0}},
+
+  {"name":"ringInner","command":"shape.create_ellipse","params":{"name":"Deco Ring Inner","parentId":"${{steps.root.result.id}}","x":16,"y":16,"width":96,"height":96}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.ringInner.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.08},"width":1.5}},
+  {"command":"paint.remove_fill","params":{"nodeId":"${{steps.ringInner.result.id}}","index":0}},
+
+  {"name":"diamond","command":"shape.create_rectangle","params":{"name":"Deco Diamond","parentId":"${{steps.root.result.id}}","x":40,"y":40,"width":40,"height":40}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.diamond.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.06}}},
+  {"command":"node.rotate","params":{"nodeId":"${{steps.diamond.result.id}}","rotation":45}},
+
+  {"name":"decoLineH","command":"shape.create_line","params":{"name":"Deco Line H","parentId":"${{steps.root.result.id}}","x":880,"y":928,"width":160}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.decoLineH.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.1},"width":1}},
+
+  {"name":"decoLineV","command":"shape.create_line","params":{"name":"Deco Line V","parentId":"${{steps.root.result.id}}","x":960,"y":848,"width":1}},
+  {"command":"node.resize","params":{"nodeId":"${{steps.decoLineV.result.id}}","width":1,"height":160}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.decoLineV.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.1},"width":1}},
+
+  {"name":"sideLineL","command":"shape.create_line","params":{"name":"Side Accent L","parentId":"${{steps.root.result.id}}","x":32,"y":80,"width":1}},
+  {"command":"node.resize","params":{"nodeId":"${{steps.sideLineL.result.id}}","width":1,"height":120}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.sideLineL.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.08},"width":1}},
+
+  {"name":"sideLineR","command":"shape.create_line","params":{"name":"Side Accent R","parentId":"${{steps.root.result.id}}","x":1048,"y":880,"width":1}},
+  {"command":"node.resize","params":{"nodeId":"${{steps.sideLineR.result.id}}","width":1,"height":120}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.sideLineR.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.08},"width":1}},
+
+  {"name":"p1","command":"shape.create_ellipse","params":{"name":"Particle","parentId":"${{steps.root.result.id}}","x":816,"y":192,"width":4,"height":4}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.p1.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.25}}},
+  {"name":"p2","command":"shape.create_ellipse","params":{"name":"Particle","parentId":"${{steps.root.result.id}}","x":160,"y":376,"width":3,"height":3}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.p2.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.15}}},
+  {"name":"p3","command":"shape.create_ellipse","params":{"name":"Particle","parentId":"${{steps.root.result.id}}","x":944,"y":752,"width":5,"height":5}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.p3.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.12}}},
+  {"name":"p4","command":"shape.create_ellipse","params":{"name":"Particle","parentId":"${{steps.root.result.id}}","x":264,"y":648,"width":2,"height":2}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.p4.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.1}}},
+  {"name":"p5","command":"shape.create_ellipse","params":{"name":"Particle","parentId":"${{steps.root.result.id}}","x":648,"y":128,"width":3,"height":3}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.p5.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.15}}},
+
+  {"name":"content","command":"node.create_frame","params":{"name":"Content","parentId":"${{steps.root.result.id}}","x":0,"y":0,"width":1080,"height":1080}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.content.result.id}}","color":{"r":0,"g":0,"b":0,"a":0}}},
+  {"command":"layout.set_auto_layout","params":{"nodeId":"${{steps.content.result.id}}","direction":"VERTICAL","itemSpacing":24,"paddingTop":80,"paddingBottom":24,"paddingLeft":80,"paddingRight":80,"primaryAxisAlign":"CENTER","counterAxisAlign":"CENTER"}},
+
+  {"name":"badgeLine","command":"node.create_frame","params":{"name":"Badge","parentId":"${{steps.content.result.id}}","width":320,"height":24}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.badgeLine.result.id}}","color":{"r":0,"g":0,"b":0,"a":0}}},
+  {"command":"layout.set_auto_layout","params":{"nodeId":"${{steps.badgeLine.result.id}}","direction":"HORIZONTAL","itemSpacing":12,"primaryAxisAlign":"CENTER","counterAxisAlign":"CENTER"}},
+
+  {"name":"bLineL","command":"shape.create_rectangle","params":{"name":"Line L","parentId":"${{steps.badgeLine.result.id}}","width":40,"height":2}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.bLineL.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.5}}},
+
+  {"name":"badgeText","command":"text.create","params":{"text":"FIGMA PLUGIN","parentId":"${{steps.badgeLine.result.id}}","fontSize":16}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.badgeText.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.7}}},
+  {"command":"text.set_letter_spacing","params":{"nodeId":"${{steps.badgeText.result.id}}","letterSpacing":4}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.badgeText.result.id}}","weight":600}},
+
+  {"name":"bLineR","command":"shape.create_rectangle","params":{"name":"Line R","parentId":"${{steps.badgeLine.result.id}}","width":40,"height":2}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.bLineR.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.5}}},
+
+  {"name":"iconRow","command":"node.create_frame","params":{"name":"Icon","parentId":"${{steps.content.result.id}}","width":88,"height":88}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.iconRow.result.id}}","color":{"r":0,"g":0,"b":0,"a":0}}},
+  {"command":"layout.set_auto_layout","params":{"nodeId":"${{steps.iconRow.result.id}}","direction":"HORIZONTAL","itemSpacing":8,"primaryAxisAlign":"CENTER","counterAxisAlign":"CENTER","layoutWrap":"WRAP"}},
+
+  {"name":"icoTL","command":"shape.create_rectangle","params":{"name":"Icon TL","parentId":"${{steps.iconRow.result.id}}","width":32,"height":32}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.icoTL.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.9}}},
+  {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.icoTL.result.id}}","radius":8}},
+
+  {"name":"icoTR","command":"shape.create_ellipse","params":{"name":"Icon TR","parentId":"${{steps.iconRow.result.id}}","width":32,"height":32}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.icoTR.result.id}}","color":{"r":1,"g":0.72,"b":0,"a":0.7}}},
+
+  {"name":"icoBL","command":"shape.create_ellipse","params":{"name":"Icon BL","parentId":"${{steps.iconRow.result.id}}","width":28,"height":28}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.icoBL.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.5}}},
+
+  {"name":"icoBR","command":"shape.create_rectangle","params":{"name":"Icon BR","parentId":"${{steps.iconRow.result.id}}","width":28,"height":28}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.icoBR.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.35}}},
+  {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.icoBR.result.id}}","radius":6}},
+
+  {"name":"titleRow","command":"node.create_frame","params":{"name":"Title Row","parentId":"${{steps.content.result.id}}","width":920,"height":88}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.titleRow.result.id}}","color":{"r":0,"g":0,"b":0,"a":0}}},
+  {"command":"layout.set_auto_layout","params":{"nodeId":"${{steps.titleRow.result.id}}","direction":"HORIZONTAL","itemSpacing":16,"primaryAxisAlign":"CENTER","counterAxisAlign":"CENTER"}},
+
+  {"name":"titleAI","command":"text.create","params":{"text":"AI","parentId":"${{steps.titleRow.result.id}}","fontSize":72}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.titleAI.result.id}}","weight":800}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.titleAI.result.id}}","color":{"r":1,"g":0.84,"b":0}}},
+
+  {"name":"titleRest","command":"text.create","params":{"text":"Happy Design","parentId":"${{steps.titleRow.result.id}}","fontSize":72}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.titleRest.result.id}}","weight":800}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.titleRest.result.id}}","color":{"r":1,"g":1,"b":1}}},
+
+  {"name":"subtitle","command":"text.create","params":{"text":"Figma + AI, wired up","parentId":"${{steps.content.result.id}}","fontSize":28}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.subtitle.result.id}}","weight":500}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.subtitle.result.id}}","color":{"r":0.69,"g":0.69,"b":0.69}}},
+
+  {"name":"cardGrid","command":"node.create_frame","params":{"name":"Card Grid","parentId":"${{steps.content.result.id}}","width":920,"height":400}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.cardGrid.result.id}}","color":{"r":0,"g":0,"b":0,"a":0}}},
+  {"command":"layout.set_auto_layout","params":{"nodeId":"${{steps.cardGrid.result.id}}","direction":"VERTICAL","itemSpacing":16}},
+
+  {"name":"cardRow1","command":"node.create_frame","params":{"name":"Card Row 1","parentId":"${{steps.cardGrid.result.id}}","width":920,"height":192}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.cardRow1.result.id}}","color":{"r":0,"g":0,"b":0,"a":0}}},
+  {"command":"layout.set_auto_layout","params":{"nodeId":"${{steps.cardRow1.result.id}}","direction":"HORIZONTAL","itemSpacing":16}},
+
+  {"name":"card1","command":"node.create_frame","params":{"name":"Card - Actions","parentId":"${{steps.cardRow1.result.id}}","width":452,"height":192}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.card1.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.06}}},
+  {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.card1.result.id}}","radius":16}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.card1.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.12},"width":1}},
+  {"command":"layout.set_auto_layout","params":{"nodeId":"${{steps.card1.result.id}}","direction":"VERTICAL","itemSpacing":8,"paddingTop":32,"paddingBottom":32,"paddingLeft":32,"paddingRight":32}},
+
+  {"name":"c1num","command":"text.create","params":{"text":"106","parentId":"${{steps.card1.result.id}}","fontSize":48}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.c1num.result.id}}","weight":800}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.c1num.result.id}}","color":{"r":1,"g":0.84,"b":0}}},
+
+  {"name":"c1label","command":"text.create","params":{"text":"Actions","parentId":"${{steps.card1.result.id}}","fontSize":24}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.c1label.result.id}}","weight":600}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.c1label.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.9}}},
+
+  {"name":"c1sub","command":"text.create","params":{"text":"Full Figma API coverage","parentId":"${{steps.card1.result.id}}","fontSize":18}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.c1sub.result.id}}","color":{"r":0.53,"g":0.53,"b":0.53}}},
+
+  {"name":"card2","command":"node.create_frame","params":{"name":"Card - Stack","parentId":"${{steps.cardRow1.result.id}}","width":452,"height":192}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.card2.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.04}}},
+  {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.card2.result.id}}","radius":16}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.card2.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.07},"width":1}},
+  {"command":"layout.set_auto_layout","params":{"nodeId":"${{steps.card2.result.id}}","direction":"VERTICAL","itemSpacing":8,"paddingTop":32,"paddingBottom":32,"paddingLeft":32,"paddingRight":32,"primaryAxisAlign":"CENTER"}},
+
+  {"name":"c2title","command":"text.create","params":{"text":"CLI + MCP + Plugin","parentId":"${{steps.card2.result.id}}","fontSize":24}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.c2title.result.id}}","weight":700}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.c2title.result.id}}","color":{"r":1,"g":0.72,"b":0.33}}},
+
+  {"name":"c2sub","command":"text.create","params":{"text":"Three interfaces, one server","parentId":"${{steps.card2.result.id}}","fontSize":18}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.c2sub.result.id}}","color":{"r":0.53,"g":0.53,"b":0.53}}},
+
+  {"name":"cardRow2","command":"node.create_frame","params":{"name":"Card Row 2","parentId":"${{steps.cardGrid.result.id}}","width":920,"height":192}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.cardRow2.result.id}}","color":{"r":0,"g":0,"b":0,"a":0}}},
+  {"command":"layout.set_auto_layout","params":{"nodeId":"${{steps.cardRow2.result.id}}","direction":"HORIZONTAL","itemSpacing":16}},
+
+  {"name":"card3","command":"node.create_frame","params":{"name":"Card - Local","parentId":"${{steps.cardRow2.result.id}}","width":452,"height":192}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.card3.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.04}}},
+  {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.card3.result.id}}","radius":16}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.card3.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.07},"width":1}},
+  {"command":"layout.set_auto_layout","params":{"nodeId":"${{steps.card3.result.id}}","direction":"VERTICAL","itemSpacing":8,"paddingTop":32,"paddingBottom":32,"paddingLeft":32,"paddingRight":32,"primaryAxisAlign":"CENTER"}},
+
+  {"name":"c3title","command":"text.create","params":{"text":"Zero cloud","parentId":"${{steps.card3.result.id}}","fontSize":24}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.c3title.result.id}}","weight":700}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.c3title.result.id}}","color":{"r":1,"g":1,"b":1}}},
+
+  {"name":"c3sub","command":"text.create","params":{"text":"Local relay. Your data stays.","parentId":"${{steps.card3.result.id}}","fontSize":18}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.c3sub.result.id}}","color":{"r":0.6,"g":0.6,"b":0.6}}},
+
+  {"name":"card4","command":"node.create_frame","params":{"name":"Card - Compat","parentId":"${{steps.cardRow2.result.id}}","width":452,"height":192}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.card4.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.04}}},
+  {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.card4.result.id}}","radius":16}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.card4.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.07},"width":1}},
+  {"command":"layout.set_auto_layout","params":{"nodeId":"${{steps.card4.result.id}}","direction":"VERTICAL","itemSpacing":8,"paddingTop":32,"paddingBottom":32,"paddingLeft":32,"paddingRight":32,"primaryAxisAlign":"CENTER"}},
+
+  {"name":"c4title","command":"text.create","params":{"text":"Works with","parentId":"${{steps.card4.result.id}}","fontSize":24}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.c4title.result.id}}","weight":700}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.c4title.result.id}}","color":{"r":1,"g":1,"b":1}}},
+
+  {"name":"c4sub","command":"text.create","params":{"text":"Claude, Cursor, and more","parentId":"${{steps.card4.result.id}}","fontSize":18}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.c4sub.result.id}}","color":{"r":0.73,"g":0.73,"b":0.73}}},
+
+  {"name":"divider","command":"shape.create_rectangle","params":{"name":"Divider","parentId":"${{steps.content.result.id}}","width":240,"height":2}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.divider.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.2}}},
+
+  {"name":"osBadge","command":"node.create_frame","params":{"name":"OS Badge","parentId":"${{steps.content.result.id}}","width":360,"height":48}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.osBadge.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.04}}},
+  {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.osBadge.result.id}}","radius":100}},
+  {"command":"paint.set_stroke","params":{"nodeId":"${{steps.osBadge.result.id}}","color":{"r":1,"g":1,"b":1,"a":0.06},"width":1}},
+  {"command":"layout.set_auto_layout","params":{"nodeId":"${{steps.osBadge.result.id}}","direction":"HORIZONTAL","itemSpacing":10,"primaryAxisAlign":"CENTER","counterAxisAlign":"CENTER","paddingLeft":24,"paddingRight":24}},
+
+  {"name":"greenDot","command":"shape.create_ellipse","params":{"name":"Green Dot","parentId":"${{steps.osBadge.result.id}}","width":8,"height":8}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.greenDot.result.id}}","color":{"r":0.13,"g":0.77,"b":0.37}}},
+
+  {"name":"osText","command":"text.create","params":{"text":"Open source · MIT License","parentId":"${{steps.osBadge.result.id}}","fontSize":18}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.osText.result.id}}","weight":500}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.osText.result.id}}","color":{"r":0.8,"g":0.8,"b":0.8}}},
+
+  {"name":"footer","command":"node.create_frame","params":{"name":"Footer","parentId":"${{steps.root.result.id}}","x":56,"y":1000,"width":968,"height":56}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.footer.result.id}}","color":{"r":0,"g":0,"b":0,"a":0}}},
+  {"command":"layout.set_auto_layout","params":{"nodeId":"${{steps.footer.result.id}}","direction":"HORIZONTAL","primaryAxisAlign":"SPACE_BETWEEN","counterAxisAlign":"MAX"}},
+
+  {"name":"footerLeft","command":"node.create_frame","params":{"name":"Footer Left","parentId":"${{steps.footer.result.id}}","width":480,"height":48}},
+  {"command":"paint.set_solid","params":{"nodeId":"${{steps.footerLeft.result.id}}","color":{"r":0,"g":0,"b":0,"a":0}}},
+  {"command":"layout.set_auto_layout","params":{"nodeId":"${{steps.footerLeft.result.id}}","direction":"VERTICAL","itemSpacing":4}},
+
+  {"name":"fRepo","command":"text.create","params":{"text":"github.com/nerveband/ai-happy-design","parentId":"${{steps.footerLeft.result.id}}","fontSize":16}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.fRepo.result.id}}","weight":500}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.fRepo.result.id}}","color":{"r":1,"g":0.84,"b":0,"a":0.6}}},
+
+  {"name":"fAuthor","command":"text.create","params":{"text":"by Ashraf Ali","parentId":"${{steps.footerLeft.result.id}}","fontSize":16}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.fAuthor.result.id}}","color":{"r":0.4,"g":0.4,"b":0.4}}},
+
+  {"name":"fYear","command":"text.create","params":{"text":"2025","parentId":"${{steps.footer.result.id}}","fontSize":16}},
+  {"command":"text.set_weight","params":{"nodeId":"${{steps.fYear.result.id}}","weight":600}},
+  {"command":"text.set_color","params":{"nodeId":"${{steps.fYear.result.id}}","color":{"r":0.33,"g":0.33,"b":0.33}}},
+  {"command":"text.set_letter_spacing","params":{"nodeId":"${{steps.fYear.result.id}}","letterSpacing":2}},
+
+  {"command":"layer.bring_to_front","params":{"nodeId":"${{steps.content.result.id}}"}},
+  {"command":"layer.bring_to_front","params":{"nodeId":"${{steps.topStripe.result.id}}"}},
+  {"command":"layer.bring_to_front","params":{"nodeId":"${{steps.footer.result.id}}"}}
+]

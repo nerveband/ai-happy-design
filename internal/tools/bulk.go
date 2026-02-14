@@ -4,25 +4,32 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/nerveband/ai-happy-design-v2/internal/figma"
+	"github.com/nerveband/ai-happy-design/internal/batchutil"
+	"github.com/nerveband/ai-happy-design/internal/figma"
 )
 
 // BulkOperation represents a single operation in a bulk execute request.
 type BulkOperation struct {
+	Name    string                 `json:"name,omitempty"`
 	Command string                 `json:"command"`
 	Params  map[string]interface{} `json:"params"`
 }
 
-// RegisterBulkTool registers the "bulk" tool for executing multiple operations atomically.
+// RegisterBulkTool registers the "bulk" tool for executing multiple operations in sequence.
 func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 	tool := mcp.NewTool("bulk",
-		mcp.WithDescription("Execute multiple Figma operations in sequence. Provide a JSON array of operations."),
+		mcp.WithDescription("Execute multiple Figma operations in sequence with retries and optional interpolation."),
 		mcp.WithString("action", mcp.Required(), mcp.Description("Action to perform"),
 			mcp.Enum("execute")),
 		mcp.WithString("operations", mcp.Required(), mcp.Description("JSON array of operations: [{\"command\": \"...\", \"params\": {...}}, ...]")),
+		mcp.WithBoolean("continueOnError", mcp.Description("Continue after failed operations (default true)")),
+		mcp.WithNumber("retries", mcp.Description("Retry count per operation after first attempt (default 1)")),
+		mcp.WithNumber("retryDelayMs", mcp.Description("Delay between retries in milliseconds (default 250)")),
+		mcp.WithBoolean("interpolate", mcp.Description("Enable placeholders like ${{steps.0.result.id}} from prior steps (default true)")),
 	)
 
 	s.AddTool(tool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -45,20 +52,140 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 				return mcp.NewToolResultError("operations array is empty"), nil
 			}
 
-			results := make([]interface{}, 0, len(ops))
+			continueOnError := getBoolArg(args, "continueOnError", true)
+			interpolate := getBoolArg(args, "interpolate", true)
+			retries := int(getFloat64Arg(args, "retries", 1))
+			retryDelayMs := int(getFloat64Arg(args, "retryDelayMs", 250))
+			if retries < 0 {
+				return mcp.NewToolResultError("retries must be >= 0"), nil
+			}
+			if retryDelayMs < 0 {
+				return mcp.NewToolResultError("retryDelayMs must be >= 0"), nil
+			}
+			retryDelay := time.Duration(retryDelayMs) * time.Millisecond
+
+			results := make([]map[string]interface{}, 0, len(ops))
+			states := make([]batchutil.StepState, 0, len(ops))
+			succeeded := 0
+			failed := 0
+			retriesUsed := 0
+			stoppedEarly := false
+
 			for i, op := range ops {
-				result, err := commander.SendCommand(op.Command, op.Params)
-				if err != nil {
-					return mcp.NewToolResultError(fmt.Sprintf("operation %d (%s) failed: %v", i, op.Command, err)), nil
+				params := op.Params
+				if params == nil {
+					params = map[string]interface{}{}
 				}
-				results = append(results, map[string]interface{}{
-					"index":   i,
-					"command": op.Command,
-					"result":  result,
+
+				if interpolate {
+					interpolatedParams, err := batchutil.InterpolateParams(params, states)
+					if err != nil {
+						entry := map[string]interface{}{
+							"index":    i,
+							"name":     op.Name,
+							"command":  op.Command,
+							"ok":       false,
+							"attempts": 0,
+							"error":    fmt.Sprintf("interpolation error: %v", err),
+						}
+						results = append(results, entry)
+						states = append(states, batchutil.StepState{
+							Index:   i,
+							Name:    op.Name,
+							Command: op.Command,
+							OK:      false,
+							Error:   entry["error"].(string),
+						})
+						failed++
+						if !continueOnError {
+							stoppedEarly = true
+							break
+						}
+						continue
+					}
+					params = interpolatedParams
+				}
+
+				maxAttempts := retries + 1
+				attempts := 0
+				var result interface{}
+				var sendErr error
+				for attempts = 1; attempts <= maxAttempts; attempts++ {
+					result, sendErr = commander.SendCommand(op.Command, params)
+					if sendErr == nil {
+						break
+					}
+					if attempts < maxAttempts && retryDelay > 0 {
+						time.Sleep(retryDelay)
+					}
+				}
+				if attempts > 1 {
+					retriesUsed += attempts - 1
+				}
+
+				if sendErr != nil {
+					entry := map[string]interface{}{
+						"index":    i,
+						"name":     op.Name,
+						"command":  op.Command,
+						"ok":       false,
+						"attempts": attempts,
+						"error":    sendErr.Error(),
+					}
+					results = append(results, entry)
+					states = append(states, batchutil.StepState{
+						Index:   i,
+						Name:    op.Name,
+						Command: op.Command,
+						OK:      false,
+						Error:   sendErr.Error(),
+					})
+					failed++
+					if !continueOnError {
+						stoppedEarly = true
+						break
+					}
+					continue
+				}
+
+				entry := map[string]interface{}{
+					"index":    i,
+					"name":     op.Name,
+					"command":  op.Command,
+					"ok":       true,
+					"attempts": attempts,
+					"result":   result,
+				}
+				results = append(results, entry)
+				states = append(states, batchutil.StepState{
+					Index:   i,
+					Name:    op.Name,
+					Command: op.Command,
+					OK:      true,
+					Result:  result,
 				})
+				succeeded++
 			}
 
-			text, err := formatResult(results)
+			processed := len(results)
+			pending := len(ops) - processed
+			out := map[string]interface{}{
+				"ok": failed == 0 && pending == 0,
+				"summary": map[string]interface{}{
+					"total":           len(ops),
+					"processed":       processed,
+					"succeeded":       succeeded,
+					"failed":          failed,
+					"pending":         pending,
+					"retriesUsed":     retriesUsed,
+					"continueOnError": continueOnError,
+					"interpolation":   interpolate,
+				},
+				"stoppedEarly": stoppedEarly,
+				"results":      results,
+			}
+
+			text, err := formatResult(out)
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to format results: %v", err)), nil
 			}

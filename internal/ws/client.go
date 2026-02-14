@@ -21,7 +21,9 @@ type Client struct {
 	pending   map[string]chan *Message
 	pendingMu sync.Mutex
 
-	done chan struct{}
+	done            chan struct{}
+	joined          chan struct{}
+	progressHandler func(*Message)
 }
 
 // NewClient creates a new WebSocket client targeting the given URL.
@@ -30,16 +32,24 @@ func NewClient(url string) *Client {
 		url:     url,
 		pending: make(map[string]chan *Message),
 		done:    make(chan struct{}),
+		joined:  make(chan struct{}, 1),
 	}
 }
 
-// JoinChannel connects to the relay and joins the specified channel.
-// Blocks until the connection is closed or an error occurs.
-func (c *Client) JoinChannel(channelKey string) error {
+// SetProgressHandler installs an optional callback for progress_update messages.
+func (c *Client) SetProgressHandler(handler func(*Message)) {
+	c.progressHandler = handler
+}
+
+// Connect establishes a WebSocket connection and joins the specified channel.
+func (c *Client) Connect(channelKey string) error {
 	conn, _, err := websocket.DefaultDialer.Dial(c.url+"/ws", nil)
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
 	}
+
+	c.done = make(chan struct{})
+	c.joined = make(chan struct{}, 1)
 	c.ws = conn
 	c.channel = channelKey
 
@@ -56,8 +66,24 @@ func (c *Client) JoinChannel(channelKey string) error {
 		return fmt.Errorf("failed to send join: %w", err)
 	}
 
-	log.Printf("[client] joined channel %s", channelKey)
+	select {
+	case <-c.joined:
+		log.Printf("[client] joined channel %s", channelKey)
+		return nil
+	case <-time.After(10 * time.Second):
+		_ = c.Close()
+		return fmt.Errorf("timed out waiting to join channel %s", channelKey)
+	case <-c.done:
+		return fmt.Errorf("connection closed before join completed")
+	}
+}
 
+// JoinChannel connects to the relay and joins the specified channel.
+// Blocks until the connection is closed or an error occurs.
+func (c *Client) JoinChannel(channelKey string) error {
+	if err := c.Connect(channelKey); err != nil {
+		return err
+	}
 	// Block until done
 	<-c.done
 	return nil
@@ -65,7 +91,16 @@ func (c *Client) JoinChannel(channelKey string) error {
 
 // SendCommand sends a command to the plugin via the relay and waits for a response.
 func (c *Client) SendCommand(command string, params map[string]interface{}) (json.RawMessage, error) {
+	if c.ws == nil {
+		return nil, fmt.Errorf("not connected")
+	}
+
 	id := uuid.New().String()
+
+	domain, action, err := resolveCommandRoute(command, params)
+	if err != nil {
+		return nil, err
+	}
 
 	paramsJSON, err := json.Marshal(params)
 	if err != nil {
@@ -77,6 +112,8 @@ func (c *Client) SendCommand(command string, params map[string]interface{}) (jso
 		Type:    "command",
 		Channel: c.channel,
 		Command: command,
+		Domain:  domain,
+		Action:  action,
 		Params:  paramsJSON,
 	}
 
@@ -127,9 +164,19 @@ func (c *Client) Send(msg interface{}) error {
 
 // Close shuts down the client connection.
 func (c *Client) Close() error {
-	close(c.done)
-	if c.ws != nil {
-		return c.ws.Close()
+	select {
+	case <-c.done:
+	default:
+		close(c.done)
+	}
+
+	c.mu.Lock()
+	ws := c.ws
+	c.ws = nil
+	c.mu.Unlock()
+
+	if ws != nil {
+		return ws.Close()
 	}
 	return nil
 }
@@ -144,8 +191,16 @@ func (c *Client) readPump() {
 		}
 	}()
 
+	// Capture conn reference so Close() nil-ing c.ws doesn't crash us.
+	c.mu.Lock()
+	ws := c.ws
+	c.mu.Unlock()
+	if ws == nil {
+		return
+	}
+
 	for {
-		_, data, err := c.ws.ReadMessage()
+		_, data, err := ws.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
 				log.Printf("[client] read error: %v", err)
@@ -160,17 +215,34 @@ func (c *Client) readPump() {
 		}
 
 		switch msg.Type {
-		case "response", "error":
+		case "response", "result", "error":
 			c.pendingMu.Lock()
 			ch, ok := c.pending[msg.ID]
 			c.pendingMu.Unlock()
 			if ok {
 				ch <- &msg
 			}
+		case "message":
+			if inner, ok := extractWrappedResponse(&msg); ok {
+				c.pendingMu.Lock()
+				ch, exists := c.pending[inner.ID]
+				c.pendingMu.Unlock()
+				if exists {
+					ch <- inner
+				}
+			}
 		case "joined":
 			log.Printf("[client] confirmed join on channel %s", msg.Channel)
+			select {
+			case c.joined <- struct{}{}:
+			default:
+			}
 		case "progress_update":
-			log.Printf("[client] progress: %s", string(msg.Result))
+			if c.progressHandler != nil {
+				c.progressHandler(&msg)
+			} else {
+				log.Printf("[client] progress: %s", string(msg.Result))
+			}
 		}
 	}
 }

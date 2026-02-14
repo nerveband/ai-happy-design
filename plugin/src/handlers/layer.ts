@@ -2,20 +2,32 @@ import { serializeNodeSummary } from '../utils/serialize';
 
 export async function handleLayer(action: string, params: any): Promise<any> {
   switch (action) {
+    case 'reorder':
+    case 'order':
+    case 'set_z_order':
     case 'set_order': return setOrder(params);
+    case 'forward':
     case 'bring_forward': return bringForward(params);
+    case 'backward':
     case 'send_backward': return sendBackward(params);
+    case 'to_front':
+    case 'front':
     case 'bring_to_front': return bringToFront(params);
+    case 'to_back':
+    case 'back':
     case 'send_to_back': return sendToBack(params);
     case 'group': return groupNodes(params);
     case 'ungroup': return ungroupNodes(params);
+    case 'reparent':
+    case 'move_to':
     case 'move_to_parent': return moveToParent(params);
-    default: throw new Error(`Unknown layer action: ${action}`);
+    case 'insert_child': return insertChild(params);
+    default: throw new Error('Unknown layer action: ' + action + '. Available: set_order, bring_forward, send_backward, bring_to_front, send_to_back, group, ungroup, move_to_parent, insert_child');
   }
 }
 
-function getSceneNode(nodeId: string): SceneNode {
-  const node = figma.getNodeById(nodeId) as SceneNode;
+async function getSceneNode(nodeId: string): Promise<SceneNode> {
+  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
   if (!node) throw new Error(`Node not found: ${nodeId}`);
   return node;
 }
@@ -33,7 +45,7 @@ function getNodeIndex(node: SceneNode): number {
 
 async function setOrder(params: any) {
   const { nodeId, index } = params;
-  const node = getSceneNode(nodeId);
+  const node = await getSceneNode(nodeId);
   const parent = node.parent;
   if (!parent || !('insertChild' in parent)) throw new Error('Cannot reorder in this parent');
 
@@ -46,7 +58,7 @@ async function setOrder(params: any) {
 
 async function bringForward(params: any) {
   const { nodeId } = params;
-  const node = getSceneNode(nodeId);
+  const node = await getSceneNode(nodeId);
   const parent = node.parent;
   if (!parent || !('children' in parent)) throw new Error('Cannot reorder');
 
@@ -61,7 +73,7 @@ async function bringForward(params: any) {
 
 async function sendBackward(params: any) {
   const { nodeId } = params;
-  const node = getSceneNode(nodeId);
+  const node = await getSceneNode(nodeId);
   const parent = node.parent;
   if (!parent || !('children' in parent)) throw new Error('Cannot reorder');
 
@@ -75,7 +87,7 @@ async function sendBackward(params: any) {
 
 async function bringToFront(params: any) {
   const { nodeId } = params;
-  const node = getSceneNode(nodeId);
+  const node = await getSceneNode(nodeId);
   const parent = node.parent;
   if (!parent || !('children' in parent)) throw new Error('Cannot reorder');
 
@@ -87,7 +99,7 @@ async function bringToFront(params: any) {
 
 async function sendToBack(params: any) {
   const { nodeId } = params;
-  const node = getSceneNode(nodeId);
+  const node = await getSceneNode(nodeId);
   const parent = node.parent;
   if (!parent || !('insertChild' in parent)) throw new Error('Cannot reorder');
 
@@ -97,14 +109,18 @@ async function sendToBack(params: any) {
 }
 
 async function groupNodes(params: any) {
-  const { nodeIds, name } = params;
+  const rawNodeIds = params.nodeIds;
+  const nodeIds = Array.isArray(rawNodeIds)
+    ? rawNodeIds
+    : String(rawNodeIds || '').split(',').map((id: string) => id.trim()).filter(Boolean);
+  const { name } = params;
   if (!nodeIds || nodeIds.length === 0) throw new Error('No nodes specified for grouping');
 
-  const nodes = nodeIds.map((id: string) => {
-    const n = figma.getNodeById(id) as SceneNode;
+  const nodes = await Promise.all(nodeIds.map(async (id: string) => {
+    const n = await figma.getNodeByIdAsync(id) as SceneNode | null;
     if (!n) throw new Error(`Node not found: ${id}`);
     return n;
-  });
+  }));
 
   // All nodes must share the same parent
   const parent = nodes[0].parent;
@@ -118,7 +134,7 @@ async function groupNodes(params: any) {
 
 async function ungroupNodes(params: any) {
   const { nodeId } = params;
-  const node = figma.getNodeById(nodeId);
+  const node = await figma.getNodeByIdAsync(nodeId);
   if (!node || node.type !== 'GROUP') throw new Error(`Node ${nodeId} is not a group`);
 
   const group = node as GroupNode;
@@ -133,10 +149,22 @@ async function ungroupNodes(params: any) {
   return { ungrouped, count: ungrouped.length };
 }
 
+async function insertChild(params: any) {
+  const { parentId, childId, index } = params;
+  const parent = await figma.getNodeByIdAsync(parentId);
+  if (!parent || !('insertChild' in parent)) throw new Error(`Invalid parent: ${parentId}`);
+  const child = await figma.getNodeByIdAsync(childId) as SceneNode | null;
+  if (!child) throw new Error(`Child node not found: ${childId}`);
+
+  (parent as FrameNode).insertChild(index ?? 0, child);
+
+  return { parentId: parent.id, childId: child.id, index: index ?? 0 };
+}
+
 async function moveToParent(params: any) {
   const { nodeId, parentId, index } = params;
-  const node = getSceneNode(nodeId);
-  const parent = figma.getNodeById(parentId);
+  const node = await getSceneNode(nodeId);
+  const parent = await figma.getNodeByIdAsync(parentId);
   if (!parent || !('appendChild' in parent)) throw new Error(`Invalid parent: ${parentId}`);
 
   if (index !== undefined) {

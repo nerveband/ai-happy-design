@@ -1,16 +1,23 @@
 export async function handleExport(action: string, params: any): Promise<any> {
   switch (action) {
+    case 'export_image':
+    case 'export_png':
+    case 'export_node':
+    case 'export':
     case 'image': return exportImage(params);
+    case 'export_svg':
     case 'svg': return exportSvg(params);
+    case 'export_pdf':
     case 'pdf': return exportPdf(params);
+    case 'export_json':
     case 'json': return exportJson(params);
-    default: throw new Error(`Unknown export action: ${action}`);
+    default: throw new Error('Unknown export action: ' + action + '. Available: image, svg, pdf, json');
   }
 }
 
 async function exportImage(params: any) {
-  const { nodeId, format = 'PNG', scale = 1, constraint } = params;
-  const node = figma.getNodeById(nodeId) as SceneNode;
+  const { nodeId, format = 'PNG', scale = 2, constraint } = params;
+  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
   if (!node) throw new Error(`Node not found: ${nodeId}`);
 
   const settings: ExportSettings = {
@@ -39,7 +46,7 @@ async function exportImage(params: any) {
 
 async function exportSvg(params: any) {
   const { nodeId, svgIdAttribute, svgOutlineText, svgSimplifyStroke } = params;
-  const node = figma.getNodeById(nodeId) as SceneNode;
+  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
   if (!node) throw new Error(`Node not found: ${nodeId}`);
 
   const settings: ExportSettingsSVGString = {
@@ -63,7 +70,7 @@ async function exportSvg(params: any) {
 
 async function exportPdf(params: any) {
   const { nodeId } = params;
-  const node = figma.getNodeById(nodeId) as SceneNode;
+  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
   if (!node) throw new Error(`Node not found: ${nodeId}`);
 
   const settings: ExportSettingsPDF = {
@@ -84,7 +91,7 @@ async function exportPdf(params: any) {
 
 async function exportJson(params: any) {
   const { nodeId, depth } = params;
-  const node = figma.getNodeById(nodeId) as SceneNode;
+  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
   if (!node) throw new Error(`Node not found: ${nodeId}`);
 
   // Use the serialize utility for structured export

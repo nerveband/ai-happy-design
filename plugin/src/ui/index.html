@@ -5,39 +5,127 @@
 </head>
 <body>
   <div id="app">
-    <div class="header">
-      <h1>AI Happy Design</h1>
-      <div class="status" id="status">Disconnected</div>
+    <div class="top-bar">
+      <div class="icon-banner">
+        <div class="app-icon"></div>
+        <div class="banner-text">
+          <div class="banner-title">AI Happy Design</div>
+          <div class="banner-sub">Figma + AI, wired up</div>
+        </div>
+      </div>
+      <div class="top-right">
+        <span class="uptime" id="stat-uptime"></span>
+        <div class="status" id="status">Disconnected</div>
+        <button class="info-btn" id="info-btn" title="How this works">?</button>
+      </div>
     </div>
-    <div class="channel-display">
-      <span class="channel-key" id="channel-key">---</span>
-      <button id="copy-btn" title="Copy channel key">Copy</button>
-    </div>
-    <div class="connection">
-      <input type="text" id="port-input" value="3055" placeholder="Port">
+
+    <div class="connection-bar">
+      <input type="text" id="relay-url-input" value="ws://localhost:3055/ws" placeholder="ws://localhost:3055/ws">
+      <button id="check-relay-btn" title="Test if relay is reachable">Test</button>
       <button id="connect-btn">Connect</button>
     </div>
+    <div class="relay-status" id="relay-status"></div>
+
+    <div class="channel-row" id="channel-row">
+      <span class="channel-label">Channel:</span>
+      <span class="channel-key" id="channel-key">---</span>
+      <button id="copy-btn" title="Copy channel key to paste into CLI or AI config">Copy</button>
+      <button id="regenerate-btn" title="Generate new channel key">New</button>
+      <button class="channel-info-btn" id="channel-info-btn" title="What is this?">i</button>
+    </div>
+
     <div class="progress-container" id="progress-container" style="display:none">
       <div class="progress-bar-track">
         <div class="progress-bar" id="progress-bar"></div>
       </div>
       <span class="progress-text" id="progress-text">0%</span>
     </div>
-    <div class="stats">
-      <div class="stat">
-        <div class="stat-value" id="stat-commands">0</div>
-        <div class="stat-label">Commands</div>
+
+    <div class="modal-overlay" id="info-overlay">
+    <div class="info-panel" id="info-panel">
+      <div class="info-panel-header">
+        <strong>How it works</strong>
+        <button class="info-close" id="info-close">&times;</button>
       </div>
-      <div class="stat">
-        <div class="stat-value" id="stat-errors">0</div>
-        <div class="stat-label">Errors</div>
+      <div class="info-section">
+        <p>This plugin connects to a local relay server that bridges Figma with the CLI and AI tools. Nothing leaves your machine.</p>
       </div>
-      <div class="stat">
-        <div class="stat-value" id="stat-uptime">0s</div>
-        <div class="stat-label">Uptime</div>
+      <div class="info-section">
+        <strong>Quick start</strong>
+        <ol>
+          <li>Install the binary and this plugin</li>
+          <li>Start the relay: <code class="pill">ai-happy-design relay start</code></li>
+          <li>Open the plugin &mdash; it auto-connects</li>
+          <li>Use the CLI or ask your AI to start designing</li>
+        </ol>
+      </div>
+      <div class="info-section">
+        <strong>CLI vs MCP</strong>
+        <p><code class="pill">ai-happy-design relay start</code> starts only the relay. Use this for CLI-driven workflows.</p>
+        <p><code class="pill">ai-happy-design mcp</code> starts both the MCP server (for AI editors like Claude Code, Cursor) and the relay. Use this when connecting through an AI tool.</p>
+      </div>
+      <div class="info-section">
+        <strong>MCP config</strong>
+        <pre>{
+  "mcpServers": {
+    "ai-happy-design": {
+      "command": "/path/to/ai-happy-design",
+      "args": ["mcp"]
+    }
+  }
+}</pre>
+      </div>
+      <div class="info-section">
+        <strong>Channel key</strong>
+        <p>The channel key pairs this plugin with your CLI or AI tool. Both sides must use the same key to communicate.</p>
+        <ul>
+          <li><strong>Copy</strong> — paste the key into <code class="pill">--channel</code> flag or <code class="pill">AHD_CHANNEL</code> env var</li>
+          <li><strong>New</strong> — generate a fresh key (disconnects current session)</li>
+        </ul>
+      </div>
+      <div class="info-section">
+        <strong>Troubleshooting</strong>
+        <ul>
+          <li>Relay not running? <code class="pill">ai-happy-design relay start</code></li>
+          <li>Check status: <code class="pill">ai-happy-design relay status</code></li>
+          <li>View logs: <code class="pill">ai-happy-design relay logs</code></li>
+          <li>Wrong port? Edit the relay URL above</li>
+        </ul>
       </div>
     </div>
-    <div class="log" id="log"></div>
+    </div>
+
+    <div class="log-header" id="log-header">
+      <span class="log-toggle-icon" id="log-toggle-icon">&#9654;</span>
+      <span class="log-toggle-label">Activity Log</span>
+      <span class="log-badge" id="log-badge">0</span>
+    </div>
+    <div class="log-section collapsed" id="log-section">
+      <div class="log-toolbar">
+        <div class="log-filters">
+          <button class="log-filter active" data-filter="all">All <span class="filter-count" id="count-all">0</span></button>
+          <button class="log-filter" data-filter="info">Commands <span class="filter-count" id="count-info">0</span></button>
+          <button class="log-filter" data-filter="error">Errors <span class="filter-count" id="count-error">0</span></button>
+          <button class="log-filter" data-filter="success">Results <span class="filter-count" id="count-success">0</span></button>
+          <button class="log-clear" id="log-clear" title="Clear log">Clear</button>
+        </div>
+      </div>
+      <div class="log-search-row">
+        <input type="text" class="log-search" id="log-search" placeholder="Search logs...">
+        <button class="log-action-btn" id="log-copy-btn" title="Copy log to clipboard">Copy</button>
+        <button class="log-action-btn" id="log-export-btn" title="Download log as text file">Export</button>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+
+    <div class="footer">
+      Made by <a href="https://ashrafali.net" target="_blank">Ashraf Ali</a>
+      &middot;
+      <a href="https://github.com/nerveband/ai-happy-design" target="_blank">GitHub</a>
+      &middot;
+      MIT License
+    </div>
   </div>
   <script>/* SCRIPT */</script>
 </body>

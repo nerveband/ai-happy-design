@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/nerveband/ai-happy-design-v2/internal/ws"
+	"github.com/nerveband/ai-happy-design/internal/ws"
 )
 
 // Connect joins a WebSocket channel and blocks until the connection is closed.
