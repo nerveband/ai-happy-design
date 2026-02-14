@@ -45,15 +45,19 @@ Download the latest binary from [GitHub Releases](https://github.com/nerveband/a
 # macOS (Apple Silicon)
 curl -L https://github.com/nerveband/ai-happy-design/releases/latest/download/ai-happy-design_Darwin_arm64.tar.gz | tar xz
 sudo mv ai-happy-design /usr/local/bin/
+codesign -s - /usr/local/bin/ai-happy-design   # Required on macOS
 
 # macOS (Intel)
 curl -L https://github.com/nerveband/ai-happy-design/releases/latest/download/ai-happy-design_Darwin_x86_64.tar.gz | tar xz
 sudo mv ai-happy-design /usr/local/bin/
+codesign -s - /usr/local/bin/ai-happy-design   # Required on macOS
 
 # Or build from source:
 make build-plugin   # Build Figma plugin (requires Node.js)
 make build          # Sync plugin + build Go binary
 ```
+
+> **macOS note:** Unsigned binaries get silently killed (SIGKILL) by macOS. The `codesign -s -` step is required after every install or manual copy. The `upgrade` command handles this automatically.
 
 ### 2. Setup Plugin
 
@@ -94,7 +98,31 @@ The CLI checks for updates automatically (once per day) and shows a hint when a 
 
 ## Connect Your AI
 
-Add to your MCP client config (Claude Desktop, Cursor, etc.):
+### Claude Code
+
+```bash
+claude mcp add ai-happy-design -- ai-happy-design mcp
+```
+
+Or add manually to `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "ai-happy-design": {
+      "type": "stdio",
+      "command": "ai-happy-design",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Restart Claude Code after adding. The MCP server auto-detects if a relay is already running and connects as a client — no need to start the relay separately.
+
+### Claude Desktop / Cursor / Windsurf
+
+Add to your MCP client config:
 
 ```json
 {
@@ -198,6 +226,8 @@ Batch output includes per-operation `elapsedMs` and a `timing` summary with `tot
 | Wrong port | Edit Relay URL in plugin UI |
 | Channel mismatch | Copy key from plugin, pass via `--channel` |
 | Plugin won't load | Run `ai-happy-design setup --force` to re-extract |
+| Binary killed on macOS | Run `codesign -s - /path/to/ai-happy-design` |
+| MCP not loading in Claude Code | Restart Claude Code; check `~/.claude.json` mcpServers |
 
 ## Prerequisites
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -162,6 +163,22 @@ func runUpgrade() error {
 		return fmt.Errorf("failed to update: %w", err)
 	}
 
+	// macOS requires ad-hoc signing or the binary gets SIGKILL'd
+	if runtime.GOOS == "darwin" {
+		fmt.Println("Signing binary for macOS...")
+		if signErr := signBinary(exe); signErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: ad-hoc signing failed: %v\n", signErr)
+			fmt.Fprintf(os.Stderr, "Run manually: codesign -s - -f %s\n", exe)
+		}
+	}
+
 	fmt.Printf("Successfully upgraded to %s\n", latest.Version())
 	return nil
+}
+
+func signBinary(path string) error {
+	cmd := exec.Command("codesign", "-s", "-", "-f", path)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
