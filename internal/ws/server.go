@@ -77,11 +77,13 @@ func (s *Server) Start() error {
 
 // ConnectAsClient connects to an existing relay as a WebSocket client.
 // This is used when the MCP server can't start its own relay (port in use).
-func (s *Server) ConnectAsClient(url string) error {
-	c := NewClient(url)
+func (s *Server) ConnectAsClient(wsURL string) error {
+	// NewClient expects a base URL without /ws — Client.Connect appends "/ws" itself.
+	baseURL := fmt.Sprintf("ws://localhost:%d", s.port)
+	c := NewClient(baseURL)
 
 	// Probe the existing relay for its preferred channel
-	probeConn, _, err := websocket.DefaultDialer.Dial(url, nil)
+	probeConn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed to connect to relay: %w", err)
 	}
