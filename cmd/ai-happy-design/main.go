@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -39,11 +40,25 @@ var mcpCmd = &cobra.Command{
 	Short: "Start MCP server (stdio transport)",
 	Long: `Starts the MCP server on stdio for use with AI editors (Claude Code,
 Cursor, Windsurf, etc). Also starts a WebSocket relay server in the
-background for communicating with the Figma plugin.`,
+background for communicating with the Figma plugin. If a relay is already
+running on the configured port, it connects as a client instead.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg := config.Load()
+
+		// Try to start embedded relay, but if port is in use, connect as client
 		wsServer := ws.NewServer(cfg.Port)
-		go wsServer.Start()
+		go func() {
+			err := wsServer.Start()
+			if err != nil {
+				// Port likely in use by an existing relay — connect as client instead
+				url := fmt.Sprintf("ws://%s:%d/ws", cfg.ServerHost, cfg.Port)
+				log.Printf("[mcp] relay port %d in use, connecting as client to %s", cfg.Port, url)
+				if clientErr := wsServer.ConnectAsClient(url); clientErr != nil {
+					log.Printf("[mcp] client connect failed: %v", clientErr)
+				}
+			}
+		}()
+
 		return mcp.StartServer(wsServer)
 	},
 }

@@ -47,6 +47,9 @@ type Server struct {
 	// Pending commands: requestID -> response channel
 	pending   map[string]chan *Message
 	pendingMu sync.Mutex
+
+	// Client mode: when port is already in use, delegate to an embedded client
+	client *Client
 }
 
 // NewServer creates a new WebSocket relay server on the given port.
@@ -72,9 +75,62 @@ func (s *Server) Start() error {
 	return http.ListenAndServe(addr, mux)
 }
 
+// ConnectAsClient connects to an existing relay as a WebSocket client.
+// This is used when the MCP server can't start its own relay (port in use).
+func (s *Server) ConnectAsClient(url string) error {
+	c := NewClient(url)
+
+	// Probe the existing relay for its preferred channel
+	probeConn, _, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to connect to relay: %w", err)
+	}
+	probeConn.Close()
+
+	// Get channel from relay status endpoint
+	statusURL := fmt.Sprintf("http://localhost:%d/status", s.port)
+	resp, err := http.Get(statusURL)
+	if err != nil {
+		return fmt.Errorf("failed to get relay status: %w", err)
+	}
+	defer resp.Body.Close()
+	var status struct {
+		PreferredChannel string         `json:"preferredChannel"`
+		Channels         map[string]int `json:"channels"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+		return fmt.Errorf("failed to decode relay status: %w", err)
+	}
+
+	channel := status.PreferredChannel
+	if channel == "" {
+		for ch := range status.Channels {
+			channel = ch
+			break
+		}
+	}
+	if channel == "" {
+		return fmt.Errorf("no active channel on relay")
+	}
+
+	if err := c.Connect(channel); err != nil {
+		return fmt.Errorf("failed to join channel %s: %w", channel, err)
+	}
+
+	s.client = c
+	s.preferredChannel = channel
+	log.Printf("[mcp] connected as client to relay channel %s", channel)
+	return nil
+}
+
 // SendCommand sends a command to all connections in the given channel and waits
 // for a response. Returns the result or an error.
 func (s *Server) SendCommand(channel, command string, params map[string]interface{}) (json.RawMessage, error) {
+	// If running in client mode, delegate to the embedded client
+	if s.client != nil {
+		return s.client.SendCommand(command, params)
+	}
+
 	id := uuid.New().String()
 
 	domain, action, err := resolveCommandRoute(command, params)
@@ -129,6 +185,11 @@ func (s *Server) SendCommand(channel, command string, params map[string]interfac
 // GetChannelKey returns the preferred active channel key, or a deterministic
 // active fallback if no preferred channel is currently connected.
 func (s *Server) GetChannelKey() string {
+	// In client mode, return the channel we joined
+	if s.client != nil {
+		return s.preferredChannel
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
