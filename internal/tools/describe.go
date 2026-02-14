@@ -151,6 +151,9 @@ var toolDescriptions = map[string]map[string]string{
 		"status":     "Get connection status. No params",
 		"disconnect": "Disconnect from channel. No params",
 	},
+	"design": {
+		"compute_tokens": "Compute design tokens (font sizes, spacing, padding, layout, card widths) for any canvas dimensions. Call FIRST before creating any design. Returns concrete pixel values — no math needed. Params: *width, *height",
+	},
 }
 
 // ToolCatalog returns a copy of the server tool/action descriptions for

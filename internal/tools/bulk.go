@@ -70,8 +70,10 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 			failed := 0
 			retriesUsed := 0
 			stoppedEarly := false
+			batchStart := time.Now()
 
 			for i, op := range ops {
+				opStart := time.Now()
 				params := op.Params
 				if params == nil {
 					params = map[string]interface{}{}
@@ -81,12 +83,13 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 					interpolatedParams, err := batchutil.InterpolateParams(params, states)
 					if err != nil {
 						entry := map[string]interface{}{
-							"index":    i,
-							"name":     op.Name,
-							"command":  op.Command,
-							"ok":       false,
-							"attempts": 0,
-							"error":    fmt.Sprintf("interpolation error: %v", err),
+							"index":     i,
+							"name":      op.Name,
+							"command":   op.Command,
+							"ok":        false,
+							"attempts":  0,
+							"error":     fmt.Sprintf("interpolation error: %v", err),
+							"elapsedMs": int(time.Since(opStart).Milliseconds()),
 						}
 						results = append(results, entry)
 						states = append(states, batchutil.StepState{
@@ -125,12 +128,13 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 
 				if sendErr != nil {
 					entry := map[string]interface{}{
-						"index":    i,
-						"name":     op.Name,
-						"command":  op.Command,
-						"ok":       false,
-						"attempts": attempts,
-						"error":    sendErr.Error(),
+						"index":     i,
+						"name":      op.Name,
+						"command":   op.Command,
+						"ok":        false,
+						"attempts":  attempts,
+						"error":     sendErr.Error(),
+						"elapsedMs": int(time.Since(opStart).Milliseconds()),
 					}
 					results = append(results, entry)
 					states = append(states, batchutil.StepState{
@@ -149,12 +153,13 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 				}
 
 				entry := map[string]interface{}{
-					"index":    i,
-					"name":     op.Name,
-					"command":  op.Command,
-					"ok":       true,
-					"attempts": attempts,
-					"result":   result,
+					"index":     i,
+					"name":      op.Name,
+					"command":   op.Command,
+					"ok":        true,
+					"attempts":  attempts,
+					"result":    result,
+					"elapsedMs": int(time.Since(opStart).Milliseconds()),
 				}
 				results = append(results, entry)
 				states = append(states, batchutil.StepState{
@@ -169,6 +174,14 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 
 			processed := len(results)
 			pending := len(ops) - processed
+			totalElapsed := time.Since(batchStart)
+			totalMs := int(totalElapsed.Milliseconds())
+			opsPerSec := float64(0)
+			avgMs := float64(0)
+			if processed > 0 {
+				opsPerSec = float64(processed) / totalElapsed.Seconds()
+				avgMs = float64(totalMs) / float64(processed)
+			}
 			out := map[string]interface{}{
 				"ok": failed == 0 && pending == 0,
 				"summary": map[string]interface{}{
@@ -180,6 +193,11 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 					"retriesUsed":     retriesUsed,
 					"continueOnError": continueOnError,
 					"interpolation":   interpolate,
+				},
+				"timing": map[string]interface{}{
+					"totalMs":   totalMs,
+					"avgMs":     int(avgMs),
+					"opsPerSec": int(opsPerSec),
 				},
 				"stoppedEarly": stoppedEarly,
 				"results":      results,

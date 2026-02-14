@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -127,6 +128,8 @@ var setupCmd = &cobra.Command{
 var commandParams string
 var commandLive bool
 var commandChannel string
+var commandOutput string
+var commandBase64 bool
 
 var commandCmd = &cobra.Command{
 	Use:   "command [channel-key] <command>",
@@ -137,10 +140,6 @@ Channel resolution order: positional arg, --channel, AHD_CHANNEL env, relay pref
 If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 	Args: cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := ensureRelayIfNeeded(); err != nil {
-			return err
-		}
-
 		var explicitChannel string
 		var command string
 		switch len(args) {
@@ -157,16 +156,25 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 			return fmt.Errorf("invalid command arguments")
 		}
 
-		channelKey, err := resolveChannel(explicitChannel)
-		if err != nil {
-			return err
-		}
-
 		params := map[string]interface{}{}
 		if commandParams != "" {
 			if err := json.Unmarshal([]byte(commandParams), &params); err != nil {
 				return fmt.Errorf("invalid --params JSON: %w", err)
 			}
+		}
+
+		// Handle local-only commands that don't need Figma connection
+		if handled, err := handleLocalCommand(command, params); handled {
+			return err
+		}
+
+		if err := ensureRelayIfNeeded(); err != nil {
+			return err
+		}
+
+		channelKey, err := resolveChannel(explicitChannel)
+		if err != nil {
+			return err
 		}
 
 		client, err := newConnectedClient(channelKey, commandLive)
@@ -178,6 +186,59 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 		result, err := client.SendCommand(command, params)
 		if err != nil {
 			return err
+		}
+
+		// Check if response has base64 "data" field (e.g. export commands)
+		var parsed map[string]interface{}
+		hasData := false
+		if err := json.Unmarshal(result, &parsed); err == nil {
+			_, hasData = parsed["data"].(string)
+		}
+
+		// For responses with base64 data: default to file save, --base64 for raw
+		if hasData && !commandBase64 {
+			dataStr := parsed["data"].(string)
+			decoded, err := base64.StdEncoding.DecodeString(dataStr)
+			if err != nil {
+				return fmt.Errorf("failed to decode base64 data: %w", err)
+			}
+
+			outPath := commandOutput
+			if outPath == "" {
+				// Auto-generate filename from node name and format
+				name, _ := parsed["name"].(string)
+				format, _ := parsed["format"].(string)
+				if name == "" {
+					name = "export"
+				}
+				// Sanitize name for filename
+				name = strings.Map(func(r rune) rune {
+					if r == '/' || r == '\\' || r == ':' || r == '*' || r == '?' || r == '"' || r == '<' || r == '>' || r == '|' {
+						return '-'
+					}
+					return r
+				}, name)
+				ext := ".png"
+				switch strings.ToUpper(format) {
+				case "JPG":
+					ext = ".jpg"
+				case "SVG":
+					ext = ".svg"
+				case "PDF":
+					ext = ".pdf"
+				}
+				outPath = name + ext
+			}
+
+			if err := os.WriteFile(outPath, decoded, 0644); err != nil {
+				return fmt.Errorf("failed to write file: %w", err)
+			}
+
+			// Print metadata without the bulky data field
+			delete(parsed, "data")
+			parsed["savedTo"] = outPath
+			parsed["fileSize"] = len(decoded)
+			return printJSON(parsed)
 		}
 
 		var pretty interface{}
@@ -257,8 +318,10 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 		failed := 0
 		retriesUsed := 0
 		stoppedEarly := false
+		batchStart := time.Now()
 
 		for i, op := range ops {
+			opStart := time.Now()
 			params := op.Params
 			if params == nil {
 				params = map[string]interface{}{}
@@ -269,12 +332,13 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 				if err != nil {
 					failed++
 					entry := map[string]interface{}{
-						"index":    i,
-						"name":     op.Name,
-						"command":  op.Command,
-						"ok":       false,
-						"error":    fmt.Sprintf("interpolation error: %v", err),
-						"attempts": 0,
+						"index":     i,
+						"name":      op.Name,
+						"command":   op.Command,
+						"ok":        false,
+						"error":     fmt.Sprintf("interpolation error: %v", err),
+						"attempts":  0,
+						"elapsedMs": int(time.Since(opStart).Milliseconds()),
 					}
 					results = append(results, entry)
 					stepStates = append(stepStates, batchutil.StepState{
@@ -313,12 +377,13 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 			if sendErr != nil {
 				failed++
 				entry := map[string]interface{}{
-					"index":    i,
-					"name":     op.Name,
-					"command":  op.Command,
-					"ok":       false,
-					"attempts": attempts,
-					"error":    sendErr.Error(),
+					"index":     i,
+					"name":      op.Name,
+					"command":   op.Command,
+					"ok":        false,
+					"attempts":  attempts,
+					"error":     sendErr.Error(),
+					"elapsedMs": int(time.Since(opStart).Milliseconds()),
 				}
 				results = append(results, entry)
 				stepStates = append(stepStates, batchutil.StepState{
@@ -341,12 +406,13 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 			}
 			succeeded++
 			entry := map[string]interface{}{
-				"index":    i,
-				"name":     op.Name,
-				"command":  op.Command,
-				"ok":       true,
-				"attempts": attempts,
-				"result":   parsed,
+				"index":     i,
+				"name":      op.Name,
+				"command":   op.Command,
+				"ok":        true,
+				"attempts":  attempts,
+				"result":    parsed,
+				"elapsedMs": int(time.Since(opStart).Milliseconds()),
 			}
 			results = append(results, entry)
 			stepStates = append(stepStates, batchutil.StepState{
@@ -360,6 +426,14 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 
 		processed := len(results)
 		pending := len(ops) - processed
+		totalElapsed := time.Since(batchStart)
+		totalMs := int(totalElapsed.Milliseconds())
+		opsPerSec := float64(0)
+		avgMs := float64(0)
+		if processed > 0 {
+			opsPerSec = float64(processed) / totalElapsed.Seconds()
+			avgMs = float64(totalMs) / float64(processed)
+		}
 		out := map[string]interface{}{
 			"ok": failed == 0 && pending == 0,
 			"summary": map[string]interface{}{
@@ -371,6 +445,11 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 				"retriesUsed":   retriesUsed,
 				"failFast":      batchFailFast,
 				"interpolation": batchInterpolation,
+			},
+			"timing": map[string]interface{}{
+				"totalMs":   totalMs,
+				"avgMs":     int(avgMs),
+				"opsPerSec": int(opsPerSec),
 			},
 			"stoppedEarly": stoppedEarly,
 			"results":      results,
@@ -640,6 +719,25 @@ func ensureRelayIfNeeded() error {
 	return nil
 }
 
+// handleLocalCommand handles commands that can be processed locally without a Figma connection.
+// Returns (true, err) if handled, (false, nil) if should be routed to Figma.
+func handleLocalCommand(command string, params map[string]interface{}) (bool, error) {
+	switch command {
+	case "design.compute_tokens":
+		w, _ := params["width"].(float64)
+		h, _ := params["height"].(float64)
+		if w <= 0 || h <= 0 {
+			return true, fmt.Errorf("width and height must be positive numbers")
+		}
+		tokens := tools.ComputeDesignTokens(w, h)
+		out, _ := json.MarshalIndent(tokens, "", "  ")
+		fmt.Println(string(out))
+		return true, nil
+	default:
+		return false, nil
+	}
+}
+
 func newConnectedClient(channelKey string, live bool) (*ws.Client, error) {
 	cfg := config.Load()
 	url := fmt.Sprintf("ws://%s:%d", cfg.ServerHost, cfg.Port)
@@ -782,6 +880,8 @@ func main() {
 	commandCmd.Flags().StringVarP(&commandParams, "params", "p", "", "JSON object passed as command params")
 	commandCmd.Flags().BoolVar(&commandLive, "live", false, "Print live progress events while command is running")
 	commandCmd.Flags().StringVar(&commandChannel, "channel", "", "Channel key override (optional)")
+	commandCmd.Flags().StringVarP(&commandOutput, "output", "o", "", "Save binary data (e.g. exported image) to this file path")
+	commandCmd.Flags().BoolVar(&commandBase64, "base64", false, "Output raw base64 JSON instead of saving to file (for export commands)")
 
 	batchCmd.Flags().StringVarP(&batchOperations, "operations", "o", "", "JSON array of operations")
 	batchCmd.Flags().StringVarP(&batchOperationsFile, "operations-file", "f", "", "Path to JSON file containing operations array")

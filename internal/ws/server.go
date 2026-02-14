@@ -121,8 +121,8 @@ func (s *Server) SendCommand(channel, command string, params map[string]interfac
 			return nil, fmt.Errorf("figma error: %s", resp.Error)
 		}
 		return resp.Result, nil
-	case <-time.After(60 * time.Second):
-		return nil, fmt.Errorf("command %q timed out after 60s", command)
+	case <-time.After(300 * time.Second):
+		return nil, fmt.Errorf("command %q timed out after 300s", command)
 	}
 }
 
@@ -191,7 +191,7 @@ func (s *Server) readPump(conn *Conn) {
 		conn.ws.Close()
 	}()
 
-	conn.ws.SetReadLimit(1024 * 1024) // 1 MB
+	conn.ws.SetReadLimit(64 * 1024 * 1024) // 64 MB – export payloads can be large
 	conn.ws.SetReadDeadline(time.Now().Add(120 * time.Second))
 	conn.ws.SetPongHandler(func(string) error {
 		conn.ws.SetReadDeadline(time.Now().Add(120 * time.Second))
@@ -232,7 +232,7 @@ func (s *Server) writePump(conn *Conn) {
 				conn.ws.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-			conn.ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			conn.ws.SetWriteDeadline(time.Now().Add(120 * time.Second))
 			if err := conn.ws.WriteMessage(websocket.TextMessage, msg); err != nil {
 				return
 			}

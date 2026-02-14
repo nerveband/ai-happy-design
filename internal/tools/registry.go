@@ -25,6 +25,7 @@ func RegisterAll(s *server.MCPServer, wsServer *ws.Server) {
 	RegisterDocumentTool(s, commander)
 	RegisterExportTool(s, commander)
 	RegisterBulkTool(s, commander)
+	RegisterDesignTool(s)
 	RegisterDescribeTool(s, commander)
 	RegisterConnectTool(s, commander, wsServer)
 }

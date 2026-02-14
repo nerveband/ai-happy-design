@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="resource/icon-64.png" alt="AI Happy Design" width="64" height="64">
+  <img src="resource/AI Happy Design Icon.png" alt="AI Happy Design" width="128" height="128">
 </p>
 
 # AI Happy Design
@@ -24,11 +24,15 @@ AI / LLM              CLI
 
 One binary. Three modes: MCP server (for AI), CLI (for humans), relay (WebSocket bridge to Figma).
 
+> **Tip:** CLI mode is faster than MCP — it talks directly to the relay without protocol overhead. Use MCP for AI agent integration; use CLI for scripting and manual testing.
+
 ## What's Included
 
 - **14 tool domains**: paint, shape, text, layout, node, layer, component, style, variable, effect, boolean, page, document, export
-- **Batch operations**: Chain 150+ commands in one payload with step interpolation (`${{steps.name.result.id}}`)
+- **Batch operations**: Chain 150+ commands in one payload with step interpolation (`${{steps.name.result.id}}`), per-operation timing stats, ~27 ops/sec
+- **Design tokens**: `design.compute_tokens` auto-computes fonts, spacing, padding, and layout for any canvas size — no Figma connection required
 - **Design intelligence**: Built-in design guide the LLM can call to learn typography, balance, visual hierarchy, and CSS-to-Figma translation
+- **Unicode-safe**: Full support for emojis, CJK, accented characters, em-dashes, and special characters in frame/element names and text
 - **Local only**: Everything on localhost. Nothing leaves your machine.
 
 ## Quick Start
@@ -148,27 +152,48 @@ ai-happy-design relay stop       # Stop
 3. `AHD_CHANNEL` env var
 4. Relay's active channel
 
+## Performance
+
+Benchmarked with a 7-card carousel (162 operations):
+
+| Metric | Value |
+|--------|-------|
+| Total time | ~6s |
+| Operations/sec | ~27 |
+| Avg per operation | ~36ms |
+| Connection overhead | ~500ms (one-time) |
+
+Batch output includes per-operation `elapsedMs` and a `timing` summary with `totalMs`, `avgMs`, and `opsPerSec`.
+
+**Slowest operations** (Figma API-bound): `paint.set_gradient` (62ms), `paint.set_solid` (50ms), `text.set_color` (43ms)
+**Fastest operations**: `layout.set_auto_layout` (12ms), `paint.set_stroke` (24ms)
+
+> **Tip:** The main bottleneck is Figma's plugin API execution time, not network or serialization. Batch more operations per call to amortize connection overhead.
+
 ## Do's and Don'ts
 
 **Do:**
 - Call `describe(action="catalog")` before building commands
+- Call `design(action="compute_tokens", width=1080, height=1920)` to get sizing for your canvas
 - Use batch (`bulk.execute`) for multi-element designs (3+ elements)
-- Use auto-layout frames as containers, not rectangles
+- Use **absolute x/y positioning** for main layout + auto-layout only for badges/buttons
+- Always pass `lineHeightUnit: "PERCENT"` with `text.set_line_height` (default is PIXELS)
 - Export at scale=2 for crisp output
 - Name every element descriptively
 
 **Don't:**
-- Create cards as rectangles with floating text (use frames + auto-layout)
+- Create cards as rectangles with floating text (use frames with children)
 - Leave default names like "Frame 47"
 - Use text below 16px on 1080px social media canvases
 - Mix padding/spacing values across sibling cards
+- Use `lineHeight: 140` without `lineHeightUnit: "PERCENT"` (140 pixels != 140%)
 - Skip the balance check on sibling elements
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---------|-----|
-| Plugin "Disconnected" | Start relay: `ai-happy-design mcp` |
+| Plugin "Disconnected" | Start relay: `ai-happy-design relay start` |
 | Commands fail | Run `describe(action="catalog")` to rediscover tools |
 | Wrong port | Edit Relay URL in plugin UI |
 | Channel mismatch | Copy key from plugin, pass via `--channel` |

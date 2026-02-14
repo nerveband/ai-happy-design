@@ -146,8 +146,8 @@ func (c *Client) SendCommand(command string, params map[string]interface{}) (jso
 			return nil, fmt.Errorf("figma error: %s", resp.Error)
 		}
 		return resp.Result, nil
-	case <-time.After(60 * time.Second):
-		return nil, fmt.Errorf("command %q timed out after 60s", command)
+	case <-time.After(300 * time.Second):
+		return nil, fmt.Errorf("command %q timed out after 300s", command)
 	}
 }
 
@@ -198,6 +198,8 @@ func (c *Client) readPump() {
 	if ws == nil {
 		return
 	}
+
+	ws.SetReadLimit(64 * 1024 * 1024) // 64 MB – export payloads can be large
 
 	for {
 		_, data, err := ws.ReadMessage()

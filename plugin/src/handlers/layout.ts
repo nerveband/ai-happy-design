@@ -127,16 +127,37 @@ async function setAlignment(params: any) {
 }
 
 async function setSizing(params: any) {
-  const node = await getFrameNode(params.nodeId);
+  const node = await figma.getNodeByIdAsync(params.nodeId) as SceneNode | null;
+  if (!node) throw new Error(`Node ${params.nodeId} not found`);
+
+  // Support layoutSizingHorizontal/layoutSizingVertical on any node (text, frame, etc.)
+  const horizontal = params.horizontal ?? params.layoutSizingHorizontal;
+  const vertical = params.vertical ?? params.layoutSizingVertical;
+  if (horizontal && 'layoutSizingHorizontal' in node) {
+    (node as any).layoutSizingHorizontal = horizontal;
+  }
+  if (vertical && 'layoutSizingVertical' in node) {
+    (node as any).layoutSizingVertical = vertical;
+  }
+
+  // Legacy frame-level axis sizing (only for frame-like nodes)
   const primaryAxis = params.primaryAxis ?? params.primaryAxisSizing;
   const counterAxis = params.counterAxis ?? params.counterAxisSizing;
+  if (primaryAxis && 'primaryAxisSizingMode' in node) {
+    (node as any).primaryAxisSizingMode = primaryAxis;
+  }
+  if (counterAxis && 'counterAxisSizingMode' in node) {
+    (node as any).counterAxisSizingMode = counterAxis;
+  }
 
-  if (primaryAxis) node.primaryAxisSizingMode = primaryAxis;
-  if (counterAxis) node.counterAxisSizingMode = counterAxis;
-  if (params.width !== undefined) node.resize(params.width, node.height);
-  if (params.height !== undefined) node.resize(node.width, params.height);
+  if (params.width !== undefined && 'resize' in node) {
+    (node as any).resize(params.width, (node as any).height);
+  }
+  if (params.height !== undefined && 'resize' in node) {
+    (node as any).resize((node as any).width, params.height);
+  }
 
-  return { id: node.id, name: node.name, width: node.width, height: node.height };
+  return { id: node.id, name: node.name, width: (node as any).width, height: (node as any).height };
 }
 
 async function setConstraints(params: any) {
