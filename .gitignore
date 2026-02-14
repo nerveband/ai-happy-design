@@ -7,3 +7,8 @@ node_modules/
 plugin/node_modules/
 plugin/dist/
 internal/plugin/files/
+dist/
+
+# Exported design screenshots
+*.png
+!resource/*.png
