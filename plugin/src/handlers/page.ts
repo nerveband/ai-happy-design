@@ -1,3 +1,5 @@
+import { getPageNodeById } from '../utils/getNode';
+
 export async function handlePage(action: string, params: any): Promise<any> {
   switch (action) {
     case 'create': return createPage(params);
@@ -26,8 +28,7 @@ async function createPage(params: any) {
 
 async function deletePage(params: any) {
   const { pageId } = params;
-  const page = await figma.getNodeByIdAsync(pageId);
-  if (!page || page.type !== 'PAGE') throw new Error(`Not a page: ${pageId}`);
+  const page = await getPageNodeById(pageId);
 
   // Don't delete if it's the only page
   if (figma.root.children.length <= 1) throw new Error('Cannot delete the only page');
@@ -39,8 +40,7 @@ async function deletePage(params: any) {
 
 async function renamePage(params: any) {
   const { pageId, name } = params;
-  const page = await figma.getNodeByIdAsync(pageId);
-  if (!page || page.type !== 'PAGE') throw new Error(`Not a page: ${pageId}`);
+  const page = await getPageNodeById(pageId);
 
   page.name = name;
   return { id: page.id, name: page.name };
@@ -48,10 +48,9 @@ async function renamePage(params: any) {
 
 async function setCurrentPage(params: any) {
   const { pageId } = params;
-  const page = await figma.getNodeByIdAsync(pageId);
-  if (!page || page.type !== 'PAGE') throw new Error(`Not a page: ${pageId}`);
+  const page = await getPageNodeById(pageId);
 
-  await figma.setCurrentPageAsync(page as PageNode);
+  await figma.setCurrentPageAsync(page);
   return { id: page.id, name: page.name };
 }
 
@@ -81,10 +80,9 @@ async function getCurrentPage(_params: any) {
 
 async function duplicatePage(params: any) {
   const { pageId, name } = params;
-  const page = await figma.getNodeByIdAsync(pageId);
-  if (!page || page.type !== 'PAGE') throw new Error(`Not a page: ${pageId}`);
+  const page = await getPageNodeById(pageId);
 
-  const dup = (page as PageNode).clone();
+  const dup = page.clone();
   if (name) dup.name = name;
   return { id: dup.id, name: dup.name };
 }

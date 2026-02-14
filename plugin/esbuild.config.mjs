@@ -32,9 +32,10 @@ async function buildAll() {
   // Read CSS and JS, inline into HTML
   const css = readFileSync('src/ui/styles.css', 'utf8');
   const js = readFileSync('dist/ui.js', 'utf8');
+  // Use function callbacks to avoid $& back-reference interpretation in minified JS
   const html = readFileSync('src/ui/index.html', 'utf8')
-    .replace('/* STYLES */', css)
-    .replace('/* SCRIPT */', js);
+    .replace('/* STYLES */', () => css)
+    .replace('/* SCRIPT */', () => js);
 
   writeFileSync('dist/ui.html', html);
   console.log('Build complete');

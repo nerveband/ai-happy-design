@@ -1,3 +1,6 @@
+import { resolveStableId } from '../utils/stableId';
+import { getSceneNodeById, getNodeById, getParentById } from '../utils/getNode';
+
 export async function handleComponent(action: string, params: any): Promise<any> {
   switch (action) {
     case 'create': return createComponent(params);
@@ -34,8 +37,7 @@ async function createComponent(params: any) {
 
   if (nodeId) {
     // Convert existing node to component
-    const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
-    if (!node) throw new Error(`Node not found: ${nodeId}`);
+    const node = await getSceneNodeById(nodeId);
     component = figma.createComponentFromNode(node);
   } else {
     // Create empty component
@@ -47,7 +49,8 @@ async function createComponent(params: any) {
 
   if (name) component.name = name;
 
-  return { id: component.id, name: component.name, type: component.type };
+  var stableId = await resolveStableId(component, figma.currentPage);
+  return { id: stableId, name: component.name, type: component.type };
 }
 
 async function createInstance(params: any) {
@@ -55,8 +58,8 @@ async function createInstance(params: any) {
   let componentNode: ComponentNode | null = null;
 
   if (componentId) {
-    const found = await figma.getNodeByIdAsync(componentId);
-    if (found && found.type === 'COMPONENT') {
+    const found = await getNodeById(componentId);
+    if (found.type === 'COMPONENT') {
       componentNode = found as ComponentNode;
     }
   }
@@ -74,12 +77,21 @@ async function createInstance(params: any) {
   if (y !== undefined) instance.y = y;
   if (name) instance.name = name;
 
+  var container: BaseNode & ChildrenMixin;
   if (parentId) {
-    const parent = await figma.getNodeByIdAsync(parentId);
-    if (parent && 'appendChild' in parent) (parent as FrameNode).appendChild(instance);
+    const parent = await getParentById(parentId);
+    if (parent) {
+      (parent as FrameNode).appendChild(instance);
+      container = parent as FrameNode;
+    } else {
+      container = figma.currentPage;
+    }
+  } else {
+    container = figma.currentPage;
   }
 
-  return { id: instance.id, name: instance.name, type: instance.type, mainComponentId: componentNode.id };
+  var stableId = await resolveStableId(instance, container);
+  return { id: stableId, name: instance.name, type: instance.type, mainComponentId: componentNode.id };
 }
 
 async function createComponentSet(params: any) {
@@ -91,15 +103,16 @@ async function createComponentSet(params: any) {
   if (!componentIds || componentIds.length === 0) throw new Error('No components specified');
 
   const components = await Promise.all(componentIds.map(async (id: string) => {
-    const node = await figma.getNodeByIdAsync(id);
-    if (!node || node.type !== 'COMPONENT') throw new Error(`Not a component: ${id}`);
+    const node = await getNodeById(id);
+    if (node.type !== 'COMPONENT') throw new Error(`Not a component: ${id}`);
     return node as ComponentNode;
   }));
 
   const set = figma.combineAsVariants(components, figma.currentPage);
   if (name) set.name = name;
 
-  return { id: set.id, name: set.name, type: set.type, variantCount: set.children.length };
+  var stableId = await resolveStableId(set as unknown as SceneNode, figma.currentPage);
+  return { id: stableId, name: set.name, type: set.type, variantCount: set.children.length };
 }
 
 async function getLocalComponents(_params: any) {
@@ -142,8 +155,8 @@ async function getRemoteComponents(_params: any) {
 
 async function detachInstance(params: any) {
   const { nodeId } = params;
-  const node = await figma.getNodeByIdAsync(nodeId);
-  if (!node || node.type !== 'INSTANCE') throw new Error(`Not an instance: ${nodeId}`);
+  const node = await getNodeById(nodeId);
+  if (node.type !== 'INSTANCE') throw new Error(`Not an instance: ${nodeId}`);
 
   const detached = (node as InstanceNode).detachInstance();
   return { id: detached.id, name: detached.name, type: detached.type };
@@ -151,8 +164,8 @@ async function detachInstance(params: any) {
 
 async function resetInstance(params: any) {
   const { nodeId } = params;
-  const node = await figma.getNodeByIdAsync(nodeId);
-  if (!node || node.type !== 'INSTANCE') throw new Error(`Not an instance: ${nodeId}`);
+  const node = await getNodeById(nodeId);
+  if (node.type !== 'INSTANCE') throw new Error(`Not an instance: ${nodeId}`);
 
   (node as InstanceNode).resetOverrides();
   return { id: node.id, name: node.name };
@@ -160,11 +173,11 @@ async function resetInstance(params: any) {
 
 async function swapInstance(params: any) {
   const { nodeId, newComponentId } = params;
-  const node = await figma.getNodeByIdAsync(nodeId);
-  if (!node || node.type !== 'INSTANCE') throw new Error(`Not an instance: ${nodeId}`);
+  const node = await getNodeById(nodeId);
+  if (node.type !== 'INSTANCE') throw new Error(`Not an instance: ${nodeId}`);
 
-  const newComponent = await figma.getNodeByIdAsync(newComponentId);
-  if (!newComponent || newComponent.type !== 'COMPONENT') throw new Error(`Not a component: ${newComponentId}`);
+  const newComponent = await getNodeById(newComponentId);
+  if (newComponent.type !== 'COMPONENT') throw new Error(`Not a component: ${newComponentId}`);
 
   (node as InstanceNode).swapComponent(newComponent as ComponentNode);
   return { id: node.id, name: node.name, newComponentId };
@@ -172,8 +185,8 @@ async function swapInstance(params: any) {
 
 async function getOverrides(params: any) {
   const { nodeId } = params;
-  const node = await figma.getNodeByIdAsync(nodeId);
-  if (!node || node.type !== 'INSTANCE') throw new Error(`Not an instance: ${nodeId}`);
+  const node = await getNodeById(nodeId);
+  if (node.type !== 'INSTANCE') throw new Error(`Not an instance: ${nodeId}`);
 
   const instance = node as InstanceNode;
   return {
@@ -189,8 +202,8 @@ async function getOverrides(params: any) {
 
 async function setOverrides(params: any) {
   const { nodeId } = params;
-  const node = await figma.getNodeByIdAsync(nodeId);
-  if (!node || node.type !== 'INSTANCE') throw new Error(`Not an instance: ${nodeId}`);
+  const node = await getNodeById(nodeId);
+  if (node.type !== 'INSTANCE') throw new Error(`Not an instance: ${nodeId}`);
 
   const instance = node as InstanceNode;
   let overrides = params.overrides;

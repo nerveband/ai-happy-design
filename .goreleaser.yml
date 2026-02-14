@@ -24,6 +24,9 @@ builds:
     ldflags:
       - -s -w
       - -X main.version={{.Version}}
+    hooks:
+      post:
+        - cmd: '{{ if eq .Os "darwin" }}codesign -s - -f "{{ .Path }}"{{ else }}true{{ end }}'
 
 archives:
   - id: default

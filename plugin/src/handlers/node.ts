@@ -1,4 +1,6 @@
 import { serializeNode, serializeNodeSummary } from '../utils/serialize';
+import { resolveStableId } from '../utils/stableId';
+import { getSceneNodeById, getNodeById, getParentById } from '../utils/getNode';
 
 function parseHexColor(color: any, fallback = { r: 0, g: 0, b: 0, a: 1 }) {
   if (color && typeof color === 'object' && typeof color.r === 'number') {
@@ -57,15 +59,9 @@ export async function handleNode(action: string, params: any): Promise<any> {
   }
 }
 
-async function getSceneNode(nodeId: string): Promise<SceneNode> {
-  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
-  if (!node) throw new Error(`Node not found: ${nodeId}`);
-  return node;
-}
-
 async function getInfo(params: any) {
   const { nodeId, depth } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
   return serializeNode(node, 0, depth ?? 3);
 }
 
@@ -111,17 +107,26 @@ async function createFrame(params: any) {
   }
   if (clipsContent !== undefined) frame.clipsContent = clipsContent;
 
+  var container: BaseNode & ChildrenMixin;
   if (parentId) {
-    var parent = await figma.getNodeByIdAsync(parentId);
-    if (parent && 'appendChild' in parent) (parent as FrameNode).appendChild(frame);
+    const parent = await getParentById(parentId);
+    if (parent) {
+      parent.appendChild(frame);
+      container = parent;
+    } else {
+      container = figma.currentPage;
+    }
+  } else {
+    container = figma.currentPage;
   }
 
-  return { id: frame.id, name: frame.name, type: frame.type, x: frame.x, y: frame.y };
+  var stableId = await resolveStableId(frame, container);
+  return { id: stableId, name: frame.name, type: frame.type, x: frame.x, y: frame.y };
 }
 
 async function moveNode(params: any) {
   const { nodeId, x, y, relative } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
 
   if (relative) {
     node.x += x ?? 0;
@@ -136,7 +141,7 @@ async function moveNode(params: any) {
 
 async function resizeNode(params: any) {
   const { nodeId, width, height } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
   if (!('resize' in node)) throw new Error(`Node ${nodeId} cannot be resized`);
   (node as any).resize(width ?? node.width, height ?? (node as any).height);
   return { id: node.id, name: node.name, width: (node as any).width, height: (node as any).height };
@@ -144,7 +149,7 @@ async function resizeNode(params: any) {
 
 async function rotateNode(params: any) {
   const { nodeId, rotation, relative } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
 
   if (relative) {
     node.rotation += rotation;
@@ -157,7 +162,7 @@ async function rotateNode(params: any) {
 
 async function setOpacity(params: any) {
   const { nodeId, opacity } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
   if (!('opacity' in node)) throw new Error(`Node ${nodeId} does not support opacity`);
   node.opacity = Math.max(0, Math.min(1, opacity));
   return { id: node.id, name: node.name, opacity: node.opacity };
@@ -165,7 +170,7 @@ async function setOpacity(params: any) {
 
 async function setBlendMode(params: any) {
   const { nodeId, blendMode } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
   if (!('blendMode' in node)) throw new Error(`Node ${nodeId} does not support blend mode`);
   (node as any).blendMode = blendMode;
   return { id: node.id, name: node.name, blendMode: (node as any).blendMode };
@@ -173,28 +178,28 @@ async function setBlendMode(params: any) {
 
 async function setVisibility(params: any) {
   const { nodeId, visible } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
   node.visible = visible;
   return { id: node.id, name: node.name, visible: node.visible };
 }
 
 async function setLocked(params: any) {
   const { nodeId, locked } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
   node.locked = locked;
   return { id: node.id, name: node.name, locked: node.locked };
 }
 
 async function renameNode(params: any) {
   const { nodeId, name } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
   node.name = name;
   return { id: node.id, name: node.name };
 }
 
 async function deleteNode(params: any) {
   const { nodeId } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
   const info = serializeNodeSummary(node);
   node.remove();
   return { deleted: info };
@@ -202,24 +207,32 @@ async function deleteNode(params: any) {
 
 async function cloneNode(params: any) {
   const { nodeId, x, y, parentId } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
   const clone = node.clone();
 
   if (x !== undefined) clone.x = x;
   if (y !== undefined) clone.y = y;
 
+  var container: BaseNode & ChildrenMixin;
   if (parentId) {
-    const parent = await figma.getNodeByIdAsync(parentId);
-    if (parent && 'appendChild' in parent) (parent as FrameNode).appendChild(clone);
+    const parent = await getParentById(parentId);
+    if (parent) {
+      parent.appendChild(clone);
+      container = parent;
+    } else {
+      container = figma.currentPage;
+    }
+  } else {
+    container = clone.parent as BaseNode & ChildrenMixin || figma.currentPage;
   }
 
-  return { id: clone.id, name: clone.name, type: clone.type, sourceId: node.id };
+  var stableId = await resolveStableId(clone, container);
+  return { id: stableId, name: clone.name, type: clone.type, sourceId: node.id };
 }
 
 async function getTree(params: any) {
   const { nodeId, depth } = params;
-  const node = await figma.getNodeByIdAsync(nodeId);
-  if (!node) throw new Error(`Node not found: ${nodeId}`);
+  const node = await getNodeById(nodeId);
 
   // If it's a page node, load it first so children are accessible
   if (node.type === 'PAGE') {
@@ -231,7 +244,7 @@ async function getTree(params: any) {
 
 async function setCornerRadius(params: any) {
   const { nodeId, radius, topLeft, topRight, bottomRight, bottomLeft } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
   if (!('cornerRadius' in node)) throw new Error(`Node ${nodeId} does not support corner radius`);
 
   const rectNode = node as RectangleNode;

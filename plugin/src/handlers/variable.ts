@@ -1,3 +1,5 @@
+import { getSceneNodeById } from '../utils/getNode';
+
 export async function handleVariable(action: string, params: any): Promise<any> {
   switch (action) {
     case 'create': return createVariable(params);
@@ -106,8 +108,7 @@ async function bindVariable(params: any) {
   const { nodeId, variableId } = params;
   const field = params.field ?? params.property ?? 'fills';
 
-  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
-  if (!node) throw new Error(`Node not found: ${nodeId}`);
+  const node = await getSceneNodeById(nodeId);
 
   var variable = await figma.variables.getVariableByIdAsync(variableId);
   if (!variable) throw new Error(`Variable not found: ${variableId}`);
@@ -130,8 +131,7 @@ async function bindVariable(params: any) {
 async function unbindVariable(params: any) {
   const { nodeId } = params;
   const field = params.field ?? params.property ?? 'fills';
-  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
-  if (!node) throw new Error(`Node not found: ${nodeId}`);
+  const node = await getSceneNodeById(nodeId);
 
   if (field === 'fills' && 'fills' in node) {
     const fills = JSON.parse(JSON.stringify(node.fills));

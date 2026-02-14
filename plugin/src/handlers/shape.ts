@@ -1,3 +1,6 @@
+import { resolveStableId } from '../utils/stableId';
+import { getParentById } from '../utils/getNode';
+
 function parseHexColor(color: any, fallback = { r: 0, g: 0, b: 0, a: 1 }) {
   if (color && typeof color === 'object' && typeof color.r === 'number') {
     return {
@@ -55,15 +58,19 @@ export async function handleShape(action: string, params: any): Promise<any> {
     case 'from_svg':
     case 'import_svg':
     case 'create_from_svg': return createFromSvg(params);
-    default: throw new Error('Unknown shape action: ' + action + '. Available: create_rectangle, create_ellipse, create_polygon, create_star, create_line, create_from_svg');
+    case 'image':
+    case 'add_image':
+    case 'create_image': return createImage(params);
+    default: throw new Error('Unknown shape action: ' + action + '. Available: create_rectangle, create_ellipse, create_polygon, create_star, create_line, create_from_svg, create_image');
   }
 }
 
-async function getParentNode(parentId?: string): Promise<FrameNode | PageNode | GroupNode> {
+async function getParentNode(parentId?: string): Promise<BaseNode & ChildrenMixin> {
   if (parentId) {
-    const parent = await figma.getNodeByIdAsync(parentId);
-    if (!parent || !('appendChild' in parent)) throw new Error(`Invalid parent node: ${parentId}`);
-    return parent as FrameNode | PageNode | GroupNode;
+    const parent = await getParentById(parentId);
+    if (parent) {
+      return parent;
+    }
   }
   return figma.currentPage;
 }
@@ -89,7 +96,8 @@ async function createRectangle(params: any) {
 
   const parent = await getParentNode(params.parentId);
   parent.appendChild(rect);
-  return { id: rect.id, name: rect.name, type: rect.type };
+  var stableId = await resolveStableId(rect, parent);
+  return { id: stableId, name: rect.name, type: rect.type };
 }
 
 async function createEllipse(params: any) {
@@ -112,7 +120,8 @@ async function createEllipse(params: any) {
 
   const parent = await getParentNode(params.parentId);
   parent.appendChild(ellipse);
-  return { id: ellipse.id, name: ellipse.name, type: ellipse.type };
+  var stableId = await resolveStableId(ellipse, parent);
+  return { id: stableId, name: ellipse.name, type: ellipse.type };
 }
 
 async function createPolygon(params: any) {
@@ -126,7 +135,8 @@ async function createPolygon(params: any) {
 
   const parent = await getParentNode(params.parentId);
   parent.appendChild(polygon);
-  return { id: polygon.id, name: polygon.name, type: polygon.type };
+  var stableId = await resolveStableId(polygon, parent);
+  return { id: stableId, name: polygon.name, type: polygon.type };
 }
 
 async function createStar(params: any) {
@@ -141,7 +151,8 @@ async function createStar(params: any) {
 
   const parent = await getParentNode(params.parentId);
   parent.appendChild(star);
-  return { id: star.id, name: star.name, type: star.type };
+  var stableId = await resolveStableId(star, parent);
+  return { id: stableId, name: star.name, type: star.type };
 }
 
 async function createLine(params: any) {
@@ -172,7 +183,8 @@ async function createLine(params: any) {
 
   const parent = await getParentNode(params.parentId);
   parent.appendChild(line);
-  return { id: line.id, name: line.name, type: line.type };
+  var stableId = await resolveStableId(line, parent);
+  return { id: stableId, name: line.name, type: line.type };
 }
 
 async function createFromSvg(params: any) {
@@ -186,6 +198,46 @@ async function createFromSvg(params: any) {
 
   const parent = await getParentNode(params.parentId);
   parent.appendChild(node);
+  var stableId = await resolveStableId(node, parent);
+  return { id: stableId, name: node.name, type: node.type, width: node.width, height: node.height };
+}
 
-  return { id: node.id, name: node.name, type: node.type, width: node.width, height: node.height };
+async function createImage(params: any) {
+  const imageData = params.imageData;
+  if (!imageData) throw new Error('imageData (base64) is required');
+
+  const rect = figma.createRectangle();
+  rect.x = params.x ?? 0;
+  rect.y = params.y ?? 0;
+  rect.resize(params.width ?? 400, params.height ?? 400);
+  rect.name = params.name ?? 'Image';
+
+  if (params.cornerRadius !== undefined) {
+    rect.cornerRadius = params.cornerRadius;
+  }
+
+  // Decode base64 and create image
+  const base64 = imageData.includes(',') ? imageData.split(',').slice(-1)[0] : imageData;
+  const bytes = figma.base64Decode(base64);
+  const image = figma.createImage(bytes);
+  const scaleMode = params.scaleMode ?? 'FILL';
+
+  rect.fills = [{
+    type: 'IMAGE',
+    imageHash: image.hash,
+    scaleMode: scaleMode as 'FILL' | 'FIT' | 'CROP' | 'TILE',
+  }];
+
+  const parent = await getParentNode(params.parentId);
+  parent.appendChild(rect);
+  var stableId = await resolveStableId(rect, parent);
+  return {
+    id: stableId,
+    name: rect.name,
+    type: rect.type,
+    width: rect.width,
+    height: rect.height,
+    imageHash: image.hash,
+    scaleMode: scaleMode,
+  };
 }

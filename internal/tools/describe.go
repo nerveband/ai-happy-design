@@ -32,6 +32,7 @@ var toolDescriptions = map[string]map[string]string{
 		"create_star":      "Create a star. Params: name, x, y, width, height, parentId, color, pointCount, innerRadius",
 		"create_line":      "Create a line. Params: name, x, y, width, parentId, color",
 		"create_from_svg":  "Create shape from SVG path. Params: name, x, y, svgPath, parentId",
+		"create_image":     "Place an image on canvas. Params: imageData (base64 PNG/JPG), x, y, width, height, parentId, scaleMode (FILL/FIT/CROP/TILE), name, cornerRadius",
 	},
 	"text": {
 		"create":         "Create a text node. Params: text, x, y, fontFamily, fontStyle, fontSize, parentId, name",

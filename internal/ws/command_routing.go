@@ -30,6 +30,7 @@ var legacyCommandRoutes = map[string]commandRoute{
 	"create_star":      {Domain: "shape", Action: "create_star"},
 	"create_line":      {Domain: "shape", Action: "create_line"},
 	"create_from_svg":  {Domain: "shape", Action: "create_from_svg"},
+	"create_image":     {Domain: "shape", Action: "create_image"},
 
 	// Text
 	"create_text":                {Domain: "text", Action: "create"},
@@ -138,6 +139,7 @@ var legacyCommandRoutes = map[string]commandRoute{
 	"scan_text_nodes":   {Domain: "document", Action: "scan_text"},
 	"scan_by_type":      {Domain: "document", Action: "find_by_type"},
 	"focus_node":        {Domain: "document", Action: "zoom_to"},
+	"find_free_space":   {Domain: "document", Action: "find_free_space"},
 
 	// AI-friendly aliases (common guesses that should work)
 	"list_pages":            {Domain: "page", Action: "get_all"},

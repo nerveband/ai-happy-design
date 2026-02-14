@@ -46,16 +46,16 @@ func LLMCatalog() map[string]interface{} {
 			"domainActionHint": "Prefer domain.action names like paint.set_solid over legacy command aliases.",
 		},
 		"workflow": map[string]interface{}{
-			"rule": "CREATING = batch (one payload, many steps). EDITING = single command (precise, targeted).",
+			"rule":      "CREATING = batch (one payload, many steps). EDITING = single command (precise, targeted).",
+			"IMPORTANT": "ALWAYS call document.find_free_space BEFORE creating root frames. It returns exact x,y coordinates. NEVER hardcode or guess positions — this causes frames to overlap existing work.",
 			"create": map[string]interface{}{
-				"when":    "Building new designs, layouts, multi-element compositions, or anything with 3+ elements.",
-				"how":     "Build a JSON array of operations with named steps and ${{steps.name.result.id}} interpolation. Send as one batch: 'ai-happy-design batch -f payload.json' or bulk.execute via MCP.",
-				"why":     "One WebSocket connection, no process overhead per step, automatic ID chaining. 150 steps in ~6 seconds vs ~8 minutes with individual commands.",
-				"example": "See designPatterns below for batch payload templates.",
+				"when": "Building new designs, layouts, multi-element compositions, or anything with 3+ elements.",
+				"how":  "1) Call document.find_free_space to get x,y. 2) Build a JSON array of operations. First step = root frame at returned x,y. Subsequent steps use ${{steps.name.result.id}} for parentId. 3) Send: 'ai-happy-design batch '[...]'' or bulk.execute via MCP.",
+				"why":  "One WebSocket connection, no process overhead per step, automatic ID chaining. 150 steps in ~6 seconds vs ~8 minutes with individual commands.",
 			},
 			"edit": map[string]interface{}{
 				"when": "Changing a color, moving a node, resizing, renaming, or any single-property change on an existing node.",
-				"how":  "Use a single command: 'ai-happy-design command paint.set_solid -p {\"nodeId\":\"1:2\",\"color\":\"#FF0000\"}'",
+				"how":  "Use a single command: ai-happy-design command paint.set_solid '{\"nodeId\":\"1:2\",\"color\":\"#FF0000\"}'",
 				"why":  "Fast, precise, no batch overhead needed for one operation.",
 			},
 		},
@@ -246,11 +246,11 @@ func LLMCatalog() map[string]interface{} {
 		"playbook": []string{
 			"1. DISCOVER: Get catalog (describe action=catalog) before building commands.",
 			"2. COMPUTE TOKENS: Call design.compute_tokens with your canvas width and height. This returns ALL sizing values (font sizes, spacing, padding, layout type, card widths) as concrete pixel values. Use these EXACT values — do NOT calculate sizes yourself.",
-			"3. PROBE: document.get_info and document.get_selection to understand current state. Check existing frame positions.",
+			"3. FIND SPACE: Call document.find_free_space with your desired width/height to get exact x,y coordinates for new frames. NEVER guess frame positions.",
 			"4. THINK IN CSS: Draft the design as HTML/CSS in your head. The compute_tokens response includes a CSS analogy. Translate to Figma using the cssToFigma map.",
 			"5. HIERARCHY: Assign each element a level (primary/secondary/tertiary/ambient). Use font sizes from compute_tokens: hero=primary, heading=secondary, body=tertiary, caption=ambient.",
 			"6. CREATE: Multi-element = batch/bulk with named steps and interpolation. Single change = direct command.",
-			"7. FRAME POSITIONING: New artboards go to the RIGHT of existing ones. Never overlap. Gap = 80-160px.",
+			"7. FRAME POSITIONING: Call document.find_free_space to get exact coordinates. NEVER hardcode or guess x/y for root frames.",
 			"8. BALANCE: ALL siblings MUST match — padding, spacing, radius, text sizes from compute_tokens.",
 			"9. TEXT WIDTH: After creating text inside auto-layout, resize text to contentWidth from compute_tokens.",
 			"10. EFFECTS: Shadows on cards/CTAs, gradients on hero backgrounds, blur for glass. See designDecisions.",
@@ -324,9 +324,10 @@ func LLMCatalog() map[string]interface{} {
 				"_recommended": "HYBRID APPROACH: Use absolute x/y positioning for the main layout structure. Use auto-layout ONLY for small containers like badges and buttons where text centering is needed.",
 				"rule":         "Place major elements (hero text, subtitle, cards, CTA) with explicit x, y, width, height coordinates. This gives direct control over layout — no auto-layout surprises.",
 				"whenToUse":    "MOST designs. Absolute positioning is simpler for LLMs to reason about. Use auto-layout only for badges, buttons, and small containers that need centered text.",
+				"colorShortcut": "node.create_frame, shape.create_rectangle, and text.create all accept a 'color' param (hex string like '#0F0F23' or rgb object). The param name is 'color', NOT 'fillColor' or 'backgroundColor'. This is a shortcut that avoids a separate paint.set_solid call.",
 				"howItWorks": []string{
-					"1. Create root frame: node.create_frame {name, x, y, width, height}",
-					"2. Add children with parentId and x/y: text.create {text, parentId, x, y, width, fontSize}",
+					"1. Create root frame: node.create_frame {name, x, y, width, height, color: '#0F0F23'}",
+					"2. Add children with parentId and x/y: text.create {text, parentId, x, y, width, fontSize, color: '#FFFFFF'}",
 					"3. For badges/buttons that need centered text: add layout.set_auto_layout with CENTER/CENTER alignment",
 					"4. x/y are RELATIVE to the parent frame, not the page.",
 					"5. Text width: use the 'width' parameter on text.create for text wrapping control.",
@@ -551,14 +552,13 @@ func LLMCatalog() map[string]interface{} {
 				},
 			},
 			"framePositioning": map[string]interface{}{
-				"_rule": "When creating new root frames (artboards), NEVER overlap existing frames. Always check positions of existing frames first.",
+				"_rule": "NEVER guess frame positions. ALWAYS call document.find_free_space BEFORE creating any root frame.",
 				"workflow": []string{
-					"1. BEFORE creating a new frame, call document.get_info or node.get_tree to see existing frames and their positions.",
-					"2. Calculate the rightmost edge: maxX = max(frame.x + frame.width) for all existing root frames.",
-					"3. Place new frame at x = maxX + gap (80-160px gap between artboards).",
-					"4. For multi-frame sets (e.g., 3 story frames), space them: x = startX + i * (frameWidth + gap).",
+					"1. Call document.find_free_space with width, height, and gap. It returns exact x,y coordinates and a list of all existing frames.",
+					"2. Use the returned x,y as the position for your new frame. These are 8px-grid-snapped and guaranteed non-overlapping.",
+					"3. For multi-frame sets, call find_free_space once, then offset additional frames: x = returned_x + i * (frameWidth + gap).",
 				},
-				"example": "Existing frame at x=0,w=1080. Next frame: x = 0 + 1080 + 80 = 1160. Third: x = 1160 + 1080 + 80 = 2320.",
+				"example": "document.find_free_space {width: 1080, height: 1920, gap: 100} → {x: 1280, y: 0}. Use x=1280, y=0 for your frame.",
 			},
 			"textRules": map[string]interface{}{
 				"_critical": "Use text.create with a 'width' parameter to control text wrapping. Always set lineHeightUnit:'PERCENT'.",
@@ -607,8 +607,32 @@ func LLMCatalog() map[string]interface{} {
 				"Name all elements descriptively. Layer background decorations behind content with layer.send_to_back.",
 			},
 		},
+		"imageRules": map[string]interface{}{
+				"_overview": "Images in Figma are fills on shapes, not standalone nodes. Use shape.create_image for a one-step convenience.",
+				"methods": []string{
+					"shape.create_image — ONE STEP: creates a rectangle with an image fill from base64 data. Params: imageData (base64), x, y, width, height, parentId, scaleMode, cornerRadius.",
+					"paint.set_image — TWO STEP: first create a shape, then apply an image fill. Good for adding images to existing nodes.",
+					"paint.set_image_url — URL-based: fetches an image from a URL (must be in manifest allowedDomains).",
+				},
+				"scaleModes": []string{
+					"FILL — fills the entire shape, cropping if needed (most common)",
+					"FIT — fits the image inside the shape, may have empty space",
+					"CROP — like FILL but uses a specific crop rectangle",
+					"TILE — tiles the image across the shape",
+				},
+				"compression": []string{
+					"For large images (>1MB), add --compress-images flag to batch or command.",
+					"This uses ImageMagick to compress imageData before sending (opt-in).",
+					"Example: ai-happy-design batch ops.json --compress-images",
+					"ImageMagick must be installed (brew install imagemagick or apt install imagemagick).",
+				},
+				"base64Tips": []string{
+					"For CLI batch: write operations to a JSON file, not inline. Base64 images can be >1MB which exceeds shell arg limits.",
+					"Example: write JSON to /tmp/img-ops.json, then: ai-happy-design batch /tmp/img-ops.json",
+				},
+			},
 		"quickPrompts": []string{
-			"For CREATING designs: build a batch JSON payload with named steps and interpolation. Send with 'batch -f file.json'.",
+			"For CREATING designs: build a batch JSON payload with named steps and interpolation. Send with 'batch file.json' or 'batch '[...]''.",
 			"For EDITING existing nodes: use single commands like paint.set_solid or node.resize.",
 			"DEFAULT: Use absolute x/y positioning for layout. Use auto-layout only for badges/buttons that need centered text.",
 			"CRITICAL: Always pass lineHeightUnit:'PERCENT' when setting line height. Default is PIXELS which causes overflow.",
@@ -728,7 +752,7 @@ func buildActionSpec(toolName, actionName, desc string) map[string]interface{} {
 	}
 	if toolName == "bulk" && actionName == "execute" {
 		ops := `[{"name":"createCard","command":"shape.create_rectangle","params":{"x":40,"y":40,"width":220,"height":120}},{"name":"colorCard","command":"paint.set_solid","params":{"nodeId":"${{steps.createCard.result.id}}","color":"#2563EB"}}]`
-		cliExample = fmt.Sprintf("ai-happy-design batch -o '%s' --retries 1 --retry-delay-ms 250", ops)
+		cliExample = fmt.Sprintf("ai-happy-design batch '%s'", ops)
 		mcpExample = map[string]interface{}{
 			"tool": "bulk",
 			"arguments": map[string]interface{}{

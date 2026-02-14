@@ -1,3 +1,5 @@
+import { getSceneNodeById } from '../utils/getNode';
+
 export async function handleExport(action: string, params: any): Promise<any> {
   switch (action) {
     case 'export_image':
@@ -17,8 +19,7 @@ export async function handleExport(action: string, params: any): Promise<any> {
 
 async function exportImage(params: any) {
   const { nodeId, format = 'PNG', scale = 2, constraint } = params;
-  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
-  if (!node) throw new Error(`Node not found: ${nodeId}`);
+  const node = await getSceneNodeById(nodeId);
 
   const settings: ExportSettings = {
     format: format as 'PNG' | 'JPG',
@@ -46,8 +47,7 @@ async function exportImage(params: any) {
 
 async function exportSvg(params: any) {
   const { nodeId, svgIdAttribute, svgOutlineText, svgSimplifyStroke } = params;
-  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
-  if (!node) throw new Error(`Node not found: ${nodeId}`);
+  const node = await getSceneNodeById(nodeId);
 
   const settings: ExportSettingsSVGString = {
     format: 'SVG_STRING',
@@ -70,8 +70,7 @@ async function exportSvg(params: any) {
 
 async function exportPdf(params: any) {
   const { nodeId } = params;
-  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
-  if (!node) throw new Error(`Node not found: ${nodeId}`);
+  const node = await getSceneNodeById(nodeId);
 
   const settings: ExportSettingsPDF = {
     format: 'PDF',
@@ -91,8 +90,7 @@ async function exportPdf(params: any) {
 
 async function exportJson(params: any) {
   const { nodeId, depth } = params;
-  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
-  if (!node) throw new Error(`Node not found: ${nodeId}`);
+  const node = await getSceneNodeById(nodeId);
 
   // Use the serialize utility for structured export
   const { serializeNode } = await import('../utils/serialize');

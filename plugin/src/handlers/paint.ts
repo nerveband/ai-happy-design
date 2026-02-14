@@ -1,3 +1,5 @@
+import { getSceneNodeById } from '../utils/getNode';
+
 function parseHexColor(color: any, fallback = { r: 0, g: 0, b: 0, a: 1 }) {
   if (color && typeof color === 'object' && typeof color.r === 'number') {
     return {
@@ -71,8 +73,8 @@ export async function handlePaint(action: string, params: any): Promise<any> {
 }
 
 async function getFillNodeAsync(nodeId: string): Promise<SceneNode & MinimalFillsMixin> {
-  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
-  if (!node || !('fills' in node)) throw new Error(`Invalid node or node does not support fills: ${nodeId}`);
+  const node = await getSceneNodeById(nodeId);
+  if (!('fills' in node)) throw new Error(`Invalid node or node does not support fills: ${nodeId}`);
   return node as SceneNode & MinimalFillsMixin;
 }
 
@@ -237,8 +239,8 @@ async function getFills(params: any) {
 }
 
 async function setStroke(params: any) {
-  const node = await figma.getNodeByIdAsync(params.nodeId) as SceneNode | null;
-  if (!node || !('strokes' in node)) throw new Error(`Invalid node for strokes: ${params.nodeId}`);
+  const node = await getSceneNodeById(params.nodeId);
+  if (!('strokes' in node)) throw new Error(`Invalid node for strokes: ${params.nodeId}`);
 
   const c = parseHexColor(params.color, { r: 0, g: 0, b: 0, a: params.opacity ?? 1 });
   (node as GeometryMixin).strokes = [{

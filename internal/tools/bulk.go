@@ -26,7 +26,7 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 		mcp.WithString("action", mcp.Required(), mcp.Description("Action to perform"),
 			mcp.Enum("execute")),
 		mcp.WithString("operations", mcp.Required(), mcp.Description("JSON array of operations: [{\"command\": \"...\", \"params\": {...}}, ...]")),
-		mcp.WithBoolean("continueOnError", mcp.Description("Continue after failed operations (default true)")),
+		mcp.WithBoolean("failFast", mcp.Description("Stop at first failed operation (default false)")),
 		mcp.WithNumber("retries", mcp.Description("Retry count per operation after first attempt (default 1)")),
 		mcp.WithNumber("retryDelayMs", mcp.Description("Delay between retries in milliseconds (default 250)")),
 		mcp.WithBoolean("interpolate", mcp.Description("Enable placeholders like ${{steps.0.result.id}} from prior steps (default true)")),
@@ -52,7 +52,7 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 				return mcp.NewToolResultError("operations array is empty"), nil
 			}
 
-			continueOnError := getBoolArg(args, "continueOnError", true)
+			failFast := getBoolArg(args, "failFast", false)
 			interpolate := getBoolArg(args, "interpolate", true)
 			retries := int(getFloat64Arg(args, "retries", 1))
 			retryDelayMs := int(getFloat64Arg(args, "retryDelayMs", 250))
@@ -100,7 +100,7 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 							Error:   entry["error"].(string),
 						})
 						failed++
-						if !continueOnError {
+						if failFast {
 							stoppedEarly = true
 							break
 						}
@@ -145,7 +145,7 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 						Error:   sendErr.Error(),
 					})
 					failed++
-					if !continueOnError {
+					if failFast {
 						stoppedEarly = true
 						break
 					}
@@ -191,7 +191,7 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 					"failed":          failed,
 					"pending":         pending,
 					"retriesUsed":     retriesUsed,
-					"continueOnError": continueOnError,
+					"failFast":        failFast,
 					"interpolation":   interpolate,
 				},
 				"timing": map[string]interface{}{
@@ -200,7 +200,7 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 					"opsPerSec": int(opsPerSec),
 				},
 				"stoppedEarly": stoppedEarly,
-				"results":      results,
+				"steps":        results,
 			}
 
 			text, err := formatResult(out)

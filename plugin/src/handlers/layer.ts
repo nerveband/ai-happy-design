@@ -1,4 +1,5 @@
 import { serializeNodeSummary } from '../utils/serialize';
+import { getSceneNodeById, getNodeById, getParentById } from '../utils/getNode';
 
 export async function handleLayer(action: string, params: any): Promise<any> {
   switch (action) {
@@ -26,12 +27,6 @@ export async function handleLayer(action: string, params: any): Promise<any> {
   }
 }
 
-async function getSceneNode(nodeId: string): Promise<SceneNode> {
-  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
-  if (!node) throw new Error(`Node not found: ${nodeId}`);
-  return node;
-}
-
 function getParentChildren(node: SceneNode): readonly SceneNode[] {
   const parent = node.parent;
   if (!parent || !('children' in parent)) throw new Error('Node has no valid parent');
@@ -45,7 +40,7 @@ function getNodeIndex(node: SceneNode): number {
 
 async function setOrder(params: any) {
   const { nodeId, index } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
   const parent = node.parent;
   if (!parent || !('insertChild' in parent)) throw new Error('Cannot reorder in this parent');
 
@@ -58,7 +53,7 @@ async function setOrder(params: any) {
 
 async function bringForward(params: any) {
   const { nodeId } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
   const parent = node.parent;
   if (!parent || !('children' in parent)) throw new Error('Cannot reorder');
 
@@ -73,7 +68,7 @@ async function bringForward(params: any) {
 
 async function sendBackward(params: any) {
   const { nodeId } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
   const parent = node.parent;
   if (!parent || !('children' in parent)) throw new Error('Cannot reorder');
 
@@ -87,7 +82,7 @@ async function sendBackward(params: any) {
 
 async function bringToFront(params: any) {
   const { nodeId } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
   const parent = node.parent;
   if (!parent || !('children' in parent)) throw new Error('Cannot reorder');
 
@@ -99,7 +94,7 @@ async function bringToFront(params: any) {
 
 async function sendToBack(params: any) {
   const { nodeId } = params;
-  const node = await getSceneNode(nodeId);
+  const node = await getSceneNodeById(nodeId);
   const parent = node.parent;
   if (!parent || !('insertChild' in parent)) throw new Error('Cannot reorder');
 
@@ -117,8 +112,7 @@ async function groupNodes(params: any) {
   if (!nodeIds || nodeIds.length === 0) throw new Error('No nodes specified for grouping');
 
   const nodes = await Promise.all(nodeIds.map(async (id: string) => {
-    const n = await figma.getNodeByIdAsync(id) as SceneNode | null;
-    if (!n) throw new Error(`Node not found: ${id}`);
+    const n = await getSceneNodeById(id);
     return n;
   }));
 
@@ -134,8 +128,8 @@ async function groupNodes(params: any) {
 
 async function ungroupNodes(params: any) {
   const { nodeId } = params;
-  const node = await figma.getNodeByIdAsync(nodeId);
-  if (!node || node.type !== 'GROUP') throw new Error(`Node ${nodeId} is not a group`);
+  const node = await getNodeById(nodeId);
+  if (node.type !== 'GROUP') throw new Error(`Node ${nodeId} is not a group`);
 
   const group = node as GroupNode;
   const parent = group.parent;
@@ -151,10 +145,9 @@ async function ungroupNodes(params: any) {
 
 async function insertChild(params: any) {
   const { parentId, childId, index } = params;
-  const parent = await figma.getNodeByIdAsync(parentId);
-  if (!parent || !('insertChild' in parent)) throw new Error(`Invalid parent: ${parentId}`);
-  const child = await figma.getNodeByIdAsync(childId) as SceneNode | null;
-  if (!child) throw new Error(`Child node not found: ${childId}`);
+  const parent = await getParentById(parentId);
+  if (!parent) throw new Error(`Invalid parent: ${parentId}`);
+  const child = await getSceneNodeById(childId);
 
   (parent as FrameNode).insertChild(index ?? 0, child);
 
@@ -163,9 +156,9 @@ async function insertChild(params: any) {
 
 async function moveToParent(params: any) {
   const { nodeId, parentId, index } = params;
-  const node = await getSceneNode(nodeId);
-  const parent = await figma.getNodeByIdAsync(parentId);
-  if (!parent || !('appendChild' in parent)) throw new Error(`Invalid parent: ${parentId}`);
+  const node = await getSceneNodeById(nodeId);
+  const parent = await getParentById(parentId);
+  if (!parent) throw new Error(`Invalid parent: ${parentId}`);
 
   if (index !== undefined) {
     (parent as FrameNode).insertChild(index, node);

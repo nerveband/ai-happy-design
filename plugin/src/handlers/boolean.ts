@@ -1,3 +1,5 @@
+import { getSceneNodeById } from '../utils/getNode';
+
 export async function handleBoolean(action: string, params: any): Promise<any> {
   switch (action) {
     case 'create_union':
@@ -28,11 +30,7 @@ async function booleanOp(params: any, operation: 'UNION' | 'SUBTRACT' | 'INTERSE
   const { name } = params;
   if (!nodeIds || nodeIds.length < 2) throw new Error('Boolean operations require at least 2 nodes');
 
-  const nodes = await Promise.all(nodeIds.map(async (id: string) => {
-    const node = await figma.getNodeByIdAsync(id) as SceneNode | null;
-    if (!node) throw new Error(`Node not found: ${id}`);
-    return node;
-  }));
+  const nodes = await Promise.all(nodeIds.map((id: string) => getSceneNodeById(id)));
 
   // All nodes must share the same parent
   const parent = nodes[0].parent;
@@ -65,11 +63,7 @@ async function flattenNode(params: any) {
     : String(rawNodeIds || '').split(',').map((id: string) => id.trim()).filter(Boolean);
   if (!nodeIds || nodeIds.length === 0) throw new Error('No nodes specified for flatten');
 
-  const nodes = await Promise.all(nodeIds.map(async (id: string) => {
-    const node = await figma.getNodeByIdAsync(id) as SceneNode | null;
-    if (!node) throw new Error(`Node not found: ${id}`);
-    return node;
-  }));
+  const nodes = await Promise.all(nodeIds.map((id: string) => getSceneNodeById(id)));
 
   const flattened = figma.flatten(nodes);
   return { id: flattened.id, name: flattened.name, type: flattened.type };

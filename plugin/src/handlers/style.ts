@@ -1,3 +1,5 @@
+import { getSceneNodeById } from '../utils/getNode';
+
 function parseHexColor(color: any, fallback = { r: 0, g: 0, b: 0, a: 1 }) {
   if (color && typeof color === 'object' && typeof color.r === 'number') {
     return {
@@ -93,8 +95,7 @@ async function createEffectStyle(params: any) {
 
 async function applyStyle(params: any) {
   const { nodeId, styleId, styleType, target } = params;
-  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
-  if (!node) throw new Error(`Node not found: ${nodeId}`);
+  const node = await getSceneNodeById(nodeId);
 
   const resolvedType = (styleType || target || 'FILL').toUpperCase();
   if (resolvedType === 'TEXT') {
@@ -143,8 +144,7 @@ async function getAllStyles(_params: any) {
 
 async function removeStyle(params: any) {
   const { nodeId, styleType, target } = params;
-  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
-  if (!node) throw new Error(`Node not found: ${nodeId}`);
+  const node = await getSceneNodeById(nodeId);
 
   const resolvedType = (styleType || target || 'FILL').toUpperCase();
   if (resolvedType === 'TEXT' && 'textStyleId' in node) {

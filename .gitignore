@@ -11,4 +11,4 @@ dist/
 
 # Exported design screenshots
 *.png
-!resource/*.png
+!resources/*.png

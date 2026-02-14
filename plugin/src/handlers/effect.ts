@@ -1,3 +1,5 @@
+import { getSceneNodeById } from '../utils/getNode';
+
 function parseHexColor(color: any, fallback = { r: 0, g: 0, b: 0, a: 0.25 }) {
   if (color && typeof color === 'object' && typeof color.r === 'number') {
     return {
@@ -52,8 +54,8 @@ export async function handleEffect(action: string, params: any): Promise<any> {
 }
 
 async function getEffectNode(nodeId: string): Promise<SceneNode & BlendMixin> {
-  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
-  if (!node || !('effects' in node)) throw new Error(`Node ${nodeId} does not support effects`);
+  const node = await getSceneNodeById(nodeId);
+  if (!('effects' in node)) throw new Error(`Node ${nodeId} does not support effects`);
   return node as SceneNode & BlendMixin;
 }
 
@@ -112,8 +114,8 @@ async function addBlur(params: any) {
 
 async function applyStyle(params: any) {
   const { nodeId, styleId } = params;
-  const node = await figma.getNodeByIdAsync(nodeId) as SceneNode | null;
-  if (!node || !('effectStyleId' in node)) throw new Error(`Node ${nodeId} does not support effect styles`);
+  const node = await getSceneNodeById(nodeId);
+  if (!('effectStyleId' in node)) throw new Error(`Node ${nodeId} does not support effect styles`);
   await (node as any).setEffectStyleIdAsync(styleId ?? '');
   return { id: node.id, name: node.name, effectStyleId: (node as GeometryMixin).effectStyleId };
 }

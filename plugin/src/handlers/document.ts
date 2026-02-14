@@ -1,4 +1,5 @@
 import { serializeNode, serializeNodeSummary } from '../utils/serialize';
+import { getSceneNodeById, getPageNodeById } from '../utils/getNode';
 
 export async function handleDocument(action: string, params: any): Promise<any> {
   switch (action) {
@@ -32,7 +33,9 @@ export async function handleDocument(action: string, params: any): Promise<any> 
     case 'zoom':
     case 'zoom_to_fit':
     case 'zoom_to': return zoomTo(params);
-    default: throw new Error('Unknown document action: ' + action + '. Available: get_info, get_selection, set_selection, scan_text, scan_by_type, get_styles, find_by_name, find_by_type, focus, zoom_to');
+    case 'find_free_space':
+    case 'free_space': return findFreeSpace(params);
+    default: throw new Error('Unknown document action: ' + action + '. Available: get_info, get_selection, set_selection, scan_text, scan_by_type, get_styles, find_by_name, find_by_type, focus, zoom_to, find_free_space');
   }
 }
 
@@ -67,11 +70,7 @@ async function setSelection(params: any) {
     ? rawNodeIds
     : String(rawNodeIds || '').split(',').map((id: string) => id.trim()).filter(Boolean);
 
-  const nodes = await Promise.all(nodeIds.map(async (id: string) => {
-    const node = await figma.getNodeByIdAsync(id) as SceneNode | null;
-    if (!node) throw new Error(`Node not found: ${id}`);
-    return node;
-  }));
+  const nodes = await Promise.all(nodeIds.map((id: string) => getSceneNodeById(id)));
   figma.currentPage.selection = nodes;
   return { selected: nodes.map(n => serializeNodeSummary(n)), count: nodes.length };
 }
@@ -80,8 +79,7 @@ async function scanText(params: any) {
   var pageId = params.pageId;
   var query = params.query;
 
-  var page = pageId ? await figma.getNodeByIdAsync(pageId) as PageNode | null : figma.currentPage;
-  if (!page || page.type !== 'PAGE') throw new Error('Invalid page');
+  var page = pageId ? await getPageNodeById(pageId) : figma.currentPage;
   await page.loadAsync();
 
   const textNodes = page.findAllWithCriteria({ types: ['TEXT'] }) as TextNode[];
@@ -201,12 +199,115 @@ async function zoomTo(params: any) {
     throw new Error('No node IDs provided');
   }
 
-  const nodes = await Promise.all(nodeIds.map(async (id: string) => {
-    const node = await figma.getNodeByIdAsync(id) as SceneNode | null;
-    if (!node) throw new Error(`Node not found: ${id}`);
-    return node;
-  }));
+  const nodes = await Promise.all(nodeIds.map((id: string) => getSceneNodeById(id)));
 
   figma.viewport.scrollAndZoomIntoView(nodes);
   return { zoomed: nodes.map(n => serializeNodeSummary(n)) };
+}
+
+async function findFreeSpace(params: any) {
+  const requestedWidth = params.width || 1080;
+  const requestedHeight = params.height || 1080;
+  const gap = params.gap || 100;
+
+  const page = figma.currentPage;
+  await page.loadAsync();
+
+  const children = page.children;
+
+  // Collect bounding boxes of all top-level nodes
+  const frames: Array<{id: string; name: string; x: number; y: number; width: number; height: number; right: number; bottom: number}> = [];
+  for (const child of children) {
+    frames.push({
+      id: child.id,
+      name: child.name,
+      x: child.x,
+      y: child.y,
+      width: child.width,
+      height: child.height,
+      right: child.x + child.width,
+      bottom: child.y + child.height,
+    });
+  }
+
+  let suggestedX = 0;
+  let suggestedY = 0;
+
+  if (frames.length === 0) {
+    // Empty page — place at origin
+    suggestedX = 0;
+    suggestedY = 0;
+  } else {
+    // Strategy: place to the right of the rightmost element, aligned to top of row.
+    // First, find all frames and their right edges.
+    // We try to place in the same row (similar y) if possible,
+    // otherwise start a new row below everything.
+
+    // Sort frames by y then x for row detection
+    const sorted = [...frames].sort((a, b) => a.y - b.y || a.x - b.x);
+
+    // Group into rows: frames whose y-ranges overlap significantly
+    const rows: Array<{minY: number; maxBottom: number; maxRight: number; frames: typeof frames}> = [];
+    for (const f of sorted) {
+      let placed = false;
+      for (const row of rows) {
+        // Check if this frame overlaps vertically with the row
+        const overlapTop = Math.max(f.y, row.minY);
+        const overlapBottom = Math.min(f.y + f.height, row.maxBottom);
+        const overlap = overlapBottom - overlapTop;
+        const minHeight = Math.min(f.height, row.maxBottom - row.minY);
+        if (minHeight > 0 && overlap / minHeight > 0.3) {
+          // Belongs to this row
+          row.maxRight = Math.max(row.maxRight, f.right);
+          row.maxBottom = Math.max(row.maxBottom, f.bottom);
+          row.minY = Math.min(row.minY, f.y);
+          row.frames.push(f);
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) {
+        rows.push({
+          minY: f.y,
+          maxBottom: f.bottom,
+          maxRight: f.right,
+          frames: [f],
+        });
+      }
+    }
+
+    // Try to fit in the last row (rightmost placement)
+    const lastRow = rows[rows.length - 1];
+    suggestedX = lastRow.maxRight + gap;
+    suggestedY = lastRow.minY;
+
+    // If placing in this row would make the row excessively wide (>5 frames wide),
+    // start a new row below everything instead
+    if (lastRow.frames.length >= 5) {
+      const globalMaxBottom = Math.max(...frames.map(f => f.bottom));
+      suggestedX = sorted[0].x; // Align with leftmost frame
+      suggestedY = globalMaxBottom + gap;
+    }
+  }
+
+  // Snap to 8px grid
+  suggestedX = Math.round(suggestedX / 8) * 8;
+  suggestedY = Math.round(suggestedY / 8) * 8;
+
+  return {
+    x: suggestedX,
+    y: suggestedY,
+    width: requestedWidth,
+    height: requestedHeight,
+    gap: gap,
+    existingFrames: frames.map(f => ({
+      id: f.id,
+      name: f.name,
+      x: f.x,
+      y: f.y,
+      width: f.width,
+      height: f.height,
+    })),
+    existingCount: frames.length,
+  };
 }

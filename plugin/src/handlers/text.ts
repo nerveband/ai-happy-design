@@ -1,4 +1,6 @@
 import { loadFont, loadNodeFonts, resolveFontFamily } from '../utils/fonts';
+import { getTextNodeById, getParentById } from '../utils/getNode';
+import { resolveStableId } from '../utils/stableId';
 
 function parseHexColor(color: any, fallback = { r: 0, g: 0, b: 0, a: 1 }) {
   if (color && typeof color === 'object' && typeof color.r === 'number') {
@@ -77,12 +79,6 @@ export async function handleText(action: string, params: any): Promise<any> {
   }
 }
 
-async function getTextNode(nodeId: string): Promise<TextNode> {
-  const node = await figma.getNodeByIdAsync(nodeId);
-  if (!node || node.type !== 'TEXT') throw new Error(`Node ${nodeId} is not a text node`);
-  return node as TextNode;
-}
-
 async function createText(params: any) {
   const content = params.content ?? params.text ?? '';
   const fontFamily = params.fontFamily ?? params.family ?? 'Inter';
@@ -117,25 +113,32 @@ async function createText(params: any) {
     text.textAutoResize = 'WIDTH_AND_HEIGHT';
   }
 
+  var container: BaseNode & ChildrenMixin;
   if (params.parentId) {
-    const parent = await figma.getNodeByIdAsync(params.parentId);
-    if (parent && 'appendChild' in parent) {
-      (parent as FrameNode | GroupNode | PageNode).appendChild(text);
+    const parent = await getParentById(params.parentId);
+    if (parent) {
+      parent.appendChild(text);
+      container = parent;
+    } else {
+      container = figma.currentPage;
     }
+  } else {
+    container = figma.currentPage;
   }
 
-  return { id: text.id, name: text.name, type: text.type, width: text.width, height: text.height };
+  var stableId = await resolveStableId(text, container);
+  return { id: stableId, name: text.name, type: text.type, width: text.width, height: text.height };
 }
 
 async function setContent(params: any) {
-  const node = await getTextNode(params.nodeId);
+  const node = await getTextNodeById(params.nodeId);
   await loadNodeFonts(node);
   node.characters = String(params.content ?? params.text ?? '');
   return { id: node.id, name: node.name, characters: node.characters };
 }
 
 async function setFont(params: any) {
-  const node = await getTextNode(params.nodeId);
+  const node = await getTextNodeById(params.nodeId);
   const fontFamily = params.fontFamily ?? params.family ?? 'Inter';
   const fontStyle = params.fontStyle ?? params.style ?? 'Regular';
   const family = resolveFontFamily(fontFamily);
@@ -151,7 +154,7 @@ async function setFont(params: any) {
 }
 
 async function setSize(params: any) {
-  const node = await getTextNode(params.nodeId);
+  const node = await getTextNodeById(params.nodeId);
   const size = params.size ?? params.fontSize;
   await loadNodeFonts(node);
 
@@ -164,7 +167,7 @@ async function setSize(params: any) {
 }
 
 async function setWeight(params: any) {
-  const node = await getTextNode(params.nodeId);
+  const node = await getTextNodeById(params.nodeId);
   const weight = params.weight ?? params.fontWeight;
 
   const weightMap: Record<number, string> = {
@@ -196,7 +199,7 @@ async function setWeight(params: any) {
 }
 
 async function setColor(params: any) {
-  const node = await getTextNode(params.nodeId);
+  const node = await getTextNodeById(params.nodeId);
   await loadNodeFonts(node);
 
   const c = parseHexColor(params.color);
@@ -215,7 +218,7 @@ async function setColor(params: any) {
 }
 
 async function setAlign(params: any) {
-  const node = await getTextNode(params.nodeId);
+  const node = await getTextNodeById(params.nodeId);
   await loadNodeFonts(node);
 
   const horizontal = params.horizontal ?? params.textAlign ?? params.textAlignHorizontal;
@@ -226,7 +229,7 @@ async function setAlign(params: any) {
 }
 
 async function setSpacing(params: any) {
-  const node = await getTextNode(params.nodeId);
+  const node = await getTextNodeById(params.nodeId);
   await loadNodeFonts(node);
 
   if (params.letterSpacing !== undefined) {
@@ -247,7 +250,7 @@ async function setSpacing(params: any) {
 }
 
 async function setLineHeight(params: any) {
-  const node = await getTextNode(params.nodeId);
+  const node = await getTextNodeById(params.nodeId);
   await loadNodeFonts(node);
 
   const value = params.value ?? params.lineHeight;
@@ -265,7 +268,7 @@ async function setLineHeight(params: any) {
 }
 
 async function setLetterSpacing(params: any) {
-  const node = await getTextNode(params.nodeId);
+  const node = await getTextNodeById(params.nodeId);
   await loadNodeFonts(node);
 
   const value = params.value ?? params.letterSpacing;
@@ -284,7 +287,7 @@ async function setLetterSpacing(params: any) {
 }
 
 async function setDecoration(params: any) {
-  const node = await getTextNode(params.nodeId);
+  const node = await getTextNodeById(params.nodeId);
   await loadNodeFonts(node);
 
   const decoration = params.decoration ?? params.textDecoration;
@@ -297,7 +300,7 @@ async function setDecoration(params: any) {
 }
 
 async function setCase(params: any) {
-  const node = await getTextNode(params.nodeId);
+  const node = await getTextNodeById(params.nodeId);
   await loadNodeFonts(node);
 
   const textCase = params.textCase ?? params.case;
@@ -310,14 +313,14 @@ async function setCase(params: any) {
 }
 
 async function setParagraphSpacing(params: any) {
-  const node = await getTextNode(params.nodeId);
+  const node = await getTextNodeById(params.nodeId);
   await loadNodeFonts(node);
   node.paragraphSpacing = params.spacing ?? params.paragraphSpacing ?? 0;
   return { id: node.id, name: node.name };
 }
 
 async function getContent(params: any) {
-  const node = await getTextNode(params.nodeId);
+  const node = await getTextNodeById(params.nodeId);
   return {
     id: node.id,
     name: node.name,
@@ -334,7 +337,7 @@ async function getContent(params: any) {
 }
 
 async function getSegments(params: any) {
-  const node = await getTextNode(params.nodeId);
+  const node = await getTextNodeById(params.nodeId);
   const property = params.property;
   const properties = property
     ? [property]
@@ -352,7 +355,7 @@ async function loadFontAction(params: any) {
 }
 
 async function setStyleId(params: any) {
-  const node = await getTextNode(params.nodeId);
+  const node = await getTextNodeById(params.nodeId);
   await node.setTextStyleIdAsync(params.styleId ?? '');
   return { id: node.id, name: node.name, textStyleId: node.textStyleId };
 }

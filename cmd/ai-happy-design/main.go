@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/nerveband/ai-happy-design/internal/batchutil"
 	"github.com/nerveband/ai-happy-design/internal/config"
+	"github.com/nerveband/ai-happy-design/internal/imgutil"
 	"github.com/nerveband/ai-happy-design/internal/mcp"
 	pluginpkg "github.com/nerveband/ai-happy-design/internal/plugin"
 	relaymgr "github.com/nerveband/ai-happy-design/internal/relay"
@@ -145,36 +147,50 @@ var commandLive bool
 var commandChannel string
 var commandOutput string
 var commandBase64 bool
+var commandCompressImages bool
 
 var commandCmd = &cobra.Command{
-	Use:   "command [channel-key] <command>",
+	Use:   "command <command> [params-json]",
 	Short: "Execute a command against a connected Figma channel",
 	Long: `Executes one command through the WebSocket relay for scripting and LLM-driven CLI flows.
-Command supports both legacy command names (e.g. set_fill_color) and domain actions (e.g. paint.set_solid).
-Channel resolution order: positional arg, --channel, AHD_CHANNEL env, relay preferred/active channel.
+
+Usage:
+  command node.create_frame '{"x":0,"y":0,"width":1080,"height":1350}'
+  command document.find_free_space
+  command node.create_frame -p '{"x":0,"y":0}'
+
+Command supports both legacy names (e.g. set_fill_color) and domain.action (e.g. paint.set_solid).
+Params can be passed as a second positional arg (JSON) or via -p/--params flag.
+Channel resolution: --channel flag, AHD_CHANNEL env, relay preferred/active channel.
 If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
-	Args: cobra.RangeArgs(1, 2),
+	Args: cobra.RangeArgs(1, 3),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var explicitChannel string
+		log.SetOutput(io.Discard)
 		var command string
-		switch len(args) {
-		case 1:
-			explicitChannel = commandChannel
-			command = args[0]
-		case 2:
-			if commandChannel != "" {
-				return fmt.Errorf("provide channel either as positional argument or --channel, not both")
+		command = args[0]
+
+		// Parse remaining positional args: could be params JSON, channel, or both
+		for _, arg := range args[1:] {
+			trimmed := strings.TrimSpace(arg)
+			if strings.HasPrefix(trimmed, "{") {
+				// It's JSON params
+				if commandParams != "" {
+					return fmt.Errorf("provide params as positional arg OR --params, not both")
+				}
+				commandParams = trimmed
+			} else {
+				// It's a channel key
+				if commandChannel != "" {
+					return fmt.Errorf("provide channel either as positional argument or --channel, not both")
+				}
+				commandChannel = trimmed
 			}
-			explicitChannel = args[0]
-			command = args[1]
-		default:
-			return fmt.Errorf("invalid command arguments")
 		}
 
 		params := map[string]interface{}{}
 		if commandParams != "" {
 			if err := json.Unmarshal([]byte(commandParams), &params); err != nil {
-				return fmt.Errorf("invalid --params JSON: %w", err)
+				return fmt.Errorf("invalid params JSON: %w", err)
 			}
 		}
 
@@ -187,9 +203,18 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 			return err
 		}
 
-		channelKey, err := resolveChannel(explicitChannel)
+		channelKey, err := resolveChannel(commandChannel)
 		if err != nil {
 			return err
+		}
+
+		// Opt-in image compression
+		if commandCompressImages {
+			if compressed, changed, compErr := imgutil.CompressParamsImageData(params, imgutil.DefaultOptions()); compErr != nil {
+				fmt.Fprintf(os.Stderr, "[compress] warning: %v\n", compErr)
+			} else if changed {
+				params = compressed
+			}
 		}
 
 		client, err := newConnectedClient(channelKey, commandLive)
@@ -210,19 +235,28 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 			_, hasData = parsed["data"].(string)
 		}
 
-		// For responses with base64 data: default to file save, --base64 for raw
+		// For responses with data field (exports): default to file save, --base64 for raw
 		if hasData && !commandBase64 {
 			dataStr := parsed["data"].(string)
-			decoded, err := base64.StdEncoding.DecodeString(dataStr)
-			if err != nil {
-				return fmt.Errorf("failed to decode base64 data: %w", err)
+			format, _ := parsed["format"].(string)
+
+			// SVG and JSON exports return raw text; PNG/JPG/PDF return base64
+			var fileBytes []byte
+			switch strings.ToUpper(format) {
+			case "SVG", "JSON":
+				fileBytes = []byte(dataStr)
+			default:
+				var decErr error
+				fileBytes, decErr = base64.StdEncoding.DecodeString(dataStr)
+				if decErr != nil {
+					return fmt.Errorf("failed to decode base64 data: %w", decErr)
+				}
 			}
 
 			outPath := commandOutput
 			if outPath == "" {
 				// Auto-generate filename from node name and format
 				name, _ := parsed["name"].(string)
-				format, _ := parsed["format"].(string)
 				if name == "" {
 					name = "export"
 				}
@@ -241,18 +275,20 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 					ext = ".svg"
 				case "PDF":
 					ext = ".pdf"
+				case "JSON":
+					ext = ".json"
 				}
 				outPath = name + ext
 			}
 
-			if err := os.WriteFile(outPath, decoded, 0644); err != nil {
+			if err := os.WriteFile(outPath, fileBytes, 0644); err != nil {
 				return fmt.Errorf("failed to write file: %w", err)
 			}
 
 			// Print metadata without the bulky data field
 			delete(parsed, "data")
 			parsed["savedTo"] = outPath
-			parsed["fileSize"] = len(decoded)
+			parsed["fileSize"] = len(fileBytes)
 			return printJSON(parsed)
 		}
 
@@ -273,6 +309,7 @@ var batchFailFast bool
 var batchRetries int
 var batchRetryDelayMs int
 var batchInterpolation bool
+var batchCompressImages bool
 
 type batchOperation struct {
 	Name    string                 `json:"name,omitempty"`
@@ -281,27 +318,44 @@ type batchOperation struct {
 }
 
 var batchCmd = &cobra.Command{
-	Use:   "batch [channel-key]",
+	Use:   "batch [operations-json | operations-file]",
 	Short: "Execute a sequence of commands in order",
 	Long: `Runs multiple commands over one connection to support tool chaining workflows.
-Provide operations as JSON array: [{"name":"createCard","command":"shape.create_rectangle","params":{"x":40,"y":40,"width":220,"height":120}}].
+
+Operations can be provided in multiple ways (in priority order):
+  1. Positional arg (JSON):  batch '[{"command":"node.create_frame","params":{...}}]'
+  2. Positional arg (file):  batch ops.json
+  3. Flag (inline JSON):     batch -o '[...]'
+  4. Flag (file path):       batch -f ops.json
+  5. Stdin (piped):          cat ops.json | batch
+
 Supports interpolation placeholders like ${{steps.0.result.id}} or ${{steps.createCard.result.id}}.
-Channel resolution order: positional arg, --channel, AHD_CHANNEL env, relay preferred/active channel.
+Channel resolution: --channel flag, AHD_CHANNEL env, relay preferred/active channel.
 If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		log.SetOutput(io.Discard)
 		if err := ensureRelayIfNeeded(); err != nil {
 			return err
 		}
 
-		explicitChannel := batchChannel
+		// Positional arg: if starts with '[' it's inline JSON, otherwise a file path
 		if len(args) == 1 {
-			if batchChannel != "" {
-				return fmt.Errorf("provide channel either as positional argument or --channel, not both")
+			arg := strings.TrimSpace(args[0])
+			if strings.HasPrefix(arg, "[") {
+				if batchOperations != "" {
+					return fmt.Errorf("provide operations as positional arg OR --operations, not both")
+				}
+				batchOperations = arg
+			} else {
+				if batchOperationsFile != "" {
+					return fmt.Errorf("provide operations file as positional arg OR --operations-file, not both")
+				}
+				batchOperationsFile = arg
 			}
-			explicitChannel = args[0]
 		}
-		channelKey, err := resolveChannel(explicitChannel)
+
+		channelKey, err := resolveChannel(batchChannel)
 		if err != nil {
 			return err
 		}
@@ -370,6 +424,15 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 					continue
 				}
 				params = interpolatedParams
+			}
+
+			// Opt-in image compression
+			if batchCompressImages {
+				if compressed, changed, compErr := imgutil.CompressParamsImageData(params, imgutil.DefaultOptions()); compErr != nil {
+					fmt.Fprintf(os.Stderr, "[compress] step %d warning: %v\n", i, compErr)
+				} else if changed {
+					params = compressed
+				}
 			}
 
 			maxAttempts := batchRetries + 1
@@ -467,7 +530,7 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 				"opsPerSec": int(opsPerSec),
 			},
 			"stoppedEarly": stoppedEarly,
-			"results":      results,
+			"steps":        results,
 		}
 		return printJSON(out)
 	},
@@ -480,7 +543,7 @@ var relayLogsLines int
 var actionsJSON bool
 
 var actionCatalog = map[string][]string{
-	"document":  {"get_info", "get_selection", "set_selection", "scan_text", "scan_by_type", "get_styles", "find_by_name", "find_by_type", "focus", "zoom_to"},
+	"document":  {"get_info", "get_selection", "set_selection", "scan_text", "scan_by_type", "get_styles", "find_by_name", "find_by_type", "focus", "zoom_to", "find_free_space"},
 	"node":      {"get_info", "create_frame", "move", "resize", "rotate", "set_opacity", "set_blend_mode", "set_visibility", "set_locked", "rename", "delete", "clone", "set_corner_radius", "get_tree"},
 	"layer":     {"set_order", "bring_forward", "send_backward", "bring_to_front", "send_to_back", "group", "ungroup", "move_to_parent", "insert_child"},
 	"layout":    {"set_auto_layout", "set_padding", "set_spacing", "set_alignment", "set_sizing", "set_constraints", "set_layout_wrap", "set_wrap", "remove_auto_layout"},
@@ -492,7 +555,7 @@ var actionCatalog = map[string][]string{
 	"paint":     {"set_solid", "set_gradient", "set_image_fill", "set_image", "set_image_fill_from_url", "set_image_url", "add_fill", "remove_fill", "get_fills", "set_stroke"},
 	"effect":    {"set_effects", "add_shadow", "add_blur", "apply_style", "remove", "remove_effect", "get_effects"},
 	"page":      {"create", "delete", "rename", "set_current", "get_all", "get_current", "duplicate"},
-	"shape":     {"create_rectangle", "create_ellipse", "create_polygon", "create_star", "create_line", "create_from_svg"},
+	"shape":     {"create_rectangle", "create_ellipse", "create_polygon", "create_star", "create_line", "create_from_svg", "create_image"},
 	"text":      {"create", "set_content", "set_font", "set_size", "set_weight", "set_color", "set_align", "set_spacing", "set_line_height", "set_letter_spacing", "set_decoration", "set_case", "set_paragraph_spacing", "get_content", "get_segments", "load_font", "set_style_id"},
 }
 
@@ -791,22 +854,31 @@ func printJSON(v interface{}) error {
 }
 
 func loadBatchOperations(operationsJSON, operationsFile string) ([]batchOperation, error) {
-	if operationsJSON == "" && operationsFile == "" {
-		return nil, fmt.Errorf("either --operations or --operations-file is required")
-	}
 	if operationsJSON != "" && operationsFile != "" {
 		return nil, fmt.Errorf("use only one of --operations or --operations-file")
 	}
 
 	var raw []byte
 	var err error
-	if operationsFile != "" {
+	switch {
+	case operationsFile != "":
 		raw, err = os.ReadFile(operationsFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read operations file: %w", err)
 		}
-	} else {
+	case operationsJSON != "":
 		raw = []byte(operationsJSON)
+	default:
+		// Try stdin (for piped input)
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeCharDevice) == 0 {
+			raw, err = io.ReadAll(os.Stdin)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read stdin: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("no operations provided. Usage:\n  batch '[{\"command\":\"node.create_frame\",\"params\":{...}}]'\n  batch ops.json\n  batch -f ops.json\n  cat ops.json | batch")
+		}
 	}
 
 	var ops []batchOperation
@@ -883,7 +955,7 @@ func main() {
 
 	rootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
 		switch cmd.Name() {
-		case "upgrade", "mcp":
+		case "upgrade", "mcp", "command", "batch", "ws", "start", "stop", "status", "logs":
 			return
 		}
 		notifyUpdateAvailable()
@@ -897,6 +969,7 @@ func main() {
 	commandCmd.Flags().StringVar(&commandChannel, "channel", "", "Channel key override (optional)")
 	commandCmd.Flags().StringVarP(&commandOutput, "output", "o", "", "Save binary data (e.g. exported image) to this file path")
 	commandCmd.Flags().BoolVar(&commandBase64, "base64", false, "Output raw base64 JSON instead of saving to file (for export commands)")
+	commandCmd.Flags().BoolVar(&commandCompressImages, "compress-images", false, "Compress imageData before sending (requires ImageMagick)")
 
 	batchCmd.Flags().StringVarP(&batchOperations, "operations", "o", "", "JSON array of operations")
 	batchCmd.Flags().StringVarP(&batchOperationsFile, "operations-file", "f", "", "Path to JSON file containing operations array")
@@ -906,6 +979,7 @@ func main() {
 	batchCmd.Flags().IntVar(&batchRetries, "retries", 1, "Retry count per operation after first attempt")
 	batchCmd.Flags().IntVar(&batchRetryDelayMs, "retry-delay-ms", 250, "Delay between retries in milliseconds")
 	batchCmd.Flags().BoolVar(&batchInterpolation, "interpolate", true, "Enable placeholder interpolation from prior step results")
+	batchCmd.Flags().BoolVar(&batchCompressImages, "compress-images", false, "Compress imageData before sending (requires ImageMagick)")
 
 	toolsCmd.Flags().BoolVar(&catalogJSON, "json", true, "Output as JSON for machine-readable discovery")
 	toolsCmd.Flags().BoolVar(&catalogLLM, "llm", false, "Output enriched LLM-focused catalog with examples and playbook")
@@ -918,6 +992,9 @@ func main() {
 	relayCmd.AddCommand(relayLogsCmd)
 	relayCmd.AddCommand(relayInstallAgentCmd)
 
+	registerCmd.Flags().StringVar(&registerEditor, "editor", "", "Register with a specific editor only (e.g. 'Claude Code', 'Cursor')")
+	registerCmd.Flags().BoolVar(&registerForce, "force", false, "Force re-registration even if already configured")
+
 	rootCmd.AddCommand(mcpCmd)
 	rootCmd.AddCommand(connectCmd)
 	rootCmd.AddCommand(wsCmd)
@@ -928,6 +1005,7 @@ func main() {
 	rootCmd.AddCommand(relayCmd)
 	rootCmd.AddCommand(setupCmd)
 	rootCmd.AddCommand(upgradeCmd)
+	rootCmd.AddCommand(registerCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)

@@ -72,3 +72,266 @@ func TestInterpolateParams_BracketPath(t *testing.T) {
 		t.Fatalf("unexpected label: %#v", got)
 	}
 }
+
+// --- New tests below ---
+
+func TestInterpolateParams_NestedResultReference(t *testing.T) {
+	// Result contains a nested map
+	steps := []StepState{
+		{Index: 0, Name: "frame1", Command: "node.create_frame", OK: true,
+			Result: map[string]interface{}{
+				"id": "10:20",
+				"bounds": map[string]interface{}{
+					"x":      100.0,
+					"y":      200.0,
+					"width":  1080.0,
+					"height": 1350.0,
+				},
+			},
+		},
+	}
+	params := map[string]interface{}{
+		"parentId": "${{steps.frame1.result.id}}",
+		"x":        "${{steps.frame1.result.bounds.x}}",
+		"width":    "${{steps.frame1.result.bounds.width}}",
+	}
+
+	out, err := InterpolateParams(params, steps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := out["parentId"]; got != "10:20" {
+		t.Fatalf("unexpected parentId: %#v", got)
+	}
+	// When the whole string is a single placeholder, type is preserved
+	if got, ok := out["x"].(float64); !ok || got != 100.0 {
+		t.Fatalf("unexpected x: %#v (type %T)", out["x"], out["x"])
+	}
+	if got, ok := out["width"].(float64); !ok || got != 1080.0 {
+		t.Fatalf("unexpected width: %#v (type %T)", out["width"], out["width"])
+	}
+}
+
+func TestInterpolateParams_TypePreservation_Bool(t *testing.T) {
+	steps := []StepState{
+		{Index: 0, Command: "node.get_info", OK: true,
+			Result: map[string]interface{}{"visible": true, "locked": false}},
+	}
+	params := map[string]interface{}{
+		"visible": "${{steps.0.result.visible}}",
+		"locked":  "${{steps.0.result.locked}}",
+	}
+
+	out, err := InterpolateParams(params, steps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got, ok := out["visible"].(bool); !ok || got != true {
+		t.Fatalf("expected visible=true, got %#v (%T)", out["visible"], out["visible"])
+	}
+	if got, ok := out["locked"].(bool); !ok || got != false {
+		t.Fatalf("expected locked=false, got %#v (%T)", out["locked"], out["locked"])
+	}
+}
+
+func TestInterpolateParams_TypePreservation_NumberStaysNumber(t *testing.T) {
+	steps := []StepState{
+		{Index: 0, Command: "node.get_info", OK: true,
+			Result: map[string]interface{}{"width": 1080.0, "height": 1350.0}},
+	}
+	params := map[string]interface{}{
+		"width":  "${{steps.0.result.width}}",
+		"height": "${{steps.0.result.height}}",
+	}
+
+	out, err := InterpolateParams(params, steps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got, ok := out["width"].(float64); !ok || got != 1080.0 {
+		t.Fatalf("expected width=1080, got %#v (%T)", out["width"], out["width"])
+	}
+	if got, ok := out["height"].(float64); !ok || got != 1350.0 {
+		t.Fatalf("expected height=1350, got %#v (%T)", out["height"], out["height"])
+	}
+}
+
+func TestInterpolateParams_MissingStepReference(t *testing.T) {
+	steps := []StepState{
+		{Index: 0, Name: "frame", Command: "node.create_frame", OK: true,
+			Result: map[string]interface{}{"id": "10:20"}},
+	}
+	params := map[string]interface{}{
+		"parentId": "${{steps.nonexistent.result.id}}",
+	}
+
+	_, err := InterpolateParams(params, steps)
+	if err == nil {
+		t.Fatal("expected error for missing step reference")
+	}
+	// Error should mention the path
+	if got := err.Error(); got == "" {
+		t.Fatal("error message should not be empty")
+	}
+}
+
+func TestInterpolateParams_MissingFieldInResult(t *testing.T) {
+	steps := []StepState{
+		{Index: 0, Name: "frame", Command: "node.create_frame", OK: true,
+			Result: map[string]interface{}{"id": "10:20"}},
+	}
+	params := map[string]interface{}{
+		"nodeId": "${{steps.frame.result.nonexistent_field}}",
+	}
+
+	_, err := InterpolateParams(params, steps)
+	if err == nil {
+		t.Fatal("expected error for missing field in result")
+	}
+}
+
+func TestInterpolateParams_MultipleInterpolationsInOneString(t *testing.T) {
+	steps := []StepState{
+		{Index: 0, Name: "a", Command: "node.create_frame", OK: true,
+			Result: map[string]interface{}{"id": "10:20", "name": "Frame-A"}},
+		{Index: 1, Name: "b", Command: "node.create_frame", OK: true,
+			Result: map[string]interface{}{"id": "10:30", "name": "Frame-B"}},
+	}
+	params := map[string]interface{}{
+		"label": "parent=${{steps.a.result.id}},child=${{steps.b.result.id}}",
+	}
+
+	out, err := InterpolateParams(params, steps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := out["label"]; got != "parent=10:20,child=10:30" {
+		t.Fatalf("unexpected label: %#v", got)
+	}
+}
+
+func TestInterpolateParams_MultipleInterpolationsWithNonStringTypes(t *testing.T) {
+	// When multiple placeholders exist in a string, non-string values get stringified
+	steps := []StepState{
+		{Index: 0, Name: "info", Command: "node.get_info", OK: true,
+			Result: map[string]interface{}{"x": 100.0, "y": 200.0}},
+	}
+	params := map[string]interface{}{
+		"position": "x=${{steps.info.result.x}},y=${{steps.info.result.y}}",
+	}
+
+	out, err := InterpolateParams(params, steps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := out["position"]; got != "x=100,y=200" {
+		t.Fatalf("unexpected position: %#v", got)
+	}
+}
+
+func TestInterpolateParams_EmptyParams(t *testing.T) {
+	steps := []StepState{
+		{Index: 0, Command: "noop", OK: true, Result: map[string]interface{}{}},
+	}
+	params := map[string]interface{}{}
+
+	out, err := InterpolateParams(params, steps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(out) != 0 {
+		t.Fatalf("expected empty params, got %v", out)
+	}
+}
+
+func TestInterpolateParams_NoPlaceholders(t *testing.T) {
+	steps := []StepState{
+		{Index: 0, Command: "noop", OK: true, Result: map[string]interface{}{}},
+	}
+	params := map[string]interface{}{
+		"name":  "TestFrame",
+		"width": 1080.0,
+		"x":     0.0,
+	}
+
+	out, err := InterpolateParams(params, steps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out["name"] != "TestFrame" {
+		t.Fatalf("expected name=TestFrame, got %v", out["name"])
+	}
+	if out["width"] != 1080.0 {
+		t.Fatalf("expected width=1080, got %v", out["width"])
+	}
+}
+
+func TestInterpolateParams_LastReference(t *testing.T) {
+	steps := []StepState{
+		{Index: 0, Name: "first", Command: "node.create_frame", OK: true,
+			Result: map[string]interface{}{"id": "10:20"}},
+		{Index: 1, Name: "second", Command: "text.create", OK: true,
+			Result: map[string]interface{}{"id": "10:30"}},
+	}
+	params := map[string]interface{}{
+		"nodeId": "${{last.result.id}}",
+	}
+
+	out, err := InterpolateParams(params, steps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := out["nodeId"]; got != "10:30" {
+		t.Fatalf("expected last result id=10:30, got %#v", got)
+	}
+}
+
+func TestInterpolateParams_NestedParamsMap(t *testing.T) {
+	steps := []StepState{
+		{Index: 0, Name: "frame", Command: "node.create_frame", OK: true,
+			Result: map[string]interface{}{"id": "10:20"}},
+	}
+	params := map[string]interface{}{
+		"fills": map[string]interface{}{
+			"nodeId": "${{steps.frame.result.id}}",
+			"type":   "SOLID",
+		},
+	}
+
+	out, err := InterpolateParams(params, steps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fills := out["fills"].(map[string]interface{})
+	if fills["nodeId"] != "10:20" {
+		t.Fatalf("expected nested nodeId=10:20, got %v", fills["nodeId"])
+	}
+	if fills["type"] != "SOLID" {
+		t.Fatalf("expected type=SOLID, got %v", fills["type"])
+	}
+}
+
+func TestInterpolateParams_ArrayInParams(t *testing.T) {
+	steps := []StepState{
+		{Index: 0, Name: "frame", Command: "node.create_frame", OK: true,
+			Result: map[string]interface{}{"id": "10:20"}},
+	}
+	params := map[string]interface{}{
+		"nodeIds": []interface{}{
+			"${{steps.frame.result.id}}",
+			"static-id",
+		},
+	}
+
+	out, err := InterpolateParams(params, steps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	nodeIds := out["nodeIds"].([]interface{})
+	if nodeIds[0] != "10:20" {
+		t.Fatalf("expected first nodeId=10:20, got %v", nodeIds[0])
+	}
+	if nodeIds[1] != "static-id" {
+		t.Fatalf("expected second nodeId=static-id, got %v", nodeIds[1])
+	}
+}

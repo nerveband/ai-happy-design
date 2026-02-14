@@ -1,3 +1,5 @@
+import { getNodeById, getSceneNodeById } from '../utils/getNode';
+
 export async function handleLayout(action: string, params: any): Promise<any> {
   switch (action) {
     case 'auto_layout':
@@ -27,8 +29,8 @@ export async function handleLayout(action: string, params: any): Promise<any> {
 }
 
 async function getFrameNode(nodeId: string): Promise<FrameNode> {
-  const node = await figma.getNodeByIdAsync(nodeId);
-  if (!node || (node.type !== 'FRAME' && node.type !== 'COMPONENT' && node.type !== 'COMPONENT_SET')) {
+  const node = await getNodeById(nodeId);
+  if (node.type !== 'FRAME' && node.type !== 'COMPONENT' && node.type !== 'COMPONENT_SET') {
     throw new Error(`Node ${nodeId} is not a frame-like node`);
   }
   return node as FrameNode;
@@ -127,8 +129,7 @@ async function setAlignment(params: any) {
 }
 
 async function setSizing(params: any) {
-  const node = await figma.getNodeByIdAsync(params.nodeId) as SceneNode | null;
-  if (!node) throw new Error(`Node ${params.nodeId} not found`);
+  const node = await getSceneNodeById(params.nodeId);
 
   // Support layoutSizingHorizontal/layoutSizingVertical on any node (text, frame, etc.)
   const horizontal = params.horizontal ?? params.layoutSizingHorizontal;
@@ -161,8 +162,8 @@ async function setSizing(params: any) {
 }
 
 async function setConstraints(params: any) {
-  const node = await figma.getNodeByIdAsync(params.nodeId) as SceneNode | null;
-  if (!node || !('constraints' in node)) throw new Error(`Node ${params.nodeId} does not support constraints`);
+  const node = await getSceneNodeById(params.nodeId);
+  if (!('constraints' in node)) throw new Error(`Node ${params.nodeId} does not support constraints`);
 
   const constraints: Constraints = {
     horizontal: params.horizontal || node.constraints.horizontal,
