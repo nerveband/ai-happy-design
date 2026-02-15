@@ -12,6 +12,12 @@ Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveb
 
 ---
 
+## Screenshot
+
+<p align="center">
+  <img src="resources/AI Happy Coder Screenshot v1.png" alt="AI Happy Design Plugin" width="420">
+</p>
+
 ## Architecture
 
 ```
