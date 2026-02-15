@@ -1,7 +1,7 @@
 .PHONY: build build-go build-plugin sync-plugin run-mcp run-ws test clean install lint
 
 BINARY=ai-happy-design
-VERSION=1.0.0
+VERSION=0.0.0-dev
 
 build-plugin:
 	cd plugin && npm install && npm run build
