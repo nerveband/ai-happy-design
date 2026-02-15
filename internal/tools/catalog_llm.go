@@ -50,7 +50,7 @@ func LLMCatalog() map[string]interface{} {
 			"IMPORTANT": "ALWAYS call document.find_free_space BEFORE creating root frames. It returns exact x,y coordinates. NEVER hardcode or guess positions — this causes frames to overlap existing work.",
 			"create": map[string]interface{}{
 				"when": "Building new designs, layouts, multi-element compositions, or anything with 3+ elements.",
-				"how":  "1) Call document.find_free_space to get x,y. 2) Build a JSON array of operations. First step = root frame at returned x,y. Subsequent steps use ${{steps.name.result.id}} for parentId. 3) Send: 'ai-happy-design batch '[...]'' or bulk.execute via MCP.",
+				"how":  "1) Call document.find_free_space to get x,y. 2) Build a JSON array of operations. First step = root frame at returned x,y. Subsequent steps can use compact refs like $frame or $last (long form ${{steps.name.result.id}} still works). 3) Prefer compact command aliases (frame/rect/ellipse/text/fill/stroke/parent/autolayout). 4) Send: 'ai-happy-design batch '[...]'' or bulk.execute via MCP.",
 				"why":  "One WebSocket connection, no process overhead per step, automatic ID chaining. 150 steps in ~6 seconds vs ~8 minutes with individual commands.",
 			},
 			"edit": map[string]interface{}{
@@ -69,8 +69,8 @@ func LLMCatalog() map[string]interface{} {
 				"5. VERIFY: Export and review. Does it match what the CSS would render?",
 			},
 			"cssToFigma": map[string]interface{}{
-				"_hint":                           "When you think 'I would use this CSS', translate it to the corresponding Figma command.",
-				"display: flex":                   "layout.set_auto_layout {direction, itemSpacing, padding}",
+				"_hint":                            "When you think 'I would use this CSS', translate it to the corresponding Figma command.",
+				"display: flex":                    "layout.set_auto_layout {direction, itemSpacing, padding}",
 				"flex-direction: column":           "layout.set_auto_layout {direction: VERTICAL}",
 				"flex-direction: row":              "layout.set_auto_layout {direction: HORIZONTAL}",
 				"justify-content: center":          "layout.set_alignment {primaryAxisAlign: CENTER}",
@@ -108,18 +108,18 @@ func LLMCatalog() map[string]interface{} {
 				"levels": map[string]interface{}{
 					"primary": map[string]interface{}{
 						"what":    "The ONE thing the viewer should see first. Hero title, main CTA, key number.",
-						"how":     "Largest font size (hero scale), boldest weight (800), accent color, optional shadow glow.",
-						"example": "fontSize:72, weight:800, color:accent. Or a big number like '106' in accent color.",
+						"how":     "Use display/hero tier from compute_tokens, boldest weight (800), accent color, optional shadow glow.",
+						"example": "Use text.display or text.hero from compute_tokens (e.g. 200px or 152px on 1080w). Weight 800, accent color.",
 					},
 					"secondary": map[string]interface{}{
 						"what":    "Supporting elements. Subtitles, section headers, card titles, secondary CTAs.",
-						"how":     "Medium font size (heading scale), semi-bold (600-700), white or slightly muted color.",
-						"example": "fontSize:24-36, weight:600-700, color:white or warm accent.",
+						"how":     "Use heading/subheading tier from compute_tokens, semi-bold (600-700), white or slightly muted color.",
+						"example": "Use text.heading or text.subheading from compute_tokens (e.g. 84px or 64px on 1080w). Weight 600-700.",
 					},
 					"tertiary": map[string]interface{}{
 						"what":    "Details. Descriptions, body text, metadata, helper text.",
-						"how":     "Smaller font size (body scale), regular weight (400-500), muted color (gray/low opacity).",
-						"example": "fontSize:18-24, weight:400-500, color:{r:0.6,g:0.6,b:0.6}.",
+						"how":     "Use body/caption tier from compute_tokens, regular weight (400-500), muted color (gray/low opacity).",
+						"example": "Use text.body or text.caption from compute_tokens (e.g. 48px or 36px on 1080w). Weight 400-500, color:{r:0.6,g:0.6,b:0.6}.",
 					},
 					"ambient": map[string]interface{}{
 						"what":    "Background texture. Decorative shapes, subtle lines, particles, watermarks.",
@@ -143,10 +143,10 @@ func LLMCatalog() map[string]interface{} {
 						"Background decorations — they're behind everything.",
 						"Borders and dividers — these are already subtle.",
 					},
-					"recipe_subtle":  "effect.add_shadow {shadowType:DROP_SHADOW, color:{r:0,g:0,b:0,a:0.1}, offsetX:0, offsetY:2, radius:8}",
-					"recipe_card":    "effect.add_shadow {shadowType:DROP_SHADOW, color:{r:0,g:0,b:0,a:0.2}, offsetX:0, offsetY:4, radius:16}",
+					"recipe_subtle":   "effect.add_shadow {shadowType:DROP_SHADOW, color:{r:0,g:0,b:0,a:0.1}, offsetX:0, offsetY:2, radius:8}",
+					"recipe_card":     "effect.add_shadow {shadowType:DROP_SHADOW, color:{r:0,g:0,b:0,a:0.2}, offsetX:0, offsetY:4, radius:16}",
 					"recipe_elevated": "effect.add_shadow {shadowType:DROP_SHADOW, color:{r:0,g:0,b:0,a:0.3}, offsetX:0, offsetY:8, radius:32}",
-					"recipe_glow":    "effect.add_shadow {shadowType:DROP_SHADOW, color:{accent_r,accent_g,accent_b,a:0.2}, offsetX:0, offsetY:4, radius:24}",
+					"recipe_glow":     "effect.add_shadow {shadowType:DROP_SHADOW, color:{accent_r,accent_g,accent_b,a:0.2}, offsetX:0, offsetY:4, radius:24}",
 				},
 				"whenToUseGradient": map[string]interface{}{
 					"use": []string{
@@ -161,9 +161,9 @@ func LLMCatalog() map[string]interface{} {
 						"Every surface — overusing gradients makes designs look dated.",
 						"Subtle cards — solid color with low opacity is usually better for card backgrounds.",
 					},
-					"recipe_bgSweep":  "paint.set_gradient {type:LINEAR, stops:[{position:0,color:dark},{position:1,color:slightlyLighter}]}",
-					"recipe_accent":   "paint.set_gradient {type:LINEAR, stops:[{position:0,color:accent},{position:1,color:accentVariant}]}",
-					"recipe_fade":     "paint.set_gradient {type:LINEAR, stops:[{position:0,color:{r:1,g:1,b:1,a:0.1}},{position:1,color:{r:1,g:1,b:1,a:0}}]}",
+					"recipe_bgSweep": "paint.set_gradient {type:LINEAR, stops:[{position:0,color:dark},{position:1,color:slightlyLighter}]}",
+					"recipe_accent":  "paint.set_gradient {type:LINEAR, stops:[{position:0,color:accent},{position:1,color:accentVariant}]}",
+					"recipe_fade":    "paint.set_gradient {type:LINEAR, stops:[{position:0,color:{r:1,g:1,b:1,a:0.1}},{position:1,color:{r:1,g:1,b:1,a:0}}]}",
 				},
 				"whenToUseBlur": map[string]interface{}{
 					"use": []string{
@@ -185,20 +185,20 @@ func LLMCatalog() map[string]interface{} {
 						"Dividers — 1px line between sections.",
 						"Badges and tags — stroke adds definition to small elements.",
 					},
-					"recipe_subtle": "paint.set_stroke {color:{r:1,g:1,b:1,a:0.07}, width:1}",
-					"recipe_accent": "paint.set_stroke {color:{accent,a:0.12}, width:1}",
+					"recipe_subtle":   "paint.set_stroke {color:{r:1,g:1,b:1,a:0.07}, width:1}",
+					"recipe_accent":   "paint.set_stroke {color:{accent,a:0.12}, width:1}",
 					"recipe_decoRing": "paint.set_stroke {color:{accent,a:0.1}, width:2} + paint.remove_fill (stroke-only)",
 				},
 			},
 			"layerOrganization": map[string]interface{}{
 				"naming": map[string]interface{}{
-					"rule": "Name every element by its content or role. Never leave default names like 'Frame 47' or 'Rectangle 12'.",
+					"rule":    "Name every element by its content or role. Never leave default names like 'Frame 47' or 'Rectangle 12'.",
 					"pattern": "[Type] - [Purpose]",
 					"examples": map[string]interface{}{
-						"frames":     "Hero Section, Card Grid, Card - Feature Name, Footer, Navigation Bar",
-						"text":       "Hero Title, Card Title, Card Description, Footer Link, Badge Label",
-						"shapes":     "Deco Ring, Background Gradient, Divider, Dot Indicator, Accent Line",
-						"images":     "Avatar - User, Hero Background, Logo, Product Thumbnail",
+						"frames": "Hero Section, Card Grid, Card - Feature Name, Footer, Navigation Bar",
+						"text":   "Hero Title, Card Title, Card Description, Footer Link, Badge Label",
+						"shapes": "Deco Ring, Background Gradient, Divider, Dot Indicator, Accent Line",
+						"images": "Avatar - User, Hero Background, Logo, Product Thumbnail",
 					},
 				},
 				"grouping": map[string]interface{}{
@@ -248,7 +248,7 @@ func LLMCatalog() map[string]interface{} {
 			"2. COMPUTE TOKENS: Call design.compute_tokens with your canvas width and height. This returns ALL sizing values (font sizes, spacing, padding, layout type, card widths) as concrete pixel values. Use these EXACT values — do NOT calculate sizes yourself.",
 			"3. FIND SPACE: Call document.find_free_space with your desired width/height to get exact x,y coordinates for new frames. NEVER guess frame positions.",
 			"4. THINK IN CSS: Draft the design as HTML/CSS in your head. The compute_tokens response includes a CSS analogy. Translate to Figma using the cssToFigma map.",
-			"5. HIERARCHY: Assign each element a level (primary/secondary/tertiary/ambient). Use font sizes from compute_tokens: hero=primary, heading=secondary, body=tertiary, caption=ambient.",
+			"5. HIERARCHY: Assign each element a level. Use the modular type scale from compute_tokens: display=hero stats/amounts, hero=campaign headlines, title=slide headlines, heading=section titles, subheading=labels, body=copy, caption=footnotes. Use button tokens for CTA sizing.",
 			"6. CREATE: Multi-element = batch/bulk with named steps and interpolation. Single change = direct command.",
 			"7. FRAME POSITIONING: Call document.find_free_space to get exact coordinates. NEVER hardcode or guess x/y for root frames.",
 			"8. BALANCE: ALL siblings MUST match — padding, spacing, radius, text sizes from compute_tokens.",
@@ -258,8 +258,8 @@ func LLMCatalog() map[string]interface{} {
 			"12. EXPORT & VERIFY: export.image scale=2. Inspect the result. Does it look proportionate?",
 		},
 		"designPatterns": map[string]interface{}{
-			"_overview":   "These patterns produce professional Figma designs. Follow them strictly.",
-			"_decisionTree": "DEFAULT: Use absolute x/y positioning for the main layout structure (hero, subtitle, cards, CTA). Use auto-layout ONLY for small containers that need centered text (badges, buttons). This hybrid approach is simplest and most reliable. Full auto-layout is an option for complex responsive designs but requires careful sizing management.",
+			"_overview":     "These patterns produce professional Figma designs. Follow them strictly.",
+			"_decisionTree": "DEFAULT: Use auto-layout (flexbox). Think in rows and columns. Figma auto-layout IS CSS flexbox — you already know it. Create frames with layoutMode, itemSpacing, padding, and alignment in a SINGLE create_frame call. Use absolute positioning ONLY for decorative overlays (layoutPositioning: ABSOLUTE). After creating, run layout.check_overlaps to verify no elements overlap.",
 			"coordinateSystem": map[string]interface{}{
 				"origin":   "Top-left (0,0). X increases right, Y increases down.",
 				"relative": "x/y are ALWAYS relative to the containing parent frame, not the page.",
@@ -294,8 +294,52 @@ func LLMCatalog() map[string]interface{} {
 				"pattern": "1. Create parent frame. 2. Set auto-layout on it. 3. Add children (text, icons) INTO the frame using parentId param or layer.move_to_parent.",
 			},
 			"autoLayout": map[string]interface{}{
-				"rule":      "Use auto-layout for ALL structural containers: cards, rows, columns, stacks, headers, footers. Auto-layout handles spacing and alignment — no manual x/y math needed for children.",
-				"whenToUse": "Lists, stacks, card grids, buttons, navigation, header/content/footer, any group of siblings that need consistent spacing.",
+				"rule":      "Use auto-layout for ALL layout containers. Auto-layout IS CSS flexbox. Figma's layout engine handles positioning — no manual x/y math needed.",
+				"whenToUse": "Everything: page layouts, cards, rows, columns, stacks, headers, footers, buttons, badges. The ONLY exception is decorative overlays.",
+				"flexboxMapping": map[string]interface{}{
+					"_hint":                          "You already know CSS flexbox. Use this mapping:",
+					"flex-direction: column":         "layoutMode: VERTICAL",
+					"flex-direction: row":            "layoutMode: HORIZONTAL",
+					"gap":                            "itemSpacing",
+					"padding":                        "padding (uniform) or paddingTop/Right/Bottom/Left",
+					"justify-content: flex-start":    "primaryAxisAlignItems: MIN",
+					"justify-content: center":        "primaryAxisAlignItems: CENTER",
+					"justify-content: flex-end":      "primaryAxisAlignItems: MAX",
+					"justify-content: space-between": "primaryAxisAlignItems: SPACE_BETWEEN",
+					"align-items: flex-start":        "counterAxisAlignItems: MIN",
+					"align-items: center":            "counterAxisAlignItems: CENTER",
+					"align-items: flex-end":          "counterAxisAlignItems: MAX",
+					"width/height on main axis":      "primaryAxisSizingMode: FIXED or AUTO",
+					"cross-axis size":                "counterAxisSizingMode: FIXED or AUTO",
+					"flex-grow: 1":                   "child layoutGrow: 1 (only 0 or 1, no fractions)",
+					"align-self: stretch":            "child layoutAlign: STRETCH",
+					"width: fit-content":             "child layoutSizingHorizontal: HUG",
+					"width: 100%":                    "child layoutSizingHorizontal: FILL",
+					"explicit width":                 "child layoutSizingHorizontal: FIXED",
+					"flex-wrap: wrap":                "layoutWrap: WRAP",
+					"position: absolute":             "child layoutPositioning: ABSOLUTE (for decorative elements only)",
+				},
+				"textInAutoLayout": map[string]interface{}{
+					"_critical": "Text nodes inside auto-layout need special handling to avoid height collapse.",
+					"problem":   "textAutoResize=HEIGHT alone does NOT work inside auto-layout. Text collapses because auto-layout controls sizing.",
+					"fix":       "Our plugin AUTO-SETS layoutSizingVertical=HUG when text is in auto-layout with textAutoResize=HEIGHT. You don't need to do anything extra.",
+					"sequence":  "1. Create text with width param (enables HEIGHT resize). 2. Plugin auto-sets layoutSizingVertical=HUG. 3. Optionally set layoutSizingHorizontal=FILL for full-width text.",
+				},
+				"oneCommandCreate": map[string]interface{}{
+					"_hint":   "Create auto-layout frames in ONE command — no separate layout.set_auto_layout call needed:",
+					"example": `node.create_frame {name:"VStack", width:500, layoutMode:"VERTICAL", itemSpacing:24, padding:32, primaryAxisAlign:"CENTER", counterAxisAlign:"CENTER", primaryAxisSizing:"AUTO"}`,
+				},
+				"spacers": map[string]interface{}{
+					"fixedSpacer": "Create empty frame with fixed height (e.g., 48px) as a child. Acts like a CSS margin.",
+					"flexSpacer":  "Create empty frame with layoutGrow:1. Pushes siblings apart like flex-grow spacer.",
+				},
+				"badge": map[string]interface{}{
+					"recipe": `node.create_frame {name:"Badge", layoutMode:"HORIZONTAL", padding:8, paddingLeft:16, paddingRight:16, primaryAxisSizing:"AUTO", counterAxisSizing:"AUTO", color:"#FF6B00"} + node.set_corner_radius {radius:100}`,
+				},
+				"decorativeAbsolute": map[string]interface{}{
+					"_hint":   "For decorative elements (circles, stripes, gradients) inside auto-layout frames, set layoutPositioning:ABSOLUTE on the child. This takes it out of the flow — like CSS position:absolute.",
+					"example": "shape.create_ellipse {parentId:frameId, x:0, y:0, width:200, height:200, layoutPositioning:ABSOLUTE}",
+				},
 				"centering": map[string]interface{}{
 					"horizontal": "Set direction=VERTICAL, counterAxisAlign=CENTER. Children center horizontally.",
 					"vertical":   "Set direction=VERTICAL, primaryAxisAlign=CENTER. Children center vertically.",
@@ -319,11 +363,15 @@ func LLMCatalog() map[string]interface{} {
 					"VERTICAL_frame":   "Primary axis = top-to-bottom. primaryAxisAlign controls vertical position. counterAxisAlign controls horizontal position.",
 					"HORIZONTAL_frame": "Primary axis = left-to-right. primaryAxisAlign controls horizontal position. counterAxisAlign controls vertical position.",
 				},
+				"gradientTransforms": map[string]interface{}{
+					"leftToRight": "[[1,0,0],[0,1,0]]",
+					"topToBottom": "[[0,1,0],[-1,0,1]]",
+				},
 			},
 			"absolutePositioning": map[string]interface{}{
-				"_recommended": "HYBRID APPROACH: Use absolute x/y positioning for the main layout structure. Use auto-layout ONLY for small containers like badges and buttons where text centering is needed.",
-				"rule":         "Place major elements (hero text, subtitle, cards, CTA) with explicit x, y, width, height coordinates. This gives direct control over layout — no auto-layout surprises.",
-				"whenToUse":    "MOST designs. Absolute positioning is simpler for LLMs to reason about. Use auto-layout only for badges, buttons, and small containers that need centered text.",
+				"_recommended":  "DECORATIVE/OVERLAY ONLY. Use layoutPositioning:ABSOLUTE inside auto-layout frames for decorative elements that should NOT participate in the flow.",
+				"rule":          "Absolute positioning is for decorative overlays ONLY — circles, stripes, watermarks. All content (text, cards, buttons) should use auto-layout.",
+				"whenToUse":     "Background decorations, floating badges, overlay effects. NOT for text, cards, or content layout.",
 				"colorShortcut": "node.create_frame, shape.create_rectangle, and text.create all accept a 'color' param (hex string like '#0F0F23' or rgb object). The param name is 'color', NOT 'fillColor' or 'backgroundColor'. This is a shortcut that avoids a separate paint.set_solid call.",
 				"howItWorks": []string{
 					"1. Create root frame: node.create_frame {name, x, y, width, height, color: '#0F0F23'}",
@@ -348,30 +396,46 @@ func LLMCatalog() map[string]interface{} {
 					"2. paint.set_solid {nodeId: card, color:{r:1,g:1,b:1}, opacity:0.04} → glass fill",
 					"3. node.set_corner_radius {nodeId: card, radius: 16}",
 					"4. paint.set_stroke {nodeId: card, color:{r:1,g:1,b:1}, opacity:0.07, strokeWeight:1}",
-					"5. text.create {text: 'Title', parentId: card, x:32, y:32, fontSize: 36, fontWeight: 700}",
-					"6. text.create {text: 'Description', parentId: card, x:32, y:96, fontSize: 22, width: cardWidth-64}",
+					"5. text.create {text: 'Title', parentId: card, x:padding, y:padding, fontSize: tokens.text.heading, fontWeight: 700}",
+					"6. text.create {text: 'Description', parentId: card, x:padding, y:titleBottom+8, fontSize: tokens.text.body, width: cardWidth-2*padding}",
 				},
 				"batch_example": `[
   {"name":"card","command":"node.create_frame","params":{"name":"Feature Card","parentId":"${{steps.root.result.id}}","x":72,"y":440,"width":288,"height":200}},
   {"command":"paint.set_solid","params":{"nodeId":"${{steps.card.result.id}}","color":{"r":1,"g":1,"b":1},"opacity":0.04}},
   {"command":"node.set_corner_radius","params":{"nodeId":"${{steps.card.result.id}}","radius":16}},
   {"command":"paint.set_stroke","params":{"nodeId":"${{steps.card.result.id}}","color":{"r":1,"g":1,"b":1},"opacity":0.07,"strokeWeight":1}},
-  {"name":"title","command":"text.create","params":{"text":"10x","parentId":"${{steps.card.result.id}}","x":32,"y":36,"fontSize":56,"fontWeight":700,"fontFamily":"Space Grotesk"}},
+  {"name":"title","command":"text.create","params":{"text":"10x","parentId":"${{steps.card.result.id}}","x":32,"y":36,"fontSize":48,"fontWeight":700,"fontFamily":"Space Grotesk"}},
   {"command":"text.set_color","params":{"nodeId":"${{steps.title.result.id}}","color":{"r":0.6,"g":0.4,"b":1}}},
-  {"name":"desc","command":"text.create","params":{"text":"Faster Design","parentId":"${{steps.card.result.id}}","x":32,"y":128,"fontSize":20,"fontWeight":500,"fontFamily":"DM Sans"}},
+  {"name":"desc","command":"text.create","params":{"text":"Faster Design","parentId":"${{steps.card.result.id}}","x":32,"y":128,"fontSize":28,"fontWeight":500,"fontFamily":"DM Sans"}},
   {"command":"text.set_color","params":{"nodeId":"${{steps.desc.result.id}}","color":{"r":0.6,"g":0.6,"b":0.68}}}
 ]`,
+			},
+			"fillRules": map[string]interface{}{
+				"_critical": "ONLY visual surfaces should have fills. Structural/layout frames (wrappers, groups, auto-layout containers) should have NO fill.",
+				"visualSurfaces": []string{
+					"Slide backgrounds (root frames) — use paint.set_solid AFTER creating the frame",
+					"Cards and elevated surfaces — solid or glass fill",
+					"Buttons — accent color fill",
+					"Badges — colored background for contrast",
+				},
+				"structuralFrames": []string{
+					"Content wrappers — NO fill (remove default white fill with paint.remove_fill {index:0})",
+					"Auto-layout groups — NO fill",
+					"Header/Content/Footer groups — NO fill",
+					"Row/column containers — NO fill",
+				},
+				"frameFillParam": "node.create_frame accepts a 'color' param that sets the fill on creation. Use this for VISUAL frames (slide bg, cards). For structural frames, either don't pass 'color' and call paint.remove_fill, or simply leave the default.",
+				"removeFill":     "paint.remove_fill {nodeId, index:0} — removes the fill at index 0. Use on structural frames to clear default white fill. Command is 'paint.remove_fill' (singular), NOT 'paint.remove_fills'.",
 			},
 			"layoutPatterns": map[string]interface{}{
 				"description": "Common layout structures using nested auto-layout frames.",
 				"centeredContentPage": map[string]interface{}{
 					"description": "Full-page design with centered content stack. Use for social media posts, posters, etc.",
-					"structure":   "Root frame (FIXED 1080x1080) → Content wrapper (auto-layout VERTICAL, CENTER/CENTER, padding 64) → children stack vertically and center automatically.",
+					"structure":   "Root frame (FIXED 1080x1080, with bg fill) → Content wrapper (auto-layout VERTICAL, CENTER/CENTER, NO fill) → children stack vertically and center automatically.",
 					"batch_example": `[
-  {"name":"root","command":"node.create_frame","params":{"name":"Post","x":0,"y":0,"width":1080,"height":1080}},
-  {"command":"paint.set_solid","params":{"nodeId":"${{steps.root.result.id}}","color":{"r":0.1,"g":0.1,"b":0.1}}},
+  {"name":"root","command":"node.create_frame","params":{"name":"Post","x":0,"y":0,"width":1080,"height":1080,"color":"#1A1A1A"}},
   {"name":"content","command":"node.create_frame","params":{"name":"Content","parentId":"${{steps.root.result.id}}","width":1080,"height":1080}},
-  {"command":"paint.set_solid","params":{"nodeId":"${{steps.content.result.id}}","color":{"r":0,"g":0,"b":0,"a":0}}},
+  {"command":"paint.remove_fill","params":{"nodeId":"${{steps.content.result.id}}","index":0}},
   {"command":"layout.set_auto_layout","params":{"nodeId":"${{steps.content.result.id}}","direction":"VERTICAL","itemSpacing":24,"padding":64,"primaryAxisAlign":"CENTER","counterAxisAlign":"CENTER"}}
 ]`,
 				},
@@ -391,10 +455,10 @@ func LLMCatalog() map[string]interface{} {
 				},
 			},
 			"typography": map[string]interface{}{
-				"weights":    "400=Regular, 500=Medium, 600=SemiBold, 700=Bold, 800=ExtraBold.",
-				"fontFamily": "Default to 'Inter' for clean UI. Set fontFamily explicitly for reliability.",
+				"weights":     "400=Regular, 500=Medium, 600=SemiBold, 700=Bold, 800=ExtraBold.",
+				"fontFamily":  "Default to 'Inter' for clean UI. Set fontFamily explicitly for reliability.",
 				"googleFonts": "Figma includes ALL Google Fonts by default. You can use any Google Font family name (e.g., 'Poppins', 'Space Grotesk', 'Playfair Display', 'DM Sans', 'Outfit', 'Sora', 'Manrope'). Great for adding personality to designs.",
-				"lineHeight": "CRITICAL: You must specify lineHeightUnit:'PERCENT' when calling text.set_line_height. Example: {lineHeight: 130, lineHeightUnit: 'PERCENT'} for 130%. Without lineHeightUnit, the value is interpreted as PIXELS (e.g., 130px), causing massive text overflow. Hero: 110%, Body: 140%, Caption: 130%.",
+				"lineHeight":  "CRITICAL: You must specify lineHeightUnit:'PERCENT' when calling text.set_line_height. Example: {lineHeight: 130, lineHeightUnit: 'PERCENT'} for 130%. Without lineHeightUnit, the value is interpreted as PIXELS (e.g., 130px), causing massive text overflow. Hero: 110%, Body: 140%, Caption: 130%.",
 				"fontPairings": map[string]interface{}{
 					"modern":  "Headings: 'Space Grotesk' or 'Outfit'. Body: 'Inter' or 'DM Sans'.",
 					"elegant": "Headings: 'Playfair Display'. Body: 'Source Sans Pro' or 'Lato'.",
@@ -404,46 +468,42 @@ func LLMCatalog() map[string]interface{} {
 			},
 			"sizingSystem": map[string]interface{}{
 				"_philosophy": "Think of each canvas like an HTML viewport. You already know CSS — use that knowledge. A 1080x1920 story is like a mobile viewport in portrait. A 1920x1080 canvas is like a desktop viewport. Size text the same way you would with CSS rem/vw units, but output concrete pixel values.",
-				"_method": "Look up the canvas width in the table below. If the exact width isn't listed, pick the nearest one or interpolate. All values are pre-computed and grid-aligned (multiples of 8).",
+				"_method":     "BEST: Call design.compute_tokens {width, height} for exact values. This table is a quick reference using the modular scale (base = W * 0.044, ratio = 1.333). Text on 4px grid, spacing on 8px grid.",
 				"lookupTable": map[string]interface{}{
-					"_instruction": "Find your canvas WIDTH below. Use these EXACT pixel values. All values are already rounded to 8px grid.",
+					"_instruction": "PREFER calling design.compute_tokens. This table is a quick reference. Scale: caption(-1) → body(0) → subheading(+1) → heading(+2) → title(+3) → hero(+4) → display(+5).",
 					"W_1080": map[string]interface{}{
-						"_use": "Instagram post (1080x1080), Instagram story (1080x1920), Instagram reel cover, TikTok, most social media",
-						"hero": 88, "heading": 40, "subheading": 32, "body": 24, "caption": 16, "numbers": 56, "cta": 24,
+						"_use":    "Instagram post (1080x1080), Instagram story (1080x1920), Instagram reel cover, TikTok, most social media",
+						"display": 200, "hero": 152, "title": 112, "heading": 84, "subheading": 64, "body": 48, "caption": 36, "numbers": 200, "cta": 48,
 						"sidePadding": 72, "contentWidth": 936, "cardPadding": 40, "framePadding": 64,
 						"itemSpacing": 16, "cardGap": 24, "cornerRadius": 16,
 					},
 					"W_1200": map[string]interface{}{
-						"_use": "Facebook post (1200x630), LinkedIn post (1200x627), larger social cards",
-						"hero": 96, "heading": 48, "subheading": 32, "body": 24, "caption": 16, "numbers": 64, "cta": 24,
+						"_use":    "Facebook post (1200x630), LinkedIn post (1200x627), larger social cards",
+						"display": 224, "hero": 168, "title": 124, "heading": 92, "subheading": 72, "body": 52, "caption": 40, "numbers": 224, "cta": 52,
 						"sidePadding": 80, "contentWidth": 1040, "cardPadding": 40, "framePadding": 72,
 						"itemSpacing": 16, "cardGap": 24, "cornerRadius": 16,
 					},
 					"W_1920": map[string]interface{}{
-						"_use": "Presentation (1920x1080), desktop banner, YouTube thumbnail (1920x1080 scaled from 1280x720)",
-						"hero": 152, "heading": 80, "subheading": 56, "body": 40, "caption": 32, "numbers": 104, "cta": 40,
-						"sidePadding": 120, "contentWidth": 1680, "cardPadding": 64, "framePadding": 112,
-						"itemSpacing": 24, "cardGap": 32, "cornerRadius": 24,
+						"_use":    "Presentation (1920x1080), desktop banner",
+						"display": 356, "hero": 268, "title": 200, "heading": 152, "subheading": 112, "body": 84, "caption": 64, "numbers": 356, "cta": 84,
+						"sidePadding": 128, "contentWidth": 1664, "cardPadding": 72, "framePadding": 112,
+						"itemSpacing": 24, "cardGap": 40, "cornerRadius": 24,
 					},
 					"W_1280": map[string]interface{}{
-						"_use": "YouTube thumbnail (1280x720), medium presentations",
-						"hero": 104, "heading": 48, "subheading": 36, "body": 28, "caption": 20, "numbers": 72, "cta": 28,
-						"sidePadding": 80, "contentWidth": 1120, "cardPadding": 48, "framePadding": 80,
-						"itemSpacing": 20, "cardGap": 28, "cornerRadius": 20,
+						"_use":    "YouTube thumbnail (1280x720), medium presentations",
+						"display": 236, "hero": 180, "title": 132, "heading": 100, "subheading": 76, "body": 56, "caption": 44, "numbers": 236, "cta": 56,
+						"sidePadding": 88, "contentWidth": 1104, "cardPadding": 48, "framePadding": 80,
+						"itemSpacing": 24, "cardGap": 32, "cornerRadius": 24,
 					},
 					"W_800": map[string]interface{}{
-						"_use": "Email header, blog hero image, medium-sized graphics",
-						"hero": 64, "heading": 32, "subheading": 24, "body": 18, "caption": 14, "numbers": 44, "cta": 18,
-						"sidePadding": 48, "contentWidth": 704, "cardPadding": 28, "framePadding": 48,
-						"itemSpacing": 12, "cardGap": 16, "cornerRadius": 12,
+						"_use":    "Email header, blog hero image, medium-sized graphics",
+						"display": 148, "hero": 112, "title": 84, "heading": 64, "subheading": 48, "body": 36, "caption": 28, "numbers": 148, "cta": 36,
+						"sidePadding": 56, "contentWidth": 688, "cardPadding": 24, "framePadding": 48,
+						"itemSpacing": 16, "cardGap": 16, "cornerRadius": 16,
 					},
 					"W_custom": map[string]interface{}{
-						"_use":   "For canvas widths not listed above, compute from these formulas. Round every result to nearest 8.",
-						"hero":   "round8(W * 0.08)", "heading": "round8(W * 0.04)", "subheading": "round8(W * 0.03)",
-						"body":   "round8(W * 0.022)", "caption": "round8(max(W * 0.015, 12))", "numbers": "round8(W * 0.055)",
-						"cta":    "round8(W * 0.022)", "sidePadding": "round8(W * 0.065)", "cardPadding": "round8(W * 0.035)",
-						"framePadding": "round8(W * 0.06)", "itemSpacing": "round8(W * 0.015)", "cardGap": "round8(W * 0.022)",
-						"cornerRadius": "round8(W * 0.015)", "contentWidth": "W - 2 * sidePadding",
+						"_use":  "Call design.compute_tokens {width, height} for exact values. Or: base = W * 0.044, scale by 1.333 per step. Round text to 4px, spacing to 8px.",
+						"scale": "caption = base/1.333, body = base, subheading = base×1.333, heading = base×1.333², title = base×1.333³, hero = base×1.333⁴, display = base×1.333⁵",
 					},
 				},
 				"layoutByAspectRatio": map[string]interface{}{
@@ -470,16 +530,16 @@ func LLMCatalog() map[string]interface{} {
 					},
 				},
 				"verticalSpacing": map[string]interface{}{
-					"_rule": "Section gaps scale with canvas HEIGHT. Use these values based on H.",
-					"H_1080": map[string]interface{}{"sectionGap": 40, "topPadding": 88},
-					"H_1920": map[string]interface{}{"sectionGap": 64, "topPadding": 232},
-					"H_1350": map[string]interface{}{"sectionGap": 48, "topPadding": 160},
-					"H_720":  map[string]interface{}{"sectionGap": 24, "topPadding": 40},
+					"_rule":    "Section gaps scale with canvas HEIGHT. Use these values based on H.",
+					"H_1080":   map[string]interface{}{"sectionGap": 40, "topPadding": 88},
+					"H_1920":   map[string]interface{}{"sectionGap": 64, "topPadding": 232},
+					"H_1350":   map[string]interface{}{"sectionGap": 48, "topPadding": 160},
+					"H_720":    map[string]interface{}{"sectionGap": 24, "topPadding": 40},
 					"H_custom": "sectionGap = round8(H * 0.035). topPadding for portrait = round8(H * 0.12), for square = round8(H * 0.08), for landscape = round8(H * 0.06).",
 				},
 			},
 			"colors": map[string]interface{}{
-				"format":   "Use {r,g,b,a} objects where r/g/b are 0.0-1.0 floats, a is optional opacity.",
+				"format": "Use {r,g,b,a} objects where r/g/b are 0.0-1.0 floats, a is optional opacity.",
 				"darkTheme": map[string]interface{}{
 					"background":  "{r:0.1, g:0.1, b:0.1}",
 					"surface":     "{r:1, g:1, b:1, a:0.04}",
@@ -499,6 +559,22 @@ func LLMCatalog() map[string]interface{} {
 				"rule":    "Always export at scale=2 (2x resolution) for crisp output. Default is 2x. Use scale=3 for print-quality exports.",
 				"command": "export.image {nodeId, format:'PNG', scale:2}",
 				"tip":     "After creating a design, export and verify it looks correct before reporting success.",
+			},
+			"printDesign": map[string]interface{}{
+				"_overview": "For print designs (flyers, posters, business cards), pass dpi parameter to design.compute_tokens.",
+				"dpiGuide": map[string]interface{}{
+					"screen":     "72 dpi (default). For social media, web, presentations.",
+					"print":      "300 dpi. For professional print — flyers, posters, brochures, business cards.",
+					"largePrint": "150 dpi. For large format — banners, billboards (viewed from distance).",
+				},
+				"usage": "design.compute_tokens {width:2550, height:3300, dpi:300} → body ≈ 50px (12pt at 300dpi), proper print sizing",
+				"physicalSizes": map[string]interface{}{
+					"letter":       "2550×3300 @ 300dpi = 8.5×11 inches",
+					"A4":           "2480×3508 @ 300dpi = 8.27×11.69 inches",
+					"businessCard": "1050×600 @ 300dpi = 3.5×2 inches",
+					"poster":       "5400×7200 @ 300dpi = 18×24 inches",
+				},
+				"fontGuideline": "Print body text: 10-14pt. Headers scale up from there. The dpi parameter handles all conversions automatically.",
 			},
 			"balance": map[string]interface{}{
 				"_rule": "Sibling elements MUST match in size, padding, and spacing. Unbalanced siblings look broken.",
@@ -529,12 +605,12 @@ func LLMCatalog() map[string]interface{} {
   layout.set_auto_layout {nodeId: card3, itemSpacing: 12}`,
 				},
 				"consistentCornerRadius": map[string]interface{}{
-					"rule": "ALL sibling cards/containers share the SAME corner radius. Pick ONE radius, use everywhere.",
+					"rule":    "ALL sibling cards/containers share the SAME corner radius. Pick ONE radius, use everywhere.",
 					"example": "3 cards → all cornerRadius: 16. WRONG: card1 radius:16, card2 radius:12, card3 radius:20.",
 				},
 				"siblingTextParity": map[string]interface{}{
 					"rule":    "Text at the same hierarchy level across siblings must be the same fontSize, fontWeight, and color.",
-					"example": "3 card titles → all fontSize:24, weight:700, color:white. 3 card descriptions → all fontSize:16, weight:400, color:muted.",
+					"example": "3 card titles → all fontSize:heading (e.g. 48), weight:700, color:white. 3 card descriptions → all fontSize:body (e.g. 28), weight:400, color:muted.",
 				},
 				"widthDistribution": map[string]interface{}{
 					"rule":    "Cards in a HORIZONTAL row should divide available width evenly. Use the same fixed width for each.",
@@ -590,53 +666,56 @@ func LLMCatalog() map[string]interface{} {
 					"Create card frame: node.create_frame {name, parentId, x, y, width, height}. Use widths from compute_tokens.",
 					"Set a fixed height (e.g., 176-200px) — all sibling cards MUST have the same height.",
 					"Set cornerRadius from compute_tokens. Add fill {r:1,g:1,b:1,a:0.04} and stroke {r:1,g:1,b:1,a:0.07}.",
-					"Add text children with explicit x/y RELATIVE to the card: text.create {text, parentId:cardId, x:40, y:32, fontSize:36}.",
-					"Set font sizes from compute_tokens (text.heading for titles, text.body for descriptions).",
+					"Add text children with explicit x/y RELATIVE to the card: text.create {text, parentId:cardId, x:padding, y:padding, fontSize:tokens.text.heading}.",
+					"Use font sizes from compute_tokens: text.heading for titles, text.body for descriptions, text.caption for metadata.",
 				},
 			},
 			"compositionTips": []string{
 				"FIRST: Call design.compute_tokens {width, height} to get all sizing values. Use them throughout.",
-				"Create a root frame with your canvas dimensions. All elements go inside it.",
-				"DEFAULT APPROACH: Use absolute x/y positioning for the main layout. Place each element with explicit coordinates.",
-				"Use auto-layout ONLY for badges and buttons that need centered text. Keep the rest absolute.",
-				"Set text width via the 'width' parameter on text.create — NOT node.resize for auto-layout text.",
+				"Create a root frame with auto-layout: node.create_frame {name, width, height, layoutMode:VERTICAL, padding, itemSpacing, primaryAxisAlign:CENTER, counterAxisAlign:CENTER}",
+				"DEFAULT APPROACH: Use auto-layout (flexbox) for ALL layout. Think in rows and columns.",
+				"Text in auto-layout: set width param on text.create. Plugin auto-sets layoutSizingVertical:HUG.",
 				"CRITICAL: Always set lineHeightUnit:'PERCENT' when calling text.set_line_height. Default is PIXELS which breaks layouts.",
-				"Plan y-coordinates top-down. Account for text wrap: height ≈ fontSize * (lineHeight%/100) * numLines.",
+				"Use layoutPositioning:ABSOLUTE ONLY for decorative overlays (circles, stripes, gradients).",
 				"Use padding and spacing values from compute_tokens — never guess pixel values.",
-				"For horizontal card rows: cardWidth = (contentWidth - (N-1) * gap) / N. Place cards with calculated x positions.",
+				"After creating layout, call layout.check_overlaps {nodeId} to verify no elements overlap.",
 				"Name all elements descriptively. Layer background decorations behind content with layer.send_to_back.",
+				"For batch export: export.batch {nodeIds:'id1,id2', format:'PNG', scale:2}",
 			},
 		},
 		"imageRules": map[string]interface{}{
-				"_overview": "Images in Figma are fills on shapes, not standalone nodes. Use shape.create_image for a one-step convenience.",
-				"methods": []string{
-					"shape.create_image — ONE STEP: creates a rectangle with an image fill from base64 data. Params: imageData (base64), x, y, width, height, parentId, scaleMode, cornerRadius.",
-					"paint.set_image — TWO STEP: first create a shape, then apply an image fill. Good for adding images to existing nodes.",
-					"paint.set_image_url — URL-based: fetches an image from a URL (must be in manifest allowedDomains).",
-				},
-				"scaleModes": []string{
-					"FILL — fills the entire shape, cropping if needed (most common)",
-					"FIT — fits the image inside the shape, may have empty space",
-					"CROP — like FILL but uses a specific crop rectangle",
-					"TILE — tiles the image across the shape",
-				},
-				"compression": []string{
-					"For large images (>1MB), add --compress-images flag to batch or command.",
-					"This uses ImageMagick to compress imageData before sending (opt-in).",
-					"Example: ai-happy-design batch ops.json --compress-images",
-					"ImageMagick must be installed (brew install imagemagick or apt install imagemagick).",
-				},
-				"base64Tips": []string{
-					"For CLI batch: write operations to a JSON file, not inline. Base64 images can be >1MB which exceeds shell arg limits.",
-					"Example: write JSON to /tmp/img-ops.json, then: ai-happy-design batch /tmp/img-ops.json",
-				},
+			"_overview": "Images in Figma are fills on shapes, not standalone nodes. Use shape.create_image for a one-step convenience.",
+			"methods": []string{
+				"shape.create_image — ONE STEP: creates a rectangle with an image fill from base64 data. Params: imageData (base64), x, y, width, height, parentId, scaleMode, cornerRadius.",
+				"paint.set_image — TWO STEP: first create a shape, then apply an image fill. Good for adding images to existing nodes.",
+				"paint.set_image_url — URL-based: fetches an image from a URL (must be in manifest allowedDomains).",
 			},
+			"scaleModes": []string{
+				"FILL — fills the entire shape, cropping if needed (most common)",
+				"FIT — fits the image inside the shape, may have empty space",
+				"CROP — like FILL but uses a specific crop rectangle",
+				"TILE — tiles the image across the shape",
+			},
+			"compression": []string{
+				"For large images (>1MB), add --compress-images flag to batch or command.",
+				"This uses ImageMagick to compress imageData before sending (opt-in).",
+				"Example: ai-happy-design batch ops.json --compress-images",
+				"ImageMagick must be installed (brew install imagemagick or apt install imagemagick).",
+			},
+			"base64Tips": []string{
+				"For CLI batch: write operations to a JSON file, not inline. Base64 images can be >1MB which exceeds shell arg limits.",
+				"Example: write JSON to /tmp/img-ops.json, then: ai-happy-design batch /tmp/img-ops.json",
+			},
+		},
 		"quickPrompts": []string{
-			"For CREATING designs: build a batch JSON payload with named steps and interpolation. Send with 'batch file.json' or 'batch '[...]''.",
+			"For CREATING designs: use auto-layout frames. Create frames with layoutMode, itemSpacing, padding in one call. Batch for multiple elements.",
 			"For EDITING existing nodes: use single commands like paint.set_solid or node.resize.",
-			"DEFAULT: Use absolute x/y positioning for layout. Use auto-layout only for badges/buttons that need centered text.",
+			"DEFAULT: Use auto-layout (flexbox) for ALL layout. Absolute positioning only for decorative overlays.",
 			"CRITICAL: Always pass lineHeightUnit:'PERCENT' when setting line height. Default is PIXELS which causes overflow.",
-			"If one step fails, continue with remaining steps and return a structured summary.",
+			"VERIFY: After creating, call layout.check_overlaps to confirm no elements overlap.",
+			"PRINT: Pass dpi:300 to design.compute_tokens for print-ready designs.",
+			"FONTS: Call text.list_fonts {fontFamily:'Inter'} to discover available fonts and styles.",
+			"BATCH EXPORT: export.batch {nodeIds:'id1,id2', format:'PNG', scale:2} to export multiple frames.",
 		},
 		"tools": toolsOut,
 	}
@@ -751,28 +830,28 @@ func buildActionSpec(toolName, actionName, desc string) map[string]interface{} {
 		cliExample = "ai-happy-design command paint.set_image_fill -p '{\"nodeId\":\"1:2\",\"imageData\":\"<base64-or-data-url>\",\"scaleMode\":\"FILL\"}'"
 	}
 	if toolName == "bulk" && actionName == "execute" {
-		ops := `[{"name":"createCard","command":"shape.create_rectangle","params":{"x":40,"y":40,"width":220,"height":120}},{"name":"colorCard","command":"paint.set_solid","params":{"nodeId":"${{steps.createCard.result.id}}","color":"#2563EB"}}]`
+		ops := `[{"name":"card","command":"rect","params":{"x":40,"y":40,"w":220,"h":120,"bg":"#2563EB"}},{"name":"title","command":"text","params":{"text":"10x Faster","x":60,"y":70,"pid":"$card","sz":28,"ff":"Inter","lh":115}}]`
 		cliExample = fmt.Sprintf("ai-happy-design batch '%s'", ops)
 		mcpExample = map[string]interface{}{
 			"tool": "bulk",
 			"arguments": map[string]interface{}{
-				"action":          "execute",
-				"operations":      ops,
-				"continueOnError": true,
-				"retries":         1,
-				"retryDelayMs":    250,
-				"interpolate":     true,
+				"action":       "execute",
+				"operations":   ops,
+				"failFast":     false,
+				"retries":      1,
+				"retryDelayMs": 250,
+				"interpolate":  true,
 			},
 		}
 		batchStep = map[string]interface{}{
 			"name":    "bulk_execute",
 			"command": "bulk.execute",
 			"params": map[string]interface{}{
-				"operations":      ops,
-				"continueOnError": true,
-				"retries":         1,
-				"retryDelayMs":    250,
-				"interpolate":     true,
+				"operations":   ops,
+				"failFast":     false,
+				"retries":      1,
+				"retryDelayMs": 250,
+				"interpolate":  true,
 			},
 		}
 	}
@@ -924,8 +1003,8 @@ func sampleValue(param string) interface{} {
 		return `[{"type":"DROP_SHADOW","visible":true}]`
 	case strings.EqualFold(param, "operations"):
 		return `[{"name":"createRect","command":"shape.create_rectangle","params":{"x":40,"y":40,"width":220,"height":120}}]`
-	case strings.EqualFold(param, "continueOnError"):
-		return true
+	case strings.EqualFold(param, "failFast"):
+		return false
 	case strings.EqualFold(param, "retries"):
 		return 1
 	case strings.EqualFold(param, "retryDelayMs"):

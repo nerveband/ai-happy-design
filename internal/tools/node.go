@@ -29,7 +29,30 @@ func RegisterNodeTool(s *server.MCPServer, commander *figma.Commander) {
 		mcp.WithBoolean("locked", mcp.Description("Lock state")),
 		mcp.WithString("parentId", mcp.Description("Parent node ID")),
 		mcp.WithString("color", mcp.Description("Fill color as hex")),
+		mcp.WithString("stroke", mcp.Description("Stroke color as hex")),
+		mcp.WithNumber("strokeWidth", mcp.Description("Stroke width in px")),
+		mcp.WithBoolean("noFill", mcp.Description("Remove frame fill on create")),
+		mcp.WithNumber("cornerRadius", mcp.Description("Corner radius for frame")),
 		mcp.WithNumber("depth", mcp.Description("Tree traversal depth (for get_tree)")),
+		mcp.WithString("layoutMode", mcp.Description("Auto-layout direction: HORIZONTAL or VERTICAL"),
+			mcp.Enum("HORIZONTAL", "VERTICAL")),
+		mcp.WithNumber("itemSpacing", mcp.Description("Gap between children in auto-layout")),
+		mcp.WithNumber("padding", mcp.Description("Uniform padding on all sides")),
+		mcp.WithNumber("paddingTop", mcp.Description("Top padding")),
+		mcp.WithNumber("paddingRight", mcp.Description("Right padding")),
+		mcp.WithNumber("paddingBottom", mcp.Description("Bottom padding")),
+		mcp.WithNumber("paddingLeft", mcp.Description("Left padding")),
+		mcp.WithString("primaryAxisAlign", mcp.Description("Primary axis alignment: MIN, CENTER, MAX, SPACE_BETWEEN"),
+			mcp.Enum("MIN", "CENTER", "MAX", "SPACE_BETWEEN")),
+		mcp.WithString("counterAxisAlign", mcp.Description("Counter axis alignment: MIN, CENTER, MAX"),
+			mcp.Enum("MIN", "CENTER", "MAX")),
+		mcp.WithString("primaryAxisSizing", mcp.Description("Primary axis sizing: FIXED or AUTO"),
+			mcp.Enum("FIXED", "AUTO")),
+		mcp.WithString("counterAxisSizing", mcp.Description("Counter axis sizing: FIXED or AUTO"),
+			mcp.Enum("FIXED", "AUTO")),
+		mcp.WithString("layoutWrap", mcp.Description("Layout wrap: WRAP or NO_WRAP"),
+			mcp.Enum("WRAP", "NO_WRAP")),
+		mcp.WithBoolean("clipsContent", mcp.Description("Whether frame clips content")),
 	)
 
 	s.AddTool(tool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -57,7 +80,7 @@ func RegisterNodeTool(s *server.MCPServer, commander *figma.Commander) {
 			})
 
 		case "create_frame":
-			return sendCommand(commander, "create_frame", map[string]interface{}{
+			params := map[string]interface{}{
 				"name":     getStringArg(args, "name", "Frame"),
 				"x":        getFloat64Arg(args, "x", 0),
 				"y":        getFloat64Arg(args, "y", 0),
@@ -65,7 +88,63 @@ func RegisterNodeTool(s *server.MCPServer, commander *figma.Commander) {
 				"height":   getFloat64Arg(args, "height", 100),
 				"parentId": getStringArg(args, "parentId", ""),
 				"color":    getStringArg(args, "color", ""),
-			})
+			}
+			if hasArg(args, "stroke") {
+				params["stroke"] = getStringArg(args, "stroke", "")
+			}
+			if hasArg(args, "strokeWidth") {
+				params["strokeWidth"] = getFloat64Arg(args, "strokeWidth", 0)
+			}
+			if hasArg(args, "noFill") {
+				params["noFill"] = getBoolArg(args, "noFill", false)
+			}
+			if hasArg(args, "opacity") {
+				params["opacity"] = getFloat64Arg(args, "opacity", 1)
+			}
+			if hasArg(args, "cornerRadius") {
+				params["cornerRadius"] = getFloat64Arg(args, "cornerRadius", 0)
+			}
+			// Auto-layout params: only forward if explicitly provided
+			if hasArg(args, "layoutMode") {
+				params["layoutMode"] = getStringArg(args, "layoutMode", "")
+			}
+			if hasArg(args, "itemSpacing") {
+				params["itemSpacing"] = getFloat64Arg(args, "itemSpacing", 0)
+			}
+			if hasArg(args, "padding") {
+				params["padding"] = getFloat64Arg(args, "padding", 0)
+			}
+			if hasArg(args, "paddingTop") {
+				params["paddingTop"] = getFloat64Arg(args, "paddingTop", 0)
+			}
+			if hasArg(args, "paddingRight") {
+				params["paddingRight"] = getFloat64Arg(args, "paddingRight", 0)
+			}
+			if hasArg(args, "paddingBottom") {
+				params["paddingBottom"] = getFloat64Arg(args, "paddingBottom", 0)
+			}
+			if hasArg(args, "paddingLeft") {
+				params["paddingLeft"] = getFloat64Arg(args, "paddingLeft", 0)
+			}
+			if hasArg(args, "primaryAxisAlign") {
+				params["primaryAxisAlign"] = getStringArg(args, "primaryAxisAlign", "")
+			}
+			if hasArg(args, "counterAxisAlign") {
+				params["counterAxisAlign"] = getStringArg(args, "counterAxisAlign", "")
+			}
+			if hasArg(args, "primaryAxisSizing") {
+				params["primaryAxisSizing"] = getStringArg(args, "primaryAxisSizing", "")
+			}
+			if hasArg(args, "counterAxisSizing") {
+				params["counterAxisSizing"] = getStringArg(args, "counterAxisSizing", "")
+			}
+			if hasArg(args, "layoutWrap") {
+				params["layoutWrap"] = getStringArg(args, "layoutWrap", "")
+			}
+			if hasArg(args, "clipsContent") {
+				params["clipsContent"] = getBoolArg(args, "clipsContent", true)
+			}
+			return sendCommand(commander, "create_frame", params)
 
 		case "move":
 			nodeId, errResult := requireStringArg(args, "nodeId")

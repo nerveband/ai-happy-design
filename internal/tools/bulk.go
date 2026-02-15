@@ -74,10 +74,7 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 
 			for i, op := range ops {
 				opStart := time.Now()
-				params := op.Params
-				if params == nil {
-					params = map[string]interface{}{}
-				}
+				params := batchutil.NormalizeBatchParams(op.Command, op.Params)
 
 				if interpolate {
 					interpolatedParams, err := batchutil.InterpolateParams(params, states)
@@ -185,14 +182,14 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 			out := map[string]interface{}{
 				"ok": failed == 0 && pending == 0,
 				"summary": map[string]interface{}{
-					"total":           len(ops),
-					"processed":       processed,
-					"succeeded":       succeeded,
-					"failed":          failed,
-					"pending":         pending,
-					"retriesUsed":     retriesUsed,
-					"failFast":        failFast,
-					"interpolation":   interpolate,
+					"total":         len(ops),
+					"processed":     processed,
+					"succeeded":     succeeded,
+					"failed":        failed,
+					"pending":       pending,
+					"retriesUsed":   retriesUsed,
+					"failFast":      failFast,
+					"interpolation": interpolate,
 				},
 				"timing": map[string]interface{}{
 					"totalMs":   totalMs,

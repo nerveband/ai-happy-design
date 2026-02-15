@@ -13,7 +13,11 @@ export async function handleExport(action: string, params: any): Promise<any> {
     case 'pdf': return exportPdf(params);
     case 'export_json':
     case 'json': return exportJson(params);
-    default: throw new Error('Unknown export action: ' + action + '. Available: image, svg, pdf, json');
+    case 'batch':
+    case 'batch_export':
+    case 'export_batch':
+    case 'export_all': return batchExport(params);
+    default: throw new Error('Unknown export action: ' + action + '. Available: image, svg, pdf, json, batch_export');
   }
 }
 
@@ -102,4 +106,62 @@ async function exportJson(params: any) {
     format: 'JSON',
     data,
   };
+}
+
+async function batchExport(params: any) {
+  const format = (params.format ?? 'PNG').toUpperCase();
+  const scale = params.scale ?? 2;
+
+  // Parse nodeIds: comma-separated string or array
+  let nodeIds: string[] = [];
+  if (params.nodeIds) {
+    if (Array.isArray(params.nodeIds)) {
+      nodeIds = params.nodeIds;
+    } else {
+      nodeIds = String(params.nodeIds).split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+  }
+
+  // If no nodeIds, export all top-level frames on current page
+  if (nodeIds.length === 0) {
+    const page = figma.currentPage;
+    for (const child of page.children) {
+      if (child.type === 'FRAME' || child.type === 'COMPONENT' || child.type === 'COMPONENT_SET') {
+        nodeIds.push(child.id);
+      }
+    }
+  }
+
+  const exports: any[] = [];
+  for (const id of nodeIds) {
+    const node = await getSceneNodeById(id);
+
+    if (format === 'SVG') {
+      const svg = await node.exportAsync({ format: 'SVG_STRING' } as ExportSettingsSVGString);
+      exports.push({
+        id: node.id,
+        name: node.name,
+        format: 'SVG',
+        scale,
+        size: svg.length,
+        data: svg,
+      });
+    } else {
+      const settings: ExportSettingsImage = {
+        format: format as 'PNG' | 'JPG',
+        constraint: { type: 'SCALE', value: scale },
+      };
+      const bytes = await node.exportAsync(settings);
+      exports.push({
+        id: node.id,
+        name: node.name,
+        format,
+        scale,
+        size: bytes.length,
+        data: figma.base64Encode(bytes),
+      });
+    }
+  }
+
+  return { exports, count: exports.length };
 }

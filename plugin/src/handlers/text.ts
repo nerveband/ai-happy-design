@@ -75,7 +75,10 @@ export async function handleText(action: string, params: any): Promise<any> {
     case 'get_segments': return getSegments(params);
     case 'load_font': return loadFontAction(params);
     case 'set_style_id': return setStyleId(params);
-    default: throw new Error('Unknown text action: ' + action + '. Available: create, set_content, set_font, set_size, set_weight, set_color, set_align, set_spacing, set_line_height, set_letter_spacing, set_decoration, set_case, set_paragraph_spacing, get_content, get_segments, load_font, set_style_id');
+    case 'list_fonts':
+    case 'available_fonts':
+    case 'list_available_fonts': return listFonts(params);
+    default: throw new Error('Unknown text action: ' + action + '. Available: create, set_content, set_font, set_size, set_weight, set_color, set_align, set_spacing, set_line_height, set_letter_spacing, set_decoration, set_case, set_paragraph_spacing, get_content, get_segments, load_font, set_style_id, list_fonts');
   }
 }
 
@@ -127,6 +130,45 @@ async function createText(params: any) {
   }
 
   var stableId = await resolveStableId(text, container);
+
+  // Auto-layout child properties
+  var parentHasAutoLayout = container && 'layoutMode' in container && (container as any).layoutMode !== 'NONE';
+
+  // Auto-fix: text in auto-layout with HEIGHT resize needs layoutSizingVertical = HUG
+  if (parentHasAutoLayout && text.textAutoResize === 'HEIGHT' && params.layoutSizingVertical === undefined) {
+    (text as any).layoutSizingVertical = 'HUG';
+  }
+
+  if (params.layoutSizingHorizontal !== undefined) (text as any).layoutSizingHorizontal = params.layoutSizingHorizontal;
+  if (params.layoutSizingVertical !== undefined) (text as any).layoutSizingVertical = params.layoutSizingVertical;
+  if (params.layoutAlign !== undefined) (text as any).layoutAlign = params.layoutAlign;
+  if (params.layoutGrow !== undefined) (text as any).layoutGrow = params.layoutGrow;
+
+  // Forward textAlignHorizontal on create
+  var textAlign = params.textAlignHorizontal ?? params.textAlign;
+  if (textAlign) text.textAlignHorizontal = textAlign;
+
+  // Forward lineHeight on create
+  if (params.lineHeight !== undefined) {
+    var lhUnit = params.lineHeightUnit ?? 'PERCENT';
+    text.lineHeight = lhUnit === 'AUTO'
+      ? { unit: 'AUTO' }
+      : { value: params.lineHeight, unit: lhUnit === 'PERCENT' ? 'PERCENT' : 'PIXELS' };
+  }
+
+  if (params.letterSpacing !== undefined) {
+    var lsUnit = params.letterSpacingUnit ?? 'PIXELS';
+    text.letterSpacing = { value: params.letterSpacing, unit: lsUnit === 'PERCENT' ? 'PERCENT' : 'PIXELS' };
+  }
+
+  if (params.textCase !== undefined) {
+    text.textCase = params.textCase;
+  }
+
+  if (params.opacity !== undefined) {
+    text.opacity = Math.max(0, Math.min(1, params.opacity));
+  }
+
   return { id: stableId, name: text.name, type: text.type, width: text.width, height: text.height };
 }
 
@@ -358,4 +400,30 @@ async function setStyleId(params: any) {
   const node = await getTextNodeById(params.nodeId);
   await node.setTextStyleIdAsync(params.styleId ?? '');
   return { id: node.id, name: node.name, textStyleId: node.textStyleId };
+}
+
+async function listFonts(params: any) {
+  const fonts = await figma.listAvailableFontsAsync();
+  const familyFilter = params.family ?? params.fontFamily;
+
+  // Group by family
+  const familyMap = new Map<string, string[]>();
+  for (const font of fonts) {
+    if (familyFilter && !font.fontName.family.toLowerCase().includes(familyFilter.toLowerCase())) {
+      continue;
+    }
+    const existing = familyMap.get(font.fontName.family);
+    if (existing) {
+      existing.push(font.fontName.style);
+    } else {
+      familyMap.set(font.fontName.family, [font.fontName.style]);
+    }
+  }
+
+  const result: { family: string; styles: string[] }[] = [];
+  for (const [family, styles] of familyMap) {
+    result.push({ family, styles });
+  }
+
+  return { fonts: result, count: result.length };
 }

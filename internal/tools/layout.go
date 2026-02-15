@@ -14,7 +14,7 @@ func RegisterLayoutTool(s *server.MCPServer, commander *figma.Commander) {
 	tool := mcp.NewTool("layout",
 		mcp.WithDescription("Layout operations: auto-layout, padding, spacing, alignment, sizing, wrap, and constraints."),
 		mcp.WithString("action", mcp.Required(), mcp.Description("Action to perform"),
-			mcp.Enum("set_auto_layout", "set_padding", "set_spacing", "set_alignment", "set_sizing", "set_wrap", "set_constraints")),
+			mcp.Enum("set_auto_layout", "set_padding", "set_spacing", "set_alignment", "set_sizing", "set_wrap", "set_constraints", "check_overlaps")),
 		mcp.WithString("nodeId", mcp.Required(), mcp.Description("Target node ID")),
 		mcp.WithString("direction", mcp.Description("Layout direction: HORIZONTAL, VERTICAL, NONE"),
 			mcp.Enum("HORIZONTAL", "VERTICAL", "NONE")),
@@ -38,6 +38,10 @@ func RegisterLayoutTool(s *server.MCPServer, commander *figma.Commander) {
 			mcp.Enum("MIN", "CENTER", "MAX", "STRETCH", "SCALE")),
 		mcp.WithString("constraintVertical", mcp.Description("Vertical constraint: MIN, CENTER, MAX, STRETCH, SCALE"),
 			mcp.Enum("MIN", "CENTER", "MAX", "STRETCH", "SCALE")),
+		mcp.WithString("layoutSizingHorizontal", mcp.Description("Child horizontal sizing: FIXED, HUG, or FILL"),
+			mcp.Enum("FIXED", "HUG", "FILL")),
+		mcp.WithString("layoutSizingVertical", mcp.Description("Child vertical sizing: FIXED, HUG, or FILL"),
+			mcp.Enum("FIXED", "HUG", "FILL")),
 	)
 
 	s.AddTool(tool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -88,11 +92,14 @@ func RegisterLayoutTool(s *server.MCPServer, commander *figma.Commander) {
 			})
 
 		case "set_sizing":
-			return sendCommand(commander, "set_layout_sizing", map[string]interface{}{
-				"nodeId":             nodeId,
-				"primaryAxisSizing":  getStringArg(args, "primaryAxisSizing", "AUTO"),
-				"counterAxisSizing":  getStringArg(args, "counterAxisSizing", "AUTO"),
-			})
+			params := map[string]interface{}{
+				"nodeId":            nodeId,
+				"primaryAxisSizing": getStringArg(args, "primaryAxisSizing", "AUTO"),
+				"counterAxisSizing": getStringArg(args, "counterAxisSizing", "AUTO"),
+			}
+			if hasArg(args, "layoutSizingHorizontal") { params["layoutSizingHorizontal"] = getStringArg(args, "layoutSizingHorizontal", "") }
+			if hasArg(args, "layoutSizingVertical") { params["layoutSizingVertical"] = getStringArg(args, "layoutSizingVertical", "") }
+			return sendCommand(commander, "set_layout_sizing", params)
 
 		case "set_wrap":
 			return sendCommand(commander, "set_layout_wrap", map[string]interface{}{
@@ -105,6 +112,11 @@ func RegisterLayoutTool(s *server.MCPServer, commander *figma.Commander) {
 				"nodeId":     nodeId,
 				"horizontal": getStringArg(args, "constraintHorizontal", "MIN"),
 				"vertical":   getStringArg(args, "constraintVertical", "MIN"),
+			})
+
+		case "check_overlaps":
+			return sendCommand(commander, "check_overlaps", map[string]interface{}{
+				"nodeId": nodeId,
 			})
 
 		default:

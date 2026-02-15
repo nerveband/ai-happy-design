@@ -74,3 +74,9 @@ func requireStringArg(args map[string]interface{}, key string) (string, *mcp.Cal
 	}
 	return "", mcp.NewToolResultError(fmt.Sprintf("required argument %q is missing or empty", key))
 }
+
+// hasArg checks whether a key is present in the args map (even if zero-valued).
+func hasArg(args map[string]interface{}, key string) bool {
+	_, ok := args[key]
+	return ok
+}

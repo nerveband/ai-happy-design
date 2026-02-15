@@ -24,7 +24,10 @@ export async function handleLayout(action: string, params: any): Promise<any> {
     case 'set_wrap': return setLayoutWrap(params);
     case 'remove_layout':
     case 'remove_auto_layout': return removeAutoLayout(params);
-    default: throw new Error('Unknown layout action: ' + action + '. Available: set_auto_layout, set_padding, set_spacing, set_alignment, set_sizing, set_constraints, set_layout_wrap, set_wrap, remove_auto_layout');
+    case 'check_overlaps':
+    case 'detect_overlaps':
+    case 'overlaps': return checkOverlaps(params);
+    default: throw new Error('Unknown layout action: ' + action + '. Available: set_auto_layout, set_padding, set_spacing, set_alignment, set_sizing, set_constraints, set_layout_wrap, set_wrap, remove_auto_layout, check_overlaps');
   }
 }
 
@@ -185,4 +188,44 @@ async function removeAutoLayout(params: any) {
   const node = await getFrameNode(params.nodeId);
   node.layoutMode = 'NONE';
   return { id: node.id, name: node.name, layoutMode: node.layoutMode };
+}
+
+async function checkOverlaps(params: any) {
+  const node = await getFrameNode(params.nodeId);
+  const children = node.children;
+  const overlaps: any[] = [];
+
+  for (let i = 0; i < children.length; i++) {
+    for (let j = i + 1; j < children.length; j++) {
+      const a = children[i];
+      const b = children[j];
+
+      // Skip absolute-positioned children (they're intentionally overlapping)
+      if ('layoutPositioning' in a && (a as any).layoutPositioning === 'ABSOLUTE') continue;
+      if ('layoutPositioning' in b && (b as any).layoutPositioning === 'ABSOLUTE') continue;
+
+      const ax1 = a.x, ay1 = a.y, ax2 = a.x + a.width, ay2 = a.y + a.height;
+      const bx1 = b.x, by1 = b.y, bx2 = b.x + b.width, by2 = b.y + b.height;
+
+      const overlapX = Math.max(0, Math.min(ax2, bx2) - Math.max(ax1, bx1));
+      const overlapY = Math.max(0, Math.min(ay2, by2) - Math.max(ay1, by1));
+      const overlapArea = overlapX * overlapY;
+
+      if (overlapArea > 0) {
+        overlaps.push({
+          nodeA: { id: a.id, name: a.name, bounds: { x: ax1, y: ay1, width: a.width, height: a.height } },
+          nodeB: { id: b.id, name: b.name, bounds: { x: bx1, y: by1, width: b.width, height: b.height } },
+          overlapArea,
+          overlapRect: {
+            x: Math.max(ax1, bx1),
+            y: Math.max(ay1, by1),
+            width: overlapX,
+            height: overlapY,
+          },
+        });
+      }
+    }
+  }
+
+  return { overlaps, count: overlaps.length, hasOverlaps: overlaps.length > 0 };
 }

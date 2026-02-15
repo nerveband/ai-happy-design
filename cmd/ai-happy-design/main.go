@@ -193,6 +193,7 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 				return fmt.Errorf("invalid params JSON: %w", err)
 			}
 		}
+		params = batchutil.NormalizeBatchParams(command, params)
 
 		// Handle local-only commands that don't need Figma connection
 		if handled, err := handleLocalCommand(command, params); handled {
@@ -329,9 +330,12 @@ Operations can be provided in multiple ways (in priority order):
   4. Flag (file path):       batch -f ops.json
   5. Stdin (piped):          cat ops.json | batch
 
-Supports interpolation placeholders like ${{steps.0.result.id}} or ${{steps.createCard.result.id}}.
-Channel resolution: --channel flag, AHD_CHANNEL env, relay preferred/active channel.
-If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
+	Supports interpolation placeholders like ${{steps.0.result.id}} or ${{steps.createCard.result.id}}.
+	Short interpolation also works: $createCard (id), $createCard.width, $last.
+	Compact aliases are supported (examples: frame, rect, text, fill, stroke, parent).
+	Command-aware shorthand params are supported in batch/bulk (examples: w/h/pid, sz/ff/lh/ls, sw, bg).
+	Channel resolution: --channel flag, AHD_CHANNEL env, relay preferred/active channel.
+	If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		log.SetOutput(io.Discard)
@@ -391,10 +395,7 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 
 		for i, op := range ops {
 			opStart := time.Now()
-			params := op.Params
-			if params == nil {
-				params = map[string]interface{}{}
-			}
+			params := batchutil.NormalizeBatchParams(op.Command, op.Params)
 
 			if batchInterpolation {
 				interpolatedParams, err := batchutil.InterpolateParams(params, stepStates)
@@ -807,7 +808,8 @@ func handleLocalCommand(command string, params map[string]interface{}) (bool, er
 		if w <= 0 || h <= 0 {
 			return true, fmt.Errorf("width and height must be positive numbers")
 		}
-		tokens := tools.ComputeDesignTokens(w, h)
+		dpi, _ := params["dpi"].(float64)
+		tokens := tools.ComputeDesignTokens(w, h, dpi)
 		out, _ := json.MarshalIndent(tokens, "", "  ")
 		fmt.Println(string(out))
 		return true, nil

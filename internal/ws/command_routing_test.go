@@ -224,3 +224,50 @@ func TestExtractWrappedResponse_NullResult(t *testing.T) {
 		t.Fatalf("unexpected extracted response: %#v", out)
 	}
 }
+
+func TestResolveCommandRoute_NewRoutes(t *testing.T) {
+	tests := []struct {
+		command string
+		domain  string
+		action  string
+	}{
+		// New legacy routes
+		{"check_overlaps", "layout", "check_overlaps"},
+		{"batch_export", "export", "batch_export"},
+		{"export_batch", "export", "batch_export"},
+		{"list_fonts", "text", "list_fonts"},
+		{"list_available_fonts", "text", "list_fonts"},
+		// Compact aliases
+		{"frame", "node", "create_frame"},
+		{"rect", "shape", "create_rectangle"},
+		{"ellipse", "shape", "create_ellipse"},
+		{"line", "shape", "create_line"},
+		{"image", "shape", "create_image"},
+		{"text", "text", "create"},
+		{"fill", "paint", "set_solid"},
+		{"stroke", "paint", "set_stroke"},
+		{"gradient", "paint", "set_gradient"},
+		{"shadow", "effect", "add_shadow"},
+		{"blur", "effect", "add_blur"},
+		{"parent", "layer", "move_to_parent"},
+		{"autolayout", "layout", "set_auto_layout"},
+		{"opacity", "node", "set_opacity"},
+		{"nofill", "paint", "remove_fill"},
+		// Dot-notation should also work
+		{"layout.check_overlaps", "layout", "check_overlaps"},
+		{"export.batch_export", "export", "batch_export"},
+		{"text.list_fonts", "text", "list_fonts"},
+	}
+
+	for _, tt := range tests {
+		domain, action, err := resolveCommandRoute(tt.command, map[string]interface{}{})
+		if err != nil {
+			t.Errorf("route %q: unexpected error: %v", tt.command, err)
+			continue
+		}
+		if domain != tt.domain || action != tt.action {
+			t.Errorf("route %q: expected %s.%s, got %s.%s",
+				tt.command, tt.domain, tt.action, domain, action)
+		}
+	}
+}

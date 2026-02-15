@@ -95,6 +95,8 @@ func InterpolateValue(value interface{}, ctx map[string]interface{}) (interface{
 }
 
 func interpolateString(input string, ctx map[string]interface{}) (interface{}, error) {
+	input = expandShortInterpolation(input)
+
 	matches := placeholderPattern.FindAllStringSubmatchIndex(input, -1)
 	if len(matches) == 0 {
 		return input, nil
@@ -123,6 +125,99 @@ func interpolateString(input string, ctx map[string]interface{}) (interface{}, e
 	}
 	builder.WriteString(input[last:])
 	return builder.String(), nil
+}
+
+func expandShortInterpolation(input string) string {
+	if input == "" {
+		return input
+	}
+
+	var b strings.Builder
+	b.Grow(len(input) + 16)
+
+	for i := 0; i < len(input); {
+		ch := input[i]
+		if ch != '$' {
+			b.WriteByte(ch)
+			i++
+			continue
+		}
+
+		// Keep long-form interpolation untouched.
+		if i+1 < len(input) && input[i+1] == '{' {
+			b.WriteByte(ch)
+			i++
+			continue
+		}
+
+		// "$name" shorthand should not trigger in embedded identifiers like "foo$bar".
+		if i > 0 && isIdentChar(input[i-1]) {
+			b.WriteByte(ch)
+			i++
+			continue
+		}
+
+		start := i + 1
+		if start >= len(input) || !isIdentStart(input[start]) {
+			b.WriteByte(ch)
+			i++
+			continue
+		}
+
+		j := start + 1
+		for j < len(input) && isIdentChar(input[j]) {
+			j++
+		}
+
+		base := input[start:j]
+		path := ""
+		for j < len(input) && input[j] == '.' {
+			segStart := j + 1
+			if segStart >= len(input) || !isIdentStart(input[segStart]) {
+				break
+			}
+			j = segStart + 1
+			for j < len(input) && isIdentChar(input[j]) {
+				j++
+			}
+			if path == "" {
+				path = input[segStart:j]
+			} else {
+				path += "." + input[segStart:j]
+			}
+		}
+
+		if strings.EqualFold(base, "last") {
+			if path == "" {
+				b.WriteString("${{last.result.id}}")
+			} else {
+				b.WriteString("${{last.result.")
+				b.WriteString(path)
+				b.WriteString("}}")
+			}
+		} else {
+			b.WriteString("${{steps.")
+			b.WriteString(base)
+			b.WriteString(".result.")
+			if path == "" {
+				b.WriteString("id")
+			} else {
+				b.WriteString(path)
+			}
+			b.WriteString("}}")
+		}
+		i = j
+	}
+
+	return b.String()
+}
+
+func isIdentStart(ch byte) bool {
+	return ch == '_' || (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z')
+}
+
+func isIdentChar(ch byte) bool {
+	return isIdentStart(ch) || (ch >= '0' && ch <= '9')
 }
 
 func resolvePath(root interface{}, path string) (interface{}, error) {

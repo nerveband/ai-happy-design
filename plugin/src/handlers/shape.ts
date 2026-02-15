@@ -33,6 +33,35 @@ function applyFill(node: GeometryMixin, color: any) {
   node.fills = [{ type: 'SOLID', color: { r: c.r, g: c.g, b: c.b }, opacity: c.a }];
 }
 
+function applyLayoutProps(node: SceneNode, params: any) {
+  if (params.layoutSizingHorizontal !== undefined) (node as any).layoutSizingHorizontal = params.layoutSizingHorizontal;
+  if (params.layoutSizingVertical !== undefined) (node as any).layoutSizingVertical = params.layoutSizingVertical;
+  if (params.layoutAlign !== undefined) (node as any).layoutAlign = params.layoutAlign;
+  if (params.layoutGrow !== undefined) (node as any).layoutGrow = params.layoutGrow;
+  if (params.layoutPositioning !== undefined) (node as any).layoutPositioning = params.layoutPositioning;
+}
+
+function applyGeometryStyle(node: GeometryMixin & SceneNode, params: any) {
+  const strokeColor = params.stroke ?? params.strokeColor;
+  if (strokeColor) {
+    const c = parseHexColor(strokeColor);
+    node.strokes = [{ type: 'SOLID', color: { r: c.r, g: c.g, b: c.b }, opacity: c.a }];
+  }
+
+  const strokeWidth = params.strokeWidth ?? params.strokeWeight;
+  if (strokeWidth !== undefined && 'strokeWeight' in node) {
+    (node as any).strokeWeight = strokeWidth;
+  }
+
+  if (params.noFill === true) {
+    node.fills = [];
+  }
+
+  if (params.opacity !== undefined && 'opacity' in node) {
+    (node as any).opacity = Math.max(0, Math.min(1, params.opacity));
+  }
+}
+
 export async function handleShape(action: string, params: any): Promise<any> {
   switch (action) {
     case 'rectangle':
@@ -93,9 +122,11 @@ async function createRectangle(params: any) {
     }
   }
   applyFill(rect, params.color ?? params.fillColor);
+  applyGeometryStyle(rect, params);
 
   const parent = await getParentNode(params.parentId);
   parent.appendChild(rect);
+  applyLayoutProps(rect, params);
   var stableId = await resolveStableId(rect, parent);
   return { id: stableId, name: rect.name, type: rect.type };
 }
@@ -107,6 +138,7 @@ async function createEllipse(params: any) {
   ellipse.resize(params.width ?? 100, params.height ?? 100);
   if (params.name) ellipse.name = params.name;
   applyFill(ellipse, params.color ?? params.fillColor);
+  applyGeometryStyle(ellipse, params);
 
   const arcStartAngle = params.arcStartAngle;
   const arcEndAngle = params.arcEndAngle;
@@ -120,6 +152,7 @@ async function createEllipse(params: any) {
 
   const parent = await getParentNode(params.parentId);
   parent.appendChild(ellipse);
+  applyLayoutProps(ellipse, params);
   var stableId = await resolveStableId(ellipse, parent);
   return { id: stableId, name: ellipse.name, type: ellipse.type };
 }
@@ -132,9 +165,11 @@ async function createPolygon(params: any) {
   polygon.pointCount = params.pointCount ?? params.sides ?? 6;
   if (params.name) polygon.name = params.name;
   applyFill(polygon, params.color ?? params.fillColor);
+  applyGeometryStyle(polygon, params);
 
   const parent = await getParentNode(params.parentId);
   parent.appendChild(polygon);
+  applyLayoutProps(polygon, params);
   var stableId = await resolveStableId(polygon, parent);
   return { id: stableId, name: polygon.name, type: polygon.type };
 }
@@ -148,9 +183,11 @@ async function createStar(params: any) {
   star.innerRadius = params.innerRadius ?? 0.4;
   if (params.name) star.name = params.name;
   applyFill(star, params.color ?? params.fillColor);
+  applyGeometryStyle(star, params);
 
   const parent = await getParentNode(params.parentId);
   parent.appendChild(star);
+  applyLayoutProps(star, params);
   var stableId = await resolveStableId(star, parent);
   return { id: stableId, name: star.name, type: star.type };
 }
@@ -174,12 +211,15 @@ async function createLine(params: any) {
   }
 
   if (params.name) line.name = params.name;
-  const strokeColor = params.color ?? params.strokeColor;
+  const strokeColor = params.stroke ?? params.color ?? params.strokeColor;
   if (strokeColor) {
     const c = parseHexColor(strokeColor);
     line.strokes = [{ type: 'SOLID', color: { r: c.r, g: c.g, b: c.b }, opacity: c.a }];
   }
-  line.strokeWeight = params.strokeWeight ?? 1;
+  line.strokeWeight = params.strokeWeight ?? params.strokeWidth ?? 1;
+  if (params.opacity !== undefined) {
+    line.opacity = Math.max(0, Math.min(1, params.opacity));
+  }
 
   const parent = await getParentNode(params.parentId);
   parent.appendChild(line);
@@ -230,6 +270,8 @@ async function createImage(params: any) {
 
   const parent = await getParentNode(params.parentId);
   parent.appendChild(rect);
+  applyGeometryStyle(rect, params);
+  applyLayoutProps(rect, params);
   var stableId = await resolveStableId(rect, parent);
   return {
     id: stableId,

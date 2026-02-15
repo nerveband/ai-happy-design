@@ -15,11 +15,12 @@ func RegisterExportTool(s *server.MCPServer, commander *figma.Commander) {
 	tool := mcp.NewTool("export",
 		mcp.WithDescription("Export operations: export nodes as PNG/JPG/SVG/PDF images."),
 		mcp.WithString("action", mcp.Required(), mcp.Description("Action to perform"),
-			mcp.Enum("image", "svg", "pdf")),
-		mcp.WithString("nodeId", mcp.Required(), mcp.Description("Node ID to export")),
+			mcp.Enum("image", "svg", "pdf", "batch")),
+		mcp.WithString("nodeId", mcp.Description("Node ID to export")),
 		mcp.WithNumber("scale", mcp.Description("Export scale (1x, 2x, etc)")),
 		mcp.WithString("format", mcp.Description("Image format: PNG, JPG, SVG, PDF"),
 			mcp.Enum("PNG", "JPG", "SVG", "PDF")),
+		mcp.WithString("nodeIds", mcp.Description("Comma-separated node IDs for batch export")),
 	)
 
 	s.AddTool(tool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -37,6 +38,13 @@ func RegisterExportTool(s *server.MCPServer, commander *figma.Commander) {
 
 		case "pdf":
 			return sendExportCommand(commander, nodeId, "PDF", getFloat64Arg(args, "scale", 1))
+
+		case "batch":
+			return sendCommand(commander, "batch_export", map[string]interface{}{
+				"nodeIds": getStringArg(args, "nodeIds", ""),
+				"format":  getStringArg(args, "format", "PNG"),
+				"scale":   getFloat64Arg(args, "scale", 2),
+			})
 
 		default:
 			return mcp.NewToolResultError(fmt.Sprintf("unknown export action: %s", action)), nil

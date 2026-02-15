@@ -335,3 +335,67 @@ func TestInterpolateParams_ArrayInParams(t *testing.T) {
 		t.Fatalf("expected second nodeId=static-id, got %v", nodeIds[1])
 	}
 }
+
+func TestInterpolateParams_ShortSyntax_ByNameAndLast(t *testing.T) {
+	steps := []StepState{
+		{Index: 0, Name: "frame", Command: "node.create_frame", OK: true, Result: map[string]interface{}{"id": "10:20", "name": "Hero"}},
+		{Index: 1, Name: "title", Command: "text.create", OK: true, Result: map[string]interface{}{"id": "10:21"}},
+	}
+	params := map[string]interface{}{
+		"parentId": "$frame",
+		"label":    "$frame.name",
+		"lastId":   "$last",
+	}
+
+	out, err := InterpolateParams(params, steps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out["parentId"] != "10:20" {
+		t.Fatalf("expected parentId=10:20, got %#v", out["parentId"])
+	}
+	if out["label"] != "Hero" {
+		t.Fatalf("expected label=Hero, got %#v", out["label"])
+	}
+	if out["lastId"] != "10:21" {
+		t.Fatalf("expected lastId=10:21, got %#v", out["lastId"])
+	}
+}
+
+func TestInterpolateParams_ShortSyntax_MixedWithLongForm(t *testing.T) {
+	steps := []StepState{
+		{Index: 0, Name: "frame", Command: "node.create_frame", OK: true, Result: map[string]interface{}{"id": "10:20"}},
+	}
+	params := map[string]interface{}{
+		"meta": "a=$frame,b=${{steps.frame.result.id}}",
+	}
+
+	out, err := InterpolateParams(params, steps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out["meta"] != "a=10:20,b=10:20" {
+		t.Fatalf("unexpected meta: %#v", out["meta"])
+	}
+}
+
+func TestInterpolateParams_ShortSyntax_DoesNotRewriteCurrencyOrLongForm(t *testing.T) {
+	steps := []StepState{
+		{Index: 0, Name: "frame", Command: "node.create_frame", OK: true, Result: map[string]interface{}{"id": "10:20"}},
+	}
+	params := map[string]interface{}{
+		"amount": "price is $100",
+		"raw":    "${{steps.frame.result.id}}",
+	}
+
+	out, err := InterpolateParams(params, steps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out["amount"] != "price is $100" {
+		t.Fatalf("expected currency string untouched, got %#v", out["amount"])
+	}
+	if out["raw"] != "10:20" {
+		t.Fatalf("expected long form interpolation to resolve, got %#v", out["raw"])
+	}
+}

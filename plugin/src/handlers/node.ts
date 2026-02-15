@@ -105,7 +105,65 @@ async function createFrame(params: any) {
     var c = parseHexColor(color);
     frame.fills = [{ type: 'SOLID', color: { r: c.r, g: c.g, b: c.b }, opacity: c.a }];
   }
+  if (params.noFill === true) {
+    frame.fills = [];
+  }
+  var strokeColor = params.stroke ?? params.strokeColor;
+  if (strokeColor) {
+    var stroke = parseHexColor(strokeColor);
+    frame.strokes = [{ type: 'SOLID', color: { r: stroke.r, g: stroke.g, b: stroke.b }, opacity: stroke.a }];
+  }
+  var strokeWidth = params.strokeWidth ?? params.strokeWeight;
+  if (strokeWidth !== undefined) {
+    frame.strokeWeight = strokeWidth;
+  }
+  if (params.cornerRadius !== undefined) {
+    frame.cornerRadius = params.cornerRadius;
+  }
+  if (params.opacity !== undefined) {
+    frame.opacity = Math.max(0, Math.min(1, params.opacity));
+  }
   if (clipsContent !== undefined) frame.clipsContent = clipsContent;
+
+  // Auto-layout
+  var layoutMode = params.layoutMode ?? params.direction;
+  if (layoutMode) {
+    frame.layoutMode = layoutMode === 'HORIZONTAL' ? 'HORIZONTAL' : 'VERTICAL';
+
+    var itemSpacing = params.itemSpacing ?? params.spacing;
+    if (itemSpacing !== undefined) frame.itemSpacing = itemSpacing;
+
+    var padding = params.padding;
+    if (padding !== undefined) {
+      if (typeof padding === 'number') {
+        frame.paddingTop = padding;
+        frame.paddingRight = padding;
+        frame.paddingBottom = padding;
+        frame.paddingLeft = padding;
+      }
+    }
+    if (params.paddingTop !== undefined) frame.paddingTop = params.paddingTop;
+    if (params.paddingRight !== undefined) frame.paddingRight = params.paddingRight;
+    if (params.paddingBottom !== undefined) frame.paddingBottom = params.paddingBottom;
+    if (params.paddingLeft !== undefined) frame.paddingLeft = params.paddingLeft;
+
+    var primaryAlign = params.primaryAxisAlignItems ?? params.primaryAxisAlign;
+    if (primaryAlign) frame.primaryAxisAlignItems = primaryAlign;
+
+    var counterAlign = params.counterAxisAlignItems ?? params.counterAxisAlign;
+    if (counterAlign) frame.counterAxisAlignItems = counterAlign;
+
+    var primarySizing = params.primaryAxisSizingMode ?? params.primaryAxisSizing;
+    if (primarySizing) frame.primaryAxisSizingMode = primarySizing;
+
+    var counterSizing = params.counterAxisSizingMode ?? params.counterAxisSizing;
+    if (counterSizing) frame.counterAxisSizingMode = counterSizing;
+
+    var wrap = params.layoutWrap ?? params.wrap;
+    if (wrap !== undefined) {
+      frame.layoutWrap = wrap === true || wrap === 'WRAP' ? 'WRAP' : 'NO_WRAP';
+    }
+  }
 
   var container: BaseNode & ChildrenMixin;
   if (parentId) {
@@ -121,7 +179,7 @@ async function createFrame(params: any) {
   }
 
   var stableId = await resolveStableId(frame, container);
-  return { id: stableId, name: frame.name, type: frame.type, x: frame.x, y: frame.y };
+  return { id: stableId, name: frame.name, type: frame.type, x: frame.x, y: frame.y, layoutMode: frame.layoutMode };
 }
 
 async function moveNode(params: any) {

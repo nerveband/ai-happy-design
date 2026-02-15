@@ -35,7 +35,7 @@ var toolDescriptions = map[string]map[string]string{
 		"create_image":     "Place an image on canvas. Params: imageData (base64 PNG/JPG), x, y, width, height, parentId, scaleMode (FILL/FIT/CROP/TILE), name, cornerRadius",
 	},
 	"text": {
-		"create":         "Create a text node. Params: text, x, y, fontFamily, fontStyle, fontSize, parentId, name",
+		"create":         "Create a text node. Params: text, x, y, fontFamily, fontStyle, fontSize, parentId, name, color, width, textAlign, lineHeight, lineHeightUnit, layoutSizingHorizontal, layoutSizingVertical, layoutGrow, layoutAlign",
 		"set_content":    "Set text content. Params: nodeId, text",
 		"set_font":       "Set font family and style. Params: nodeId, fontFamily, fontStyle",
 		"set_size":       "Set font size. Params: nodeId, fontSize",
@@ -48,6 +48,7 @@ var toolDescriptions = map[string]map[string]string{
 		"get_segments":   "Get styled text segments. Params: nodeId",
 		"load_font":      "Load a font for use. Params: fontFamily, fontStyle",
 		"set_style_id":   "Apply a text style. Params: nodeId, styleId",
+		"list_fonts":     "List available fonts. Params: fontFamily (optional filter substring)",
 	},
 	"layout": {
 		"set_auto_layout": "Enable auto-layout on a frame. Params: nodeId, direction, itemSpacing, padding*, primaryAxisAlign, counterAxisAlign",
@@ -57,11 +58,12 @@ var toolDescriptions = map[string]map[string]string{
 		"set_sizing":      "Set axis sizing mode. Params: nodeId, primaryAxisSizing, counterAxisSizing",
 		"set_wrap":        "Set layout wrap. Params: nodeId, layoutWrap",
 		"set_constraints": "Set layout constraints. Params: nodeId, constraintHorizontal, constraintVertical",
+		"check_overlaps": "Check for overlapping children in a frame. Returns overlap details. Params: nodeId",
 	},
 	"node": {
 		"get_info":       "Get node information. Params: nodeId",
 		"get_tree":       "Get node tree. Params: nodeId, depth",
-		"create_frame":   "Create a frame. Params: name, x, y, width, height, parentId, color",
+		"create_frame":   "Create a frame. Params: name, x, y, width, height, parentId, color, layoutMode (HORIZONTAL/VERTICAL), itemSpacing, padding, paddingTop/Right/Bottom/Left, primaryAxisAlign, counterAxisAlign, primaryAxisSizing, counterAxisSizing, layoutWrap, clipsContent",
 		"move":           "Move a node. Params: nodeId, x, y",
 		"resize":         "Resize a node. Params: nodeId, width, height",
 		"rotate":         "Rotate a node. Params: nodeId, rotation (degrees)",
@@ -143,9 +145,10 @@ var toolDescriptions = map[string]map[string]string{
 		"image": "Export as image (PNG/JPG). Params: nodeId, format, scale",
 		"svg":   "Export as SVG. Params: nodeId, scale",
 		"pdf":   "Export as PDF. Params: nodeId, scale",
+		"batch":  "Export multiple frames at once. Params: nodeIds (comma-separated), format, scale",
 	},
 	"bulk": {
-		"execute": "Execute multiple operations with retry and optional interpolation. Params: operations (JSON array of {name?, command, params}), continueOnError, retries, retryDelayMs, interpolate",
+		"execute": "Execute multiple operations with retry and optional interpolation. Params: operations (JSON array of {name?, command, params}), failFast (default false), retries, retryDelayMs, interpolate",
 	},
 	"connect": {
 		"join":       "Join a channel. Params: channelKey",
@@ -153,7 +156,7 @@ var toolDescriptions = map[string]map[string]string{
 		"disconnect": "Disconnect from channel. No params",
 	},
 	"design": {
-		"compute_tokens": "Compute design tokens (font sizes, spacing, padding, layout, card widths) for any canvas dimensions. Call FIRST before creating any design. Returns concrete pixel values — no math needed. Params: *width, *height",
+		"compute_tokens": "Compute design tokens (font sizes, spacing, padding, layout, card widths) for any canvas dimensions. Call FIRST before creating any design. Returns concrete pixel values — no math needed. Params: *width, *height, dpi (optional, default 72 for screen, 300 for print)",
 	},
 }
 
