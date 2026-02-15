@@ -4,7 +4,7 @@ BINARY=ai-happy-design
 VERSION=0.0.0-dev
 
 build-plugin:
-	cd plugin && npm install && npm run build
+	cd plugin && npm ci && npm run check
 
 sync-plugin:
 	mkdir -p internal/plugin/files/dist
@@ -12,7 +12,7 @@ sync-plugin:
 	cp plugin/dist/code.js internal/plugin/files/dist/code.js
 	cp plugin/dist/ui.html internal/plugin/files/dist/ui.html
 
-build: sync-plugin
+build: build-plugin sync-plugin
 	go build -ldflags "-X main.version=$(VERSION)" -o bin/$(BINARY) ./cmd/ai-happy-design
 
 build-go:

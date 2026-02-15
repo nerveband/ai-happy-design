@@ -52,15 +52,15 @@ func RegisterLayoutTool(s *server.MCPServer, commander *figma.Commander) {
 		switch action {
 		case "set_auto_layout":
 			return sendCommand(commander, "set_auto_layout", map[string]interface{}{
-				"nodeId":            nodeId,
-				"direction":         getStringArg(args, "direction", "HORIZONTAL"),
-				"itemSpacing":       getFloat64Arg(args, "itemSpacing", 0),
-				"paddingTop":        getFloat64Arg(args, "paddingTop", 0),
-				"paddingRight":      getFloat64Arg(args, "paddingRight", 0),
-				"paddingBottom":     getFloat64Arg(args, "paddingBottom", 0),
-				"paddingLeft":       getFloat64Arg(args, "paddingLeft", 0),
-				"primaryAxisAlign":  getStringArg(args, "primaryAxisAlign", "MIN"),
-				"counterAxisAlign":  getStringArg(args, "counterAxisAlign", "MIN"),
+				"nodeId":           nodeId,
+				"direction":        getStringArg(args, "direction", "HORIZONTAL"),
+				"itemSpacing":      getFloat64Arg(args, "itemSpacing", 0),
+				"paddingTop":       getFloat64Arg(args, "paddingTop", 0),
+				"paddingRight":     getFloat64Arg(args, "paddingRight", 0),
+				"paddingBottom":    getFloat64Arg(args, "paddingBottom", 0),
+				"paddingLeft":      getFloat64Arg(args, "paddingLeft", 0),
+				"primaryAxisAlign": getStringArg(args, "primaryAxisAlign", "MIN"),
+				"counterAxisAlign": getStringArg(args, "counterAxisAlign", "MIN"),
 			})
 
 		case "set_padding":
@@ -97,8 +97,12 @@ func RegisterLayoutTool(s *server.MCPServer, commander *figma.Commander) {
 				"primaryAxisSizing": getStringArg(args, "primaryAxisSizing", "AUTO"),
 				"counterAxisSizing": getStringArg(args, "counterAxisSizing", "AUTO"),
 			}
-			if hasArg(args, "layoutSizingHorizontal") { params["layoutSizingHorizontal"] = getStringArg(args, "layoutSizingHorizontal", "") }
-			if hasArg(args, "layoutSizingVertical") { params["layoutSizingVertical"] = getStringArg(args, "layoutSizingVertical", "") }
+			if hasArg(args, "layoutSizingHorizontal") {
+				params["layoutSizingHorizontal"] = getStringArg(args, "layoutSizingHorizontal", "")
+			}
+			if hasArg(args, "layoutSizingVertical") {
+				params["layoutSizingVertical"] = getStringArg(args, "layoutSizingVertical", "")
+			}
 			return sendCommand(commander, "set_layout_sizing", params)
 
 		case "set_wrap":

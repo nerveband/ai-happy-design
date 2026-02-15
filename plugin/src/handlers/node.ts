@@ -208,14 +208,16 @@ async function resizeNode(params: any) {
 async function rotateNode(params: any) {
   const { nodeId, rotation, relative } = params;
   const node = await getSceneNodeById(nodeId);
+  if (!('rotation' in node)) throw new Error(`Node ${nodeId} does not support rotation`);
+  const rotatable = node as SceneNode & { rotation: number };
 
   if (relative) {
-    node.rotation += rotation;
+    rotatable.rotation += rotation;
   } else {
-    node.rotation = rotation;
+    rotatable.rotation = rotation;
   }
 
-  return { id: node.id, name: node.name, rotation: node.rotation };
+  return { id: node.id, name: node.name, rotation: rotatable.rotation };
 }
 
 async function setOpacity(params: any) {

@@ -13,6 +13,7 @@ import { handlePage } from './handlers/page';
 import { handleDocument } from './handlers/document';
 import { handleExport } from './handlers/export';
 import { generateChannelKey } from './utils/channel';
+import { DEFAULT_PORT, normalizeRelayUrl } from './utils/relay';
 
 type ConnectionSettings = {
   channelKey: string;
@@ -21,46 +22,6 @@ type ConnectionSettings = {
 };
 
 const SETTINGS_KEY = 'connectionSettings.v1';
-const DEFAULT_PORT = 3055;
-const DEFAULT_RELAY_URL = `ws://localhost:${DEFAULT_PORT}/ws`;
-
-function normalizeRelayUrl(raw: any): string {
-  var input = typeof raw === 'string' ? raw.trim() : '';
-  if (!input) return DEFAULT_RELAY_URL;
-
-  // Bare port number: "3056" or ":3056"
-  var barePortMatch = input.match(/^:?(\d+)$/);
-  if (barePortMatch) {
-    var p = parseInt(barePortMatch[1], 10);
-    if (p < 1 || p > 65535) return DEFAULT_RELAY_URL;
-    return 'ws://localhost:' + p + '/ws';
-  }
-
-  var candidate = input;
-  if (!/^wss?:\/\//i.test(candidate)) {
-    candidate = 'ws://' + candidate;
-  }
-
-  try {
-    var url = new URL(candidate);
-    if (url.protocol !== 'ws:' && url.protocol !== 'wss:') {
-      return DEFAULT_RELAY_URL;
-    }
-    if (!url.hostname) {
-      return DEFAULT_RELAY_URL;
-    }
-    if (url.port) {
-      var portNum = parseInt(url.port, 10);
-      if (portNum < 1 || portNum > 65535) return DEFAULT_RELAY_URL;
-    }
-    if (!url.pathname || url.pathname === '/') {
-      url.pathname = '/ws';
-    }
-    return url.toString();
-  } catch (e) {
-    return DEFAULT_RELAY_URL;
-  }
-}
 
 function sanitizeSettings(raw: any): ConnectionSettings {
   const channelKey = typeof raw?.channelKey === 'string' && raw.channelKey.trim()
@@ -86,7 +47,18 @@ async function loadSettings(): Promise<ConnectionSettings> {
 
 async function saveSettings(partial: any): Promise<ConnectionSettings> {
   const current = await loadSettings();
-  const merged = sanitizeSettings({ ...current, ...(partial || {}) });
+  const combined: any = {};
+  if (current && typeof current === 'object') {
+    for (const key of Object.keys(current)) {
+      combined[key] = (current as any)[key];
+    }
+  }
+  if (partial && typeof partial === 'object') {
+    for (const key of Object.keys(partial)) {
+      combined[key] = (partial as any)[key];
+    }
+  }
+  const merged = sanitizeSettings(combined);
   await figma.clientStorage.setAsync(SETTINGS_KEY, merged);
   return merged;
 }

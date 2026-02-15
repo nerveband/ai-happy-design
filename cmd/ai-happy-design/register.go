@@ -277,8 +277,8 @@ func registerZed(home string, editor editorConfig, binaryPath string) error {
 	}
 
 	ctxServers["ai-happy-design"] = map[string]interface{}{
-		"command": binaryPath,
-		"args":    []string{"mcp"},
+		"command":  binaryPath,
+		"args":     []string{"mcp"},
 		"settings": map[string]interface{}{},
 	}
 	config["context_servers"] = ctxServers

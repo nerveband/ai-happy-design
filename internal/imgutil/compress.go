@@ -12,9 +12,9 @@ import (
 
 // Options controls image compression behavior.
 type Options struct {
-	Quality    int  // JPEG/WebP quality 1-100 (default 80)
-	MaxWidth   int  // Max width in pixels (0 = no limit)
-	MaxHeight  int  // Max height in pixels (0 = no limit)
+	Quality    int    // JPEG/WebP quality 1-100 (default 80)
+	MaxWidth   int    // Max width in pixels (0 = no limit)
+	MaxHeight  int    // Max height in pixels (0 = no limit)
 	FormatHint string // Output format hint: "jpeg", "png", "webp" (default: auto-detect from input)
 }
 
@@ -76,7 +76,7 @@ func CompressBase64(imageData string, opts Options) (string, error) {
 
 	// Build ImageMagick command
 	cmdName := imageMagickCmd()
-	args := []string{"-"}  // Read from stdin
+	args := []string{"-"} // Read from stdin
 
 	// Resize if max dimensions set
 	if opts.MaxWidth > 0 || opts.MaxHeight > 0 {
@@ -111,7 +111,7 @@ func CompressBase64(imageData string, opts Options) (string, error) {
 			outFormat = "jpeg"
 		}
 	}
-	args = append(args, fmt.Sprintf("%s:-", outFormat))  // Write to stdout in format
+	args = append(args, fmt.Sprintf("%s:-", outFormat)) // Write to stdout in format
 
 	cmd := exec.Command(cmdName, args...)
 	cmd.Stdin = bytes.NewReader(decoded)

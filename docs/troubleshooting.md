@@ -29,7 +29,7 @@ That message is from the legacy v1 plugin UI (`src/claude_mcp_plugin/ui.html` in
 Fix:
 1. Remove the old imported plugin entry from Figma development plugins.
 2. Re-import v2 manifest:
-   - `/Users/nerveband/wavedepth Dropbox/Ashraf Ali/Mac (2)/Documents/GitHub/ai-happy-design/plugin/manifest.json`
+   - `./plugin/manifest.json`
 3. Open **AI Happy Design** (v2) and use the **Relay URL** field.
 
 ## Figma internal `vendor-*.min.js.br` / `statsigapi.net` / `font-files` console errors

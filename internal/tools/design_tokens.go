@@ -129,15 +129,15 @@ func ComputeDesignTokens(w, h, dpi float64) map[string]interface{} {
 		rawBase = w * 0.044
 	}
 
-	caption := max4(rawBase/scaleRatio, 12)                          // scale step -1
-	body := max4(rawBase, 14)                                        // scale step 0 (base)
-	subheading := max4(rawBase*scaleRatio, 16)                       // scale step +1
-	heading := max4(rawBase*math.Pow(scaleRatio, 2), 20)             // scale step +2
-	title := max4(rawBase*math.Pow(scaleRatio, 3), 24)               // scale step +3
-	hero := max4(rawBase*math.Pow(scaleRatio, 4), 32)                // scale step +4
-	display := max4(rawBase*math.Pow(scaleRatio, 5), 40)             // scale step +5
-	numbers := display                                                // hero stats use display size
-	cta := body                                                       // CTA button text = body size
+	caption := max4(rawBase/scaleRatio, 12)              // scale step -1
+	body := max4(rawBase, 14)                            // scale step 0 (base)
+	subheading := max4(rawBase*scaleRatio, 16)           // scale step +1
+	heading := max4(rawBase*math.Pow(scaleRatio, 2), 20) // scale step +2
+	title := max4(rawBase*math.Pow(scaleRatio, 3), 24)   // scale step +3
+	hero := max4(rawBase*math.Pow(scaleRatio, 4), 32)    // scale step +4
+	display := max4(rawBase*math.Pow(scaleRatio, 5), 40) // scale step +5
+	numbers := display                                   // hero stats use display size
+	cta := body                                          // CTA button text = body size
 
 	// --- Spacing (8px grid) ---
 	sidePadding := max8(w*0.065, 16)
@@ -188,11 +188,11 @@ func ComputeDesignTokens(w, h, dpi float64) map[string]interface{} {
 			"numbers":    numbers,
 			"cta":        cta,
 			"_scale": map[string]interface{}{
-				"ratio":    scaleRatio,
+				"ratio":     scaleRatio,
 				"ratioName": "perfect fourth",
-				"base":     body,
-				"grid":     "4px (text) / 8px (spacing)",
-				"steps":    "caption(-1) → body(0) → subheading(+1) → heading(+2) → title(+3) → hero(+4) → display(+5)",
+				"base":      body,
+				"grid":      "4px (text) / 8px (spacing)",
+				"steps":     "caption(-1) → body(0) → subheading(+1) → heading(+2) → title(+3) → hero(+4) → display(+5)",
 			},
 			"_roles": map[string]interface{}{
 				"display":    "Hero statistics, large monetary amounts (e.g. '250+', '$25,000')",

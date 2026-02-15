@@ -124,14 +124,14 @@ func TestComputeDesignTokens_LayoutTypeClassification(t *testing.T) {
 		w, h       float64
 		layoutType string
 	}{
-		{1080, 1080, "square"},      // ratio = 1.0
-		{1080, 1350, "portrait"},    // ratio = 1.25 (now portrait, was square)
-		{1080, 1920, "portrait"},    // ratio = 1.78
-		{600, 200, "landscape"},     // ratio = 0.33
-		{500, 1200, "ultra-tall"},   // ratio = 2.4
-		{1000, 900, "square"},       // ratio = 0.9
-		{1000, 1150, "portrait"},    // ratio = 1.15 — exactly at portrait threshold (>= 1.15)
-		{1000, 850, "square"},       // ratio = 0.85 — exactly at square threshold (>= 0.85)
+		{1080, 1080, "square"},    // ratio = 1.0
+		{1080, 1350, "portrait"},  // ratio = 1.25 (now portrait, was square)
+		{1080, 1920, "portrait"},  // ratio = 1.78
+		{600, 200, "landscape"},   // ratio = 0.33
+		{500, 1200, "ultra-tall"}, // ratio = 2.4
+		{1000, 900, "square"},     // ratio = 0.9
+		{1000, 1150, "portrait"},  // ratio = 1.15 — exactly at portrait threshold (>= 1.15)
+		{1000, 850, "square"},     // ratio = 0.85 — exactly at square threshold (>= 0.85)
 	}
 
 	for _, tt := range tests {

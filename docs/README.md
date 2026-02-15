@@ -1,6 +1,6 @@
 # Documentation
 
-This folder contains operational docs for `/Users/nerveband/wavedepth Dropbox/Ashraf Ali/Mac (2)/Documents/GitHub/ai-happy-design`.
+This folder contains operational docs for this repository.
 
 ## Start Here
 - `getting-started.md` - install/build/run steps for binary + plugin.
@@ -15,5 +15,6 @@ This folder contains operational docs for `/Users/nerveband/wavedepth Dropbox/As
 - `pairing-turnkey-design.md` - sticky pairing design and relay/channel strategy.
 - `llm-friendly-cli-mcp-notes-2026-02-13.md` - design notes and standards references.
 
-## Session Logs
-- `status/codex-session-2026-02-13.md` - work log for resumable context.
+## Archive
+- `archive/codex-session-2026-02-13.md` - session log with local-machine debugging context.
+- `archive/figma-image-debug.md` - historical image fill debugging notes.

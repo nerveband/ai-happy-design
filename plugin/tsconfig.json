@@ -9,5 +9,13 @@
     "outDir": "dist",
     "typeRoots": ["node_modules/@figma"]
   },
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/main.ts",
+    "src/handlers/**/*.ts",
+    "src/utils/**/*.ts"
+  ],
+  "exclude": [
+    "src/ui/**/*.ts",
+    "src/ws/**/*.ts"
+  ]
 }

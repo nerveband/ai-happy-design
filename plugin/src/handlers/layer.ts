@@ -135,7 +135,7 @@ async function ungroupNodes(params: any) {
   const parent = group.parent;
   if (!parent || !('children' in parent)) throw new Error('Group has no valid parent');
 
-  const children = [...group.children];
+  const children = group.children.slice();
   const ungrouped = children.map(child => serializeNodeSummary(child));
 
   figma.ungroup(group);

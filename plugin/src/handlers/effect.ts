@@ -95,7 +95,9 @@ async function addShadow(params: any) {
     blendMode: 'NORMAL',
   };
 
-  node.effects = [...node.effects, shadow];
+  const nextEffects = node.effects.slice();
+  nextEffects.push(shadow);
+  node.effects = nextEffects;
   return { id: node.id, name: node.name, effectCount: node.effects.length };
 }
 
@@ -104,20 +106,25 @@ async function addBlur(params: any) {
   const blurType = params.type ?? params.blurType ?? 'LAYER_BLUR';
   const node = await getEffectNode(nodeId);
 
-  const blur: Effect = blurType === 'BACKGROUND_BLUR'
-    ? { type: 'BACKGROUND_BLUR', radius, visible }
-    : { type: 'LAYER_BLUR', radius, visible };
+  const blur: BlurEffectNormal = blurType === 'BACKGROUND_BLUR'
+    ? { type: 'BACKGROUND_BLUR', blurType: 'NORMAL', radius, visible }
+    : { type: 'LAYER_BLUR', blurType: 'NORMAL', radius, visible };
 
-  node.effects = [...node.effects, blur];
+  const nextEffects = node.effects.slice();
+  nextEffects.push(blur);
+  node.effects = nextEffects;
   return { id: node.id, name: node.name, effectCount: node.effects.length };
 }
 
 async function applyStyle(params: any) {
   const { nodeId, styleId } = params;
   const node = await getSceneNodeById(nodeId);
-  if (!('effectStyleId' in node)) throw new Error(`Node ${nodeId} does not support effect styles`);
-  await (node as any).setEffectStyleIdAsync(styleId ?? '');
-  return { id: node.id, name: node.name, effectStyleId: (node as GeometryMixin).effectStyleId };
+  if (!('effectStyleId' in node) || !('setEffectStyleIdAsync' in node)) {
+    throw new Error(`Node ${nodeId} does not support effect styles`);
+  }
+  const styledNode = node as SceneNode & BlendMixin;
+  await styledNode.setEffectStyleIdAsync(styleId ?? '');
+  return { id: node.id, name: node.name, effectStyleId: styledNode.effectStyleId };
 }
 
 async function removeEffect(params: any) {
@@ -129,7 +136,7 @@ async function removeEffect(params: any) {
     return { id: node.id, name: node.name, effectCount: 0 };
   }
 
-  const effects = [...node.effects];
+  const effects = node.effects.slice();
   if (index < 0 || index >= effects.length) throw new Error(`Effect index ${index} out of range`);
   effects.splice(index, 1);
   node.effects = effects;
@@ -165,9 +172,9 @@ function buildEffect(e: any): Effect {
       };
     }
     case 'LAYER_BLUR':
-      return { type: 'LAYER_BLUR', radius: e.radius ?? 10, visible: e.visible ?? true };
+      return { type: 'LAYER_BLUR', blurType: 'NORMAL', radius: e.radius ?? 10, visible: e.visible ?? true };
     case 'BACKGROUND_BLUR':
-      return { type: 'BACKGROUND_BLUR', radius: e.radius ?? 10, visible: e.visible ?? true };
+      return { type: 'BACKGROUND_BLUR', blurType: 'NORMAL', radius: e.radius ?? 10, visible: e.visible ?? true };
     default:
       throw new Error(`Unknown effect type: ${e.type}`);
   }

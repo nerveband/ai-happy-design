@@ -13,3 +13,4 @@ dist/
 *.png
 !resources/*.png
 figma-friend.skill
+plugin/ai-happy-design.skill

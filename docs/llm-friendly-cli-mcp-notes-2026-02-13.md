@@ -1,7 +1,7 @@
 # LLM-Friendly CLI + MCP Notes (2026-02-13)
 
 ## Scope
-- Repo: `/Users/nerveband/wavedepth Dropbox/Ashraf Ali/Mac (2)/Documents/GitHub/ai-happy-design`
+- Repo: `.`
 - Goal: make CLI/MCP highly discoverable and composable for LLM agents.
 
 ## What “LLM-friendly” means in practice

@@ -132,6 +132,14 @@ Add to your MCP config file:
 
 Restart your editor after registering. The MCP server auto-detects if a relay is already running and connects as a client — no need to start the relay separately.
 
+### 3.5 Optional: Install the AI Skill Bundle
+
+If you want a ready-made skill that helps AI agents call the CLI and follow the discovery-first workflow, use the packaged bundle:
+
+- `ai-happy-design.skill` (repo root, also suitable as a release asset)
+
+This is optional; the MCP server and CLI work without it.
+
 ### 4. Verify
 
 ```bash

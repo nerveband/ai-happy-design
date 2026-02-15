@@ -1,7 +1,7 @@
 # Turnkey Pairing Design (v2)
 
 ## Scope
-Repository: `/Users/nerveband/wavedepth Dropbox/Ashraf Ali/Mac (2)/Documents/GitHub/ai-happy-design`
+Repository: `.`
 
 Problem to solve: plugin reconnect friction (new/random channel IDs, manual reconnect steps) and CLI friction (channel arg required repeatedly).
 
@@ -22,28 +22,28 @@ Problem to solve: plugin reconnect friction (new/random channel IDs, manual reco
   - `request-connection-settings`
   - `save-connection-settings`
 - Files:
-  - `/Users/nerveband/wavedepth Dropbox/Ashraf Ali/Mac (2)/Documents/GitHub/ai-happy-design/plugin/src/main.ts`
-  - `/Users/nerveband/wavedepth Dropbox/Ashraf Ali/Mac (2)/Documents/GitHub/ai-happy-design/plugin/src/ui/app.ts`
+  - `./plugin/src/main.ts`
+  - `./plugin/src/ui/app.ts`
 
 ### 2) Auto-connect startup flow
 - UI requests settings at startup and applies them.
 - If `autoConnect` is enabled (default), UI initiates connection automatically.
 - Reconnect policy changed to retry indefinitely (with backoff), so the plugin eventually recovers when relay starts later.
 - Files:
-  - `/Users/nerveband/wavedepth Dropbox/Ashraf Ali/Mac (2)/Documents/GitHub/ai-happy-design/plugin/src/ws/client.ts`
+  - `./plugin/src/ws/client.ts`
 
 ### 3) Channel lifecycle UX improvements
 - Added channel regeneration button in plugin UI (`New`) for explicit re-pairing.
 - Keeps copy flow and persisted update path.
 - Files:
-  - `/Users/nerveband/wavedepth Dropbox/Ashraf Ali/Mac (2)/Documents/GitHub/ai-happy-design/plugin/src/ui/index.html`
-  - `/Users/nerveband/wavedepth Dropbox/Ashraf Ali/Mac (2)/Documents/GitHub/ai-happy-design/plugin/src/ui/styles.css`
+  - `./plugin/src/ui/index.html`
+  - `./plugin/src/ui/styles.css`
 
 ### 4) Relay preferred-channel selection
 - Relay now tracks a preferred active channel and returns deterministic fallback instead of map-order randomness.
 - `/status` endpoint now includes `preferredChannel`.
 - File:
-  - `/Users/nerveband/wavedepth Dropbox/Ashraf Ali/Mac (2)/Documents/GitHub/ai-happy-design/internal/ws/server.go`
+  - `./internal/ws/server.go`
 
 ### 5) CLI auto channel resolution
 - `command` and `batch` now support running without explicit positional channel.
@@ -53,7 +53,7 @@ Problem to solve: plugin reconnect friction (new/random channel IDs, manual reco
   3. `AHD_CHANNEL` env
   4. relay `/status` preferred/active channel
 - File:
-  - `/Users/nerveband/wavedepth Dropbox/Ashraf Ali/Mac (2)/Documents/GitHub/ai-happy-design/cmd/ai-happy-design/main.go`
+  - `./cmd/ai-happy-design/main.go`
 
 ## Resulting user flow
 1. Open plugin first time -> generated channel persists.

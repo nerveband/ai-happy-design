@@ -1,14 +1,12 @@
 import { WSClient, ConnectionStatus } from '../ws/client';
 import { generateChannelKey } from '../utils/channel';
+import { DEFAULT_PORT, normalizeRelayUrl } from '../utils/relay';
 
 type ConnectionSettings = {
   channelKey: string;
   relayUrl: string;
   autoConnect: boolean;
 };
-
-var DEFAULT_PORT = 3055;
-var DEFAULT_RELAY_URL = 'ws://localhost:' + DEFAULT_PORT + '/ws';
 
 // ---- State ----
 var wsClient: WSClient | null = null;
@@ -67,7 +65,7 @@ function updateFilterCounts() {
 }
 
 // ---- Logging ----
-function addLog(message: string, level: 'info' | 'warn' | 'error' | 'success') {
+function addLog(message: string, level: 'info' | 'warn' | 'error' | 'success' = 'info') {
   var entry = document.createElement('div');
   entry.className = 'log-entry ' + level;
   entry.setAttribute('data-level', level);
@@ -127,37 +125,6 @@ function applyLogFilters() {
 
 function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function normalizeRelayUrl(raw: any): string {
-  var input = typeof raw === 'string' ? raw.trim() : '';
-  if (!input) return DEFAULT_RELAY_URL;
-
-  var barePortMatch = input.match(/^:?(\d+)$/);
-  if (barePortMatch) {
-    var p = parseInt(barePortMatch[1], 10);
-    if (p < 1 || p > 65535) return DEFAULT_RELAY_URL;
-    return 'ws://localhost:' + p + '/ws';
-  }
-
-  var candidate = input;
-  if (!/^wss?:\/\//i.test(candidate)) {
-    candidate = 'ws://' + candidate;
-  }
-
-  try {
-    var url = new URL(candidate);
-    if (url.protocol !== 'ws:' && url.protocol !== 'wss:') return DEFAULT_RELAY_URL;
-    if (!url.hostname) return DEFAULT_RELAY_URL;
-    if (url.port) {
-      var portNum = parseInt(url.port, 10);
-      if (portNum < 1 || portNum > 65535) return DEFAULT_RELAY_URL;
-    }
-    if (!url.pathname || url.pathname === '/') url.pathname = '/ws';
-    return url.toString();
-  } catch (e) {
-    return DEFAULT_RELAY_URL;
-  }
 }
 
 function normalizeSettings(raw: any): ConnectionSettings {

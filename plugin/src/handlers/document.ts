@@ -244,7 +244,7 @@ async function findFreeSpace(params: any) {
     // otherwise start a new row below everything.
 
     // Sort frames by y then x for row detection
-    const sorted = [...frames].sort((a, b) => a.y - b.y || a.x - b.x);
+    const sorted = frames.slice().sort((a, b) => a.y - b.y || a.x - b.x);
 
     // Group into rows: frames whose y-ranges overlap significantly
     const rows: Array<{minY: number; maxBottom: number; maxRight: number; frames: typeof frames}> = [];
@@ -284,7 +284,10 @@ async function findFreeSpace(params: any) {
     // If placing in this row would make the row excessively wide (>5 frames wide),
     // start a new row below everything instead
     if (lastRow.frames.length >= 5) {
-      const globalMaxBottom = Math.max(...frames.map(f => f.bottom));
+      let globalMaxBottom = 0;
+      for (const frame of frames) {
+        if (frame.bottom > globalMaxBottom) globalMaxBottom = frame.bottom;
+      }
       suggestedX = sorted[0].x; // Align with leftmost frame
       suggestedY = globalMaxBottom + gap;
     }

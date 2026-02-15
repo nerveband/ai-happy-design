@@ -58,7 +58,7 @@ var toolDescriptions = map[string]map[string]string{
 		"set_sizing":      "Set axis sizing mode. Params: nodeId, primaryAxisSizing, counterAxisSizing",
 		"set_wrap":        "Set layout wrap. Params: nodeId, layoutWrap",
 		"set_constraints": "Set layout constraints. Params: nodeId, constraintHorizontal, constraintVertical",
-		"check_overlaps": "Check for overlapping children in a frame. Returns overlap details. Params: nodeId",
+		"check_overlaps":  "Check for overlapping children in a frame. Returns overlap details. Params: nodeId",
 	},
 	"node": {
 		"get_info":       "Get node information. Params: nodeId",
@@ -145,7 +145,7 @@ var toolDescriptions = map[string]map[string]string{
 		"image": "Export as image (PNG/JPG). Params: nodeId, format, scale",
 		"svg":   "Export as SVG. Params: nodeId, scale",
 		"pdf":   "Export as PDF. Params: nodeId, scale",
-		"batch":  "Export multiple frames at once. Params: nodeIds (comma-separated), format, scale",
+		"batch": "Export multiple frames at once. Params: nodeIds (comma-separated), format, scale",
 	},
 	"bulk": {
 		"execute": "Execute multiple operations with retry and optional interpolation. Params: operations (JSON array of {name?, command, params}), failFast (default false), retries, retryDelayMs, interpolate",

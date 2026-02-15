@@ -25,17 +25,11 @@ async function exportImage(params: any) {
   const { nodeId, format = 'PNG', scale = 2, constraint } = params;
   const node = await getSceneNodeById(nodeId);
 
-  const settings: ExportSettings = {
-    format: format as 'PNG' | 'JPG',
-  };
+  const settings: ExportSettingsImage = constraint
+    ? { format: format as 'PNG' | 'JPG', constraint }
+    : { format: format as 'PNG' | 'JPG', constraint: { type: 'SCALE', value: scale } };
 
-  if (constraint) {
-    settings.constraint = constraint;
-  } else {
-    (settings as ExportSettingsImage).constraint = { type: 'SCALE', value: scale };
-  }
-
-  const bytes = await node.exportAsync(settings as ExportSettingsImage);
+  const bytes = await node.exportAsync(settings);
   // Convert to base64 for transport
   const base64 = figma.base64Encode(bytes);
 
@@ -53,8 +47,13 @@ async function exportSvg(params: any) {
   const { nodeId, svgIdAttribute, svgOutlineText, svgSimplifyStroke } = params;
   const node = await getSceneNodeById(nodeId);
 
-  const settings: ExportSettingsSVGString = {
+  const baseSettings: ExportSettingsSVGString = {
     format: 'SVG_STRING',
+  };
+  const settings = baseSettings as ExportSettingsSVGString & {
+    svgIdAttribute?: boolean;
+    svgOutlineText?: boolean;
+    svgSimplifyStroke?: boolean;
   };
 
   if (svgIdAttribute !== undefined) settings.svgIdAttribute = svgIdAttribute;

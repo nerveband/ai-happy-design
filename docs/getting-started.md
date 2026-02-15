@@ -2,7 +2,7 @@
 
 ## 0. Prebuild Checklist
 Run this first for clean setup and environment validation:
-- `/Users/nerveband/wavedepth Dropbox/Ashraf Ali/Mac (2)/Documents/GitHub/ai-happy-design/docs/prebuild-checklist.md`
+- `./docs/prebuild-checklist.md`
 
 ## 1. Prerequisites
 - Go 1.22+
@@ -10,34 +10,35 @@ Run this first for clean setup and environment validation:
 - npm
 - Figma Desktop (for local plugin development)
 
-## 2. Build the CLI/MCP Binary
+## 2. Build Binary + Embedded Plugin
 From repo root:
 
 ```bash
 make build
 ```
 
-Binary output:
+Outputs:
 - `./bin/ai-happy-design`
+- `plugin/dist/code.js`
+- `plugin/dist/ui.html`
+- `internal/plugin/files/manifest.json`
+- `internal/plugin/files/dist/code.js`
+- `internal/plugin/files/dist/ui.html`
 
-## 3. Build the Figma Plugin UI/Code
+## 3. Plugin-Only Rebuild (optional during plugin iteration)
 
 ```bash
 cd plugin
-npm install
-npm run build
+npm ci
+npm run check
 cd ..
 ```
-
-Build outputs:
-- `plugin/dist/code.js`
-- `plugin/dist/ui.html`
 
 ## 4. Load Plugin in Figma
 1. Open Figma Desktop.
 2. Go to plugin development mode.
 3. Import plugin manifest from:
-- `/Users/nerveband/wavedepth Dropbox/Ashraf Ali/Mac (2)/Documents/GitHub/ai-happy-design/plugin/manifest.json`
+- `./plugin/manifest.json`
 4. Run the plugin: **AI Happy Design**.
 
 ## 5. Start Relay + MCP or Relay Only

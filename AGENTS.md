@@ -123,7 +123,7 @@ Use `await figma.getNodeByIdAsync(...)`. Avoid deprecated sync getters.
 make build                              # Go binary
 go test ./...                           # Go tests
 go build ./...                          # Verify compilation
-cd plugin && npm run build && cd ..     # Plugin build
+cd plugin && npm run check && cd ..     # Plugin typecheck + build + syntax verification
 ```
 
 ## Development Practices (Learned)
@@ -137,8 +137,8 @@ cd plugin && npm run build && cd ..     # Plugin build
 
 ### When modifying plugin handlers:
 1. Edit `plugin/src/handlers/*.ts`
-2. Build from plugin dir: `cd plugin && node esbuild.config.mjs`
-3. Verify no ES2018+ syntax in `dist/code.js`
+2. Validate from plugin dir: `cd plugin && npm run check`
+3. Verify no unsupported syntax in `dist/code.js`
 4. Reload plugin in Figma
 
 ### Batch testing:

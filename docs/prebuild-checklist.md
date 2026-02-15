@@ -36,9 +36,6 @@ Build binary and plugin bundle:
 
 ```bash
 make build
-cd plugin
-npm run build
-cd ..
 ```
 
 Expected outputs:
@@ -51,7 +48,7 @@ Expected outputs:
 ```bash
 go test ./...
 go build ./...
-cd plugin && npm run build && cd ..
+cd plugin && npm run typecheck && npm run verify:syntax && cd ..
 ```
 
 ## 5. Runtime Bring-up

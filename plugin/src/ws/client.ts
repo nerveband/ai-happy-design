@@ -69,7 +69,7 @@ export class WSClient {
       this.startPing();
     };
 
-    this.ws.onmessage = (event) => {
+    this.ws.onmessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'pong') {
@@ -81,7 +81,7 @@ export class WSClient {
       }
     };
 
-    this.ws.onclose = (event) => {
+    this.ws.onclose = (event: CloseEvent) => {
       this.stopPing();
       if (this.intentionalClose) {
         this.options.onStatusChange('disconnected');
