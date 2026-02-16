@@ -35,7 +35,8 @@ export async function handleDocument(action: string, params: any): Promise<any> 
     case 'zoom_to': return zoomTo(params);
     case 'find_free_space':
     case 'free_space': return findFreeSpace(params);
-    default: throw new Error('Unknown document action: ' + action + '. Available: get_info, get_selection, set_selection, scan_text, scan_by_type, get_styles, find_by_name, find_by_type, focus, zoom_to, find_free_space');
+    case 'find_nodes': return findNodes(params);
+    default: throw new Error('Unknown document action: ' + action + '. Available: get_info, get_selection, set_selection, scan_text, scan_by_type, get_styles, find_by_name, find_by_type, focus, zoom_to, find_free_space, find_nodes');
   }
 }
 
@@ -312,5 +313,49 @@ async function findFreeSpace(params: any) {
       height: f.height,
     })),
     existingCount: frames.length,
+  };
+}
+
+async function findNodes(params: any) {
+  var query = params.query || '';
+  var type = params.type;
+  var textContent = params.textContent;
+  var pageId = params.pageId;
+
+  var page = pageId ? await getPageNodeById(pageId) : figma.currentPage;
+  await page.loadAsync();
+
+  var nodes: SceneNode[];
+  if (type) {
+    nodes = page.findAllWithCriteria({ types: [type] }) as SceneNode[];
+  } else {
+    nodes = page.findAll() as SceneNode[];
+  }
+
+  var results = nodes;
+
+  // Filter by name query
+  if (query) {
+    var lowerQuery = query.toLowerCase();
+    results = results.filter(function(n) {
+      return n.name.toLowerCase().includes(lowerQuery);
+    });
+  }
+
+  // Filter by text content (only for TEXT nodes)
+  if (textContent) {
+    var lowerText = textContent.toLowerCase();
+    results = results.filter(function(n) {
+      if (n.type === 'TEXT') {
+        return (n as TextNode).characters.toLowerCase().includes(lowerText);
+      }
+      return false;
+    });
+  }
+
+  return {
+    nodes: results.slice(0, 100).map(function(n) { return serializeNodeSummary(n); }),
+    count: results.length,
+    truncated: results.length > 100,
   };
 }

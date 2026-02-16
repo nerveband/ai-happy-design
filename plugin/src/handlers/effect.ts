@@ -49,7 +49,12 @@ export async function handleEffect(action: string, params: any): Promise<any> {
     case 'get':
     case 'list':
     case 'get_effects': return getEffects(params);
-    default: throw new Error('Unknown effect action: ' + action + '. Available: set_effects, add_shadow, add_blur, apply_style, remove, remove_effect, get_effects');
+    case 'add_noise': return addNoise(params);
+    case 'add_texture': return addTexture(params);
+    case 'add_glass': return addNativeGlass(params);
+    case 'apply_glass':
+    case 'glass': return applyGlass(params);
+    default: throw new Error('Unknown effect action: ' + action + '. Available: set_effects, add_shadow, add_blur, apply_style, remove, remove_effect, get_effects, add_noise, add_texture, apply_glass, add_glass');
   }
 }
 
@@ -150,6 +155,208 @@ async function getEffects(params: any) {
     id: node.id,
     name: node.name,
     effects: JSON.parse(JSON.stringify(node.effects)),
+  };
+}
+
+async function addNoise(params: any) {
+  var nodeId = params.nodeId;
+  var node = await getEffectNode(nodeId);
+  var noiseType = params.noiseType || 'monotone';
+  var color = parseHexColor(params.color, { r: 1, g: 1, b: 1, a: 0.25 });
+  var noiseSize = params.noiseSize || 100;
+  var density = params.density !== undefined ? params.density : 0.3;
+  var visible = params.visible !== undefined ? params.visible : true;
+
+  // Build the noise effect object. Figma Beta API uses these as regular effects.
+  // Since noise effects may not be in all plugin typings, we construct manually.
+  var upperType = noiseType.toUpperCase();
+  var noiseEffect: any = {
+    type: 'NOISE',
+    noiseType: upperType,
+    color: color,
+    noiseSize: noiseSize,
+    density: density,
+    visible: visible,
+  };
+
+  // DUOTONE has secondaryColor; MULTITONE has opacity
+  if (upperType === 'DUOTONE' && params.secondaryColor) {
+    noiseEffect.secondaryColor = parseHexColor(params.secondaryColor);
+  }
+  if (upperType === 'MULTITONE' && params.opacity !== undefined) {
+    noiseEffect.opacity = params.opacity;
+  }
+
+  // Try with blendMode first (newer Figma versions), fall back without it
+  var blendMode = params.blendMode || 'SOFT_LIGHT';
+  var nextEffects = node.effects.slice();
+  var effectWithBlend: any = {};
+  for (var k in noiseEffect) {
+    effectWithBlend[k] = noiseEffect[k];
+  }
+  effectWithBlend.blendMode = blendMode;
+  nextEffects.push(effectWithBlend);
+  try {
+    node.effects = nextEffects;
+  } catch (e: any) {
+    // blendMode may not be supported in this Figma version — retry without it
+    var fallbackEffects = node.effects.slice();
+    fallbackEffects.push(noiseEffect);
+    try {
+      node.effects = fallbackEffects;
+    } catch (e2: any) {
+      throw new Error('Noise effect failed: ' + (e2.message || String(e2)));
+    }
+  }
+  return { id: node.id, name: node.name, effectCount: node.effects.length };
+}
+
+async function addTexture(params: any) {
+  var nodeId = params.nodeId;
+  var node = await getEffectNode(nodeId);
+  var noiseSize = params.noiseSize || 100;
+  var radius = params.radius || 0;
+  var visible = params.visible !== undefined ? params.visible : true;
+
+  var textureEffect: any = {
+    type: 'TEXTURE',
+    noiseSize: noiseSize,
+    radius: radius,
+    clipToShape: params.clipToShape !== undefined ? params.clipToShape : true,
+    visible: visible,
+  };
+
+  var nextEffects = node.effects.slice();
+  nextEffects.push(textureEffect);
+  try {
+    node.effects = nextEffects;
+  } catch (e: any) {
+    throw new Error('Texture effect failed: ' + (e.message || String(e)));
+  }
+  return { id: node.id, name: node.name, effectCount: node.effects.length };
+}
+
+async function addNativeGlass(params: any) {
+  var nodeId = params.nodeId;
+  var node = await getEffectNode(nodeId);
+
+  var glassEffect: any = {
+    type: 'GLASS',
+    visible: params.visible !== undefined ? params.visible : true,
+    lightIntensity: params.lightIntensity !== undefined ? params.lightIntensity : 0.5,
+    lightAngle: params.lightAngle !== undefined ? params.lightAngle : 45,
+    refraction: params.refraction !== undefined ? params.refraction : 0.5,
+    depth: params.depth !== undefined ? params.depth : 1,
+    dispersion: params.dispersion !== undefined ? params.dispersion : 0,
+    radius: params.radius !== undefined ? params.radius : 0,
+  };
+
+  var nextEffects = node.effects.slice();
+  nextEffects.push(glassEffect);
+  try {
+    node.effects = nextEffects;
+  } catch (e: any) {
+    throw new Error('Native glass effect failed: ' + (e.message || String(e)));
+  }
+  return {
+    id: node.id,
+    name: node.name,
+    glass: glassEffect,
+    effectCount: node.effects.length,
+  };
+}
+
+async function applyGlass(params: any) {
+  var nodeId = params.nodeId;
+  var node = await getEffectNode(nodeId);
+  var intensity = params.intensity || 'medium';
+
+  // Map intensity presets to native glass params
+  var nativeParams: any = { lightIntensity: 0.5, lightAngle: 45, refraction: 0.5, depth: 1, dispersion: 0, radius: 0 };
+  switch (intensity) {
+    case 'light':
+      nativeParams = { lightIntensity: 0.3, lightAngle: 45, refraction: 0.3, depth: 1, dispersion: 0, radius: 8 };
+      break;
+    case 'heavy':
+      nativeParams = { lightIntensity: 0.8, lightAngle: 45, refraction: 0.7, depth: 2, dispersion: 0.2, radius: 16 };
+      break;
+    default: // medium
+      nativeParams = { lightIntensity: 0.5, lightAngle: 45, refraction: 0.5, depth: 1.5, dispersion: 0.1, radius: 12 };
+  }
+
+  // Try native GLASS effect first
+  var glassEffect: any = {
+    type: 'GLASS',
+    visible: true,
+    lightIntensity: nativeParams.lightIntensity,
+    lightAngle: nativeParams.lightAngle,
+    refraction: nativeParams.refraction,
+    depth: nativeParams.depth,
+    dispersion: nativeParams.dispersion,
+    radius: nativeParams.radius,
+  };
+
+  var nextEffects = node.effects.slice();
+  nextEffects.push(glassEffect);
+  try {
+    node.effects = nextEffects;
+    return {
+      id: node.id,
+      name: node.name,
+      glass: { mode: 'native', intensity: intensity, effect: glassEffect },
+    };
+  } catch (e: any) {
+    // Native GLASS not supported — fall back to simulated glass
+  }
+
+  // Simulated glass fallback
+  var tint = params.tint || '#FFFFFF';
+  var tintColor = parseHexColor(tint, { r: 1, g: 1, b: 1, a: 1 });
+  var fillOpacity: number, blurRadius: number, strokeOpacity: number;
+  switch (intensity) {
+    case 'light':
+      fillOpacity = 0.08; blurRadius = 20; strokeOpacity = 0.10;
+      break;
+    case 'heavy':
+      fillOpacity = 0.15; blurRadius = 40; strokeOpacity = 0.15;
+      break;
+    default:
+      fillOpacity = 0.10; blurRadius = 30; strokeOpacity = 0.12;
+  }
+
+  if ('fills' in node) {
+    (node as any).fills = [{
+      type: 'SOLID',
+      color: { r: tintColor.r, g: tintColor.g, b: tintColor.b },
+      opacity: fillOpacity,
+    }];
+  }
+
+  var simEffects: any[] = node.effects.slice();
+  simEffects.push({
+    type: 'BACKGROUND_BLUR',
+    blurType: 'NORMAL',
+    radius: blurRadius,
+    visible: true,
+  });
+  node.effects = simEffects;
+
+  if ('strokes' in node) {
+    (node as any).strokes = [{
+      type: 'SOLID',
+      color: { r: tintColor.r, g: tintColor.g, b: tintColor.b },
+      opacity: strokeOpacity,
+    }];
+    (node as any).strokeWeight = 1;
+    if ('strokeAlign' in node) {
+      (node as any).strokeAlign = 'INSIDE';
+    }
+  }
+
+  return {
+    id: node.id,
+    name: node.name,
+    glass: { mode: 'simulated', intensity: intensity, fillOpacity: fillOpacity, blurRadius: blurRadius, strokeOpacity: strokeOpacity },
   };
 }
 

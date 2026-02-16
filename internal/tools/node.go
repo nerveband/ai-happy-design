@@ -12,9 +12,9 @@ import (
 // RegisterNodeTool registers the "node" tool for node inspection, creation, and manipulation.
 func RegisterNodeTool(s *server.MCPServer, commander *figma.Commander) {
 	tool := mcp.NewTool("node",
-		mcp.WithDescription("Node operations: get info, create frames, move, resize, rotate, opacity, blend mode, visibility, lock, rename, delete, clone."),
+		mcp.WithDescription("Node operations: get info, create frames, move, resize, rotate, opacity, blend mode, visibility, lock, rename, delete, clone, modify (batch-update any node), set_mask. Use design.compute_tokens first. Always provide semantic name."),
 		mcp.WithString("action", mcp.Required(), mcp.Description("Action to perform"),
-			mcp.Enum("get_info", "get_tree", "create_frame", "move", "resize", "rotate", "set_opacity", "set_blend_mode", "set_visibility", "set_locked", "rename", "delete", "clone")),
+			mcp.Enum("get_info", "get_tree", "create_frame", "move", "resize", "rotate", "set_opacity", "set_blend_mode", "set_visibility", "set_locked", "rename", "delete", "clone", "modify", "set_mask")),
 		mcp.WithString("nodeId", mcp.Description("Target node ID")),
 		mcp.WithString("nodeIds", mcp.Description("Comma-separated node IDs (for batch operations)")),
 		mcp.WithString("name", mcp.Description("Node name")),
@@ -249,6 +249,53 @@ func RegisterNodeTool(s *server.MCPServer, commander *figma.Commander) {
 			return sendCommand(commander, "clone_node", map[string]interface{}{
 				"nodeId": nodeId,
 			})
+
+		case "modify":
+			nodeId, errResult := requireStringArg(args, "nodeId")
+			if errResult != nil {
+				return errResult, nil
+			}
+			params := map[string]interface{}{"nodeId": nodeId}
+			// Forward all optional modify params
+			for _, key := range []string{"x", "y", "width", "height", "opacity", "cornerRadius", "rotation"} {
+				if hasArg(args, key) {
+					params[key] = getFloat64Arg(args, key, 0)
+				}
+			}
+			for _, key := range []string{"color", "name", "blendMode", "textAlignHorizontal", "layoutSizingHorizontal", "layoutSizingVertical", "fontFamily", "fontStyle"} {
+				if hasArg(args, key) {
+					params[key] = getStringArg(args, key, "")
+				}
+			}
+			if hasArg(args, "visible") {
+				params["visible"] = getBoolArg(args, "visible", true)
+			}
+			if hasArg(args, "isMask") {
+				params["isMask"] = getBoolArg(args, "isMask", false)
+			}
+			if hasArg(args, "fontSize") {
+				params["fontSize"] = getFloat64Arg(args, "fontSize", 16)
+			}
+			if hasArg(args, "text") {
+				params["text"] = getStringArg(args, "text", "")
+			}
+			return sendCommand(commander, "node.modify", params)
+
+		case "set_mask":
+			nodeId, errResult := requireStringArg(args, "nodeId")
+			if errResult != nil {
+				return errResult, nil
+			}
+			params := map[string]interface{}{"nodeId": nodeId}
+			if hasArg(args, "nodeIds") {
+				// Parse comma-separated IDs into array
+				ids := getStringArg(args, "nodeIds", "")
+				params["targetIds"] = splitIDs(ids)
+			}
+			if hasArg(args, "name") {
+				params["name"] = getStringArg(args, "name", "")
+			}
+			return sendCommand(commander, "node.set_mask", params)
 
 		default:
 			return mcp.NewToolResultError(fmt.Sprintf("unknown node action: %s", action)), nil

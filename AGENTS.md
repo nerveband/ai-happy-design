@@ -155,6 +155,28 @@ cd plugin && npm run check && cd ..     # Plugin typecheck + build + syntax veri
 - Default export scale is 2x (changed from 1x for quality)
 - Large exports (e.g., 2160x3840 at 2x) may hang — use 1x for very large frames
 
+## CLI-First Development
+
+CLI is the priority path — fastest for bulk ops and what LLM agents use for heavy design work. Every feature works in CLI first, then gets a matching MCP tool.
+
+**Compact aliases** for batch/CLI: `frame`, `rect`, `text`, `fill`, `stroke`, `gradient`, `shadow`, `blur`, `glass`, `noise`, `texture`, `modify`, `mask`, `find`.
+
+**Parameter shorthands**: `pid`=parentId, `w`=width, `h`=height, `sz`=fontSize, `ff`=fontFamily, `lh`=lineHeight (auto-PERCENT), `bg`=color, `r`=cornerRadius, `fillColor`=color.
+
+**Step naming**: Use `snake_case` for batch step names. Names are auto-sanitized but clean names prevent interpolation issues.
+
+**Semantic naming**: ALWAYS name every Figma layer by its content/role. Never leave defaults like 'Frame 47'.
+
+## Supported Advanced Features
+
+- **node.modify**: Unified "update any node" — pass nodeId + bag of properties (x, y, width, height, color, opacity, cornerRadius, visible, name, rotation, text, fontSize, isMask, etc.)
+- **node.set_mask**: Create mask groups — pass mask shape nodeId + targetIds array
+- **effect.apply_glass**: One-call glass morphism (fill + background blur + stroke) with intensity presets (light/medium/heavy)
+- **effect.add_noise**: Noise overlay effects (monotone/duotone/multitone) — requires Figma Beta API
+- **effect.add_texture**: Texture effects — requires Figma Beta API
+- **document.find_nodes**: Unified search by name (query), type (nodeType), text content (textContent)
+- **fillColor → color alias**: Automatically resolved everywhere (the #1 silent failure from cross-tool training data)
+
 ## Editing Rules for Agents
 
 1. Preserve backward compatibility for legacy command names via `internal/ws/command_routing.go`

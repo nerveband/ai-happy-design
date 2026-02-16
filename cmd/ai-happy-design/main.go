@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -45,7 +46,7 @@ Cursor, Windsurf, etc). Also starts a WebSocket relay server in the
 background for communicating with the Figma plugin. If a relay is already
 running on the configured port, it connects as a client instead.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg := config.Load()
+		cfg := loadConfig()
 
 		// Try to start embedded relay, but if port is in use, connect as client
 		wsServer := ws.NewServer(cfg.Port)
@@ -76,7 +77,7 @@ The channel key should match what the Figma plugin is using
 		if err := ensureRelayIfNeeded(); err != nil {
 			return err
 		}
-		cfg := config.Load()
+		cfg := loadConfig()
 		url := fmt.Sprintf("ws://%s:%d", cfg.ServerHost, cfg.Port)
 		client := ws.NewClient(url)
 		return client.JoinChannel(args[0])
@@ -88,9 +89,45 @@ var wsCmd = &cobra.Command{
 	Short: "Start WebSocket relay server only",
 	Long:  `Starts just the WebSocket relay server without the MCP server. Useful for debugging or running the relay separately.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg := config.Load()
+		cfg := loadConfig()
+
+		// Auto-kill stale relay process holding the port
+		if inUse, _ := relaymgr.IsPortInUse(cfg.Port); inUse {
+			owner, isAHD := relaymgr.PortOwner(cfg.Port)
+			if isAHD {
+				fmt.Fprintf(os.Stderr, "Port %d held by stale relay (%s) — killing it.\n", cfg.Port, owner)
+				_, _ = relaymgr.Stop()
+				// Also force-kill by port in case state file was stale
+				if killCmd, err := exec.LookPath("lsof"); err == nil {
+					out, _ := exec.Command(killCmd, "-ti", fmt.Sprintf(":%d", cfg.Port)).Output()
+					for _, pidStr := range strings.Fields(strings.TrimSpace(string(out))) {
+						if pid, err := strconv.Atoi(pidStr); err == nil && pid != os.Getpid() {
+							if p, err := os.FindProcess(pid); err == nil {
+								_ = p.Kill()
+							}
+						}
+					}
+				}
+				time.Sleep(500 * time.Millisecond)
+			} else if owner != "" {
+				return fmt.Errorf("port %d is already in use by %s (not ai-happy-design)", cfg.Port, owner)
+			}
+		}
+
 		wsServer := ws.NewServer(cfg.Port)
-		fmt.Printf("Starting WebSocket relay on port %d...\n", cfg.Port)
+		wsServer.SetIdleTimeout(cfg.IdleTimeout)
+		if cfg.IdleTimeout > 0 {
+			fmt.Printf("Starting WebSocket relay on port %d (idle shutdown: %s)...\n", cfg.Port, cfg.IdleTimeout)
+		} else {
+			fmt.Printf("Starting WebSocket relay on port %d...\n", cfg.Port)
+		}
+		if cfg.Port != config.DefaultPort {
+			fmt.Fprintf(os.Stderr, "\n⚠  Non-default port %d. Update the Figma plugin:\n", cfg.Port)
+			fmt.Fprintf(os.Stderr, "   1. Open the plugin in Figma\n")
+			fmt.Fprintf(os.Stderr, "   2. Change the Relay URL to: ws://localhost:%d/ws  (or just type %d)\n", cfg.Port, cfg.Port)
+			fmt.Fprintf(os.Stderr, "   3. Click Connect\n")
+			fmt.Fprintf(os.Stderr, "   CLI commands: ai-happy-design --port %d command ...\n\n", cfg.Port)
+		}
 		return wsServer.Start()
 	},
 }
@@ -311,6 +348,7 @@ var batchRetries int
 var batchRetryDelayMs int
 var batchInterpolation bool
 var batchCompressImages bool
+var batchAllowOverlap bool
 
 type batchOperation struct {
 	Name    string                 `json:"name,omitempty"`
@@ -393,8 +431,14 @@ Operations can be provided in multiple ways (in priority order):
 		stoppedEarly := false
 		batchStart := time.Now()
 
+		// Auto-place root frames to avoid overlap (unless --allow-overlap)
+		if !batchAllowOverlap {
+			autoPlaceRootFrames(client, ops)
+		}
+
 		for i, op := range ops {
 			opStart := time.Now()
+			op.Name = batchutil.SanitizeStepName(op.Name)
 			params := batchutil.NormalizeBatchParams(op.Command, op.Params)
 
 			if batchInterpolation {
@@ -540,6 +584,15 @@ Operations can be provided in multiple ways (in priority order):
 var catalogJSON bool
 var catalogLLM bool
 var noAutoRelay bool
+var globalPort int
+
+func loadConfig() *config.Config {
+	cfg := config.Load()
+	if globalPort > 0 {
+		cfg.Port = globalPort
+	}
+	return cfg
+}
 var relayLogsLines int
 var actionsJSON bool
 
@@ -670,7 +723,7 @@ var relayStartCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start local relay (idempotent)",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg := config.Load()
+		cfg := loadConfig()
 		result, err := relaymgr.Ensure(relaymgr.EnsureOptions{
 			Host:      cfg.ServerHost,
 			Port:      cfg.Port,
@@ -708,7 +761,7 @@ var relayStatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show relay health and process metadata",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg := config.Load()
+		cfg := loadConfig()
 		out := map[string]interface{}{
 			"host":          cfg.ServerHost,
 			"port":          cfg.Port,
@@ -773,7 +826,7 @@ var relayInstallAgentCmd = &cobra.Command{
 	Long: `Installs a user launch agent with KeepAlive so relay auto-starts at login.
 This is optional and never enabled automatically.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg := config.Load()
+		cfg := loadConfig()
 		result, err := relaymgr.InstallLaunchAgent(cfg.ServerHost, cfg.Port)
 		if err != nil {
 			return err
@@ -783,7 +836,7 @@ This is optional and never enabled automatically.`,
 }
 
 func ensureRelayIfNeeded() error {
-	cfg := config.Load()
+	cfg := loadConfig()
 	result, err := relaymgr.Ensure(relaymgr.EnsureOptions{
 		Host:      cfg.ServerHost,
 		Port:      cfg.Port,
@@ -819,7 +872,7 @@ func handleLocalCommand(command string, params map[string]interface{}) (bool, er
 }
 
 func newConnectedClient(channelKey string, live bool) (*ws.Client, error) {
-	cfg := config.Load()
+	cfg := loadConfig()
 	url := fmt.Sprintf("ws://%s:%d", cfg.ServerHost, cfg.Port)
 	client := ws.NewClient(url)
 
@@ -841,7 +894,13 @@ func newConnectedClient(channelKey string, live bool) (*ws.Client, error) {
 	}
 
 	if err := client.Connect(channelKey); err != nil {
-		return nil, err
+		hint := ""
+		if cfg.Port != config.DefaultPort {
+			hint = fmt.Sprintf("\nNote: using non-default port %d. Make sure the relay is running on this port:\n  ai-happy-design --port %d ws\nAnd update the Figma plugin Relay URL to: ws://localhost:%d/ws", cfg.Port, cfg.Port, cfg.Port)
+		} else {
+			hint = "\nTip: if the relay is on a different port, use --port <port> or set PORT env var."
+		}
+		return nil, fmt.Errorf("%w%s", err, hint)
 	}
 	return client, nil
 }
@@ -853,6 +912,111 @@ func printJSON(v interface{}) error {
 	}
 	fmt.Println(string(data))
 	return nil
+}
+
+// autoPlaceRootFrames checks if the batch has root-level frame creation (no parentId)
+// without a find_free_space step. If so, it calls find_free_space via the relay and
+// offsets the first root frame's x/y to a safe position. Subsequent root frames are
+// placed relative to the offset. This prevents accidentally drawing on top of existing work.
+func autoPlaceRootFrames(client *ws.Client, ops []batchOperation) {
+	// Check if batch already has a find_free_space step
+	for _, op := range ops {
+		if strings.Contains(strings.ToLower(op.Command), "find_free_space") {
+			return // User is already handling placement
+		}
+	}
+
+	// Find the first root-level frame creation
+	firstRootIdx := -1
+	var rootW, rootH float64
+	for i, op := range ops {
+		cmd := strings.ToLower(op.Command)
+		if cmd != "frame" && cmd != "node.create_frame" {
+			continue
+		}
+		pid, _ := op.Params["parentId"].(string)
+		if pid == "" {
+			pid, _ = op.Params["pid"].(string)
+		}
+		if pid != "" {
+			continue
+		}
+		firstRootIdx = i
+		rootW = getFloatParam(op.Params, "width", getFloatParam(op.Params, "w", 0))
+		rootH = getFloatParam(op.Params, "height", getFloatParam(op.Params, "h", 0))
+		break
+	}
+
+	if firstRootIdx < 0 || (rootW == 0 && rootH == 0) {
+		return // No root frame or no dimensions to check
+	}
+
+	// Call find_free_space to get safe coordinates
+	findParams := map[string]interface{}{"width": rootW, "height": rootH}
+	result, err := client.SendCommand("document.find_free_space", findParams)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "⚠ Could not check free space: %v (proceeding without offset)\n", err)
+		return
+	}
+
+	var freeSpace struct {
+		X              float64 `json:"x"`
+		Y              float64 `json:"y"`
+		ExistingCount  int     `json:"existingCount"`
+	}
+	if err := json.Unmarshal(result, &freeSpace); err != nil {
+		return
+	}
+
+	if freeSpace.ExistingCount == 0 {
+		return // Empty page, no need to offset
+	}
+
+	// Calculate offset from original position to safe position
+	origX := getFloatParam(ops[firstRootIdx].Params, "x", 0)
+	origY := getFloatParam(ops[firstRootIdx].Params, "y", 0)
+	dx := freeSpace.X - origX
+	dy := freeSpace.Y - origY
+
+	if dx == 0 && dy == 0 {
+		return // Already in a safe spot
+	}
+
+	fmt.Fprintf(os.Stderr, "⚠ Auto-placing: shifted root frames by (%+.0f, %+.0f) to avoid overlap with %d existing frame(s).\n", dx, dy, freeSpace.ExistingCount)
+	fmt.Fprintf(os.Stderr, "  Use --allow-overlap to place at exact coordinates.\n")
+
+	// Offset all root-level frame creations
+	for i := range ops {
+		cmd := strings.ToLower(ops[i].Command)
+		if cmd != "frame" && cmd != "node.create_frame" {
+			continue
+		}
+		pid, _ := ops[i].Params["parentId"].(string)
+		if pid == "" {
+			pid, _ = ops[i].Params["pid"].(string)
+		}
+		if pid != "" {
+			continue
+		}
+		ops[i].Params["x"] = getFloatParam(ops[i].Params, "x", 0) + dx
+		ops[i].Params["y"] = getFloatParam(ops[i].Params, "y", 0) + dy
+	}
+}
+
+// getFloatParam extracts a numeric value from params, checking both the key and common aliases.
+func getFloatParam(params map[string]interface{}, key string, def float64) float64 {
+	if v, ok := params[key]; ok {
+		switch n := v.(type) {
+		case float64:
+			return n
+		case int:
+			return float64(n)
+		case json.Number:
+			f, _ := n.Float64()
+			return f
+		}
+	}
+	return def
 }
 
 func loadBatchOperations(operationsJSON, operationsFile string) ([]batchOperation, error) {
@@ -904,7 +1068,7 @@ func resolveChannel(explicit string) (string, error) {
 		return envChannel, nil
 	}
 
-	cfg := config.Load()
+	cfg := loadConfig()
 	statusURL := fmt.Sprintf("http://%s:%d/status", cfg.ServerHost, cfg.Port)
 	httpClient := &http.Client{Timeout: 2 * time.Second}
 	resp, err := httpClient.Get(statusURL)
@@ -931,7 +1095,11 @@ func resolveChannel(explicit string) (string, error) {
 	sort.Strings(active)
 
 	if len(active) == 0 {
-		return "", fmt.Errorf("no active plugin channel found. Open the plugin and connect, or pass a channel key")
+		hint := "no active plugin channel found. Open the Figma plugin and click Connect."
+		if cfg.Port != config.DefaultPort {
+			hint += fmt.Sprintf("\n\nYou're using port %d (non-default). In the Figma plugin, set Relay URL to:\n  ws://localhost:%d/ws  (or just type: %d)\nThen click Connect.", cfg.Port, cfg.Port, cfg.Port)
+		}
+		return "", fmt.Errorf("%s", hint)
 	}
 
 	if status.PreferredChannel != "" {
@@ -954,6 +1122,7 @@ func resolveChannel(explicit string) (string, error) {
 
 func main() {
 	rootCmd.PersistentFlags().BoolVar(&noAutoRelay, "no-auto-relay", false, "Disable CLI auto-start of local relay for connect/command/batch")
+	rootCmd.PersistentFlags().IntVar(&globalPort, "port", 0, "Override relay port (default 3055, or PORT env var)")
 
 	rootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
 		switch cmd.Name() {
@@ -982,6 +1151,7 @@ func main() {
 	batchCmd.Flags().IntVar(&batchRetryDelayMs, "retry-delay-ms", 250, "Delay between retries in milliseconds")
 	batchCmd.Flags().BoolVar(&batchInterpolation, "interpolate", true, "Enable placeholder interpolation from prior step results")
 	batchCmd.Flags().BoolVar(&batchCompressImages, "compress-images", false, "Compress imageData before sending (requires ImageMagick)")
+	batchCmd.Flags().BoolVar(&batchAllowOverlap, "allow-overlap", false, "Skip auto-placement and place frames at exact coordinates (may overlap existing work)")
 
 	toolsCmd.Flags().BoolVar(&catalogJSON, "json", true, "Output as JSON for machine-readable discovery")
 	toolsCmd.Flags().BoolVar(&catalogLLM, "llm", false, "Output enriched LLM-focused catalog with examples and playbook")

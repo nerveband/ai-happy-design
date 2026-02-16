@@ -12,7 +12,7 @@ import (
 // RegisterTextTool registers the "text" tool for text node creation and manipulation.
 func RegisterTextTool(s *server.MCPServer, commander *figma.Commander) {
 	tool := mcp.NewTool("text",
-		mcp.WithDescription("Text operations: create text nodes, change content, font, size, weight, color, alignment, spacing, case, decoration, and more."),
+		mcp.WithDescription("Text operations: create text nodes, change content, font, size, weight, color, alignment, spacing, case, decoration, and more. CRITICAL: When setting lineHeight, ALWAYS pass lineHeightUnit:'PERCENT' — default is PIXELS which causes massive text overflow."),
 		mcp.WithString("action", mcp.Required(), mcp.Description("Action to perform"),
 			mcp.Enum("create", "set_content", "set_font", "set_size", "set_weight", "set_color", "set_align", "set_spacing", "set_case", "set_decoration", "get_segments", "load_font", "set_style_id", "list_fonts")),
 		mcp.WithString("nodeId", mcp.Description("Target text node ID")),

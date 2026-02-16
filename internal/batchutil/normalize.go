@@ -1,6 +1,9 @@
 package batchutil
 
-import "strings"
+import (
+	"regexp"
+	"strings"
+)
 
 // NormalizeBatchParams expands shorthand keys for batch operations.
 // It is intentionally command-aware to avoid key collisions.
@@ -13,6 +16,9 @@ func NormalizeBatchParams(command string, params map[string]interface{}) map[str
 	applyAlias(out, "width", "w")
 	applyAlias(out, "height", "h")
 	applyAlias(out, "parentId", "pid")
+
+	// Universal fillColor → color alias (the #1 silent failure from cross-tool training data)
+	applyAlias(out, "color", "fillColor")
 
 	cmd := normalizeCommand(command)
 
@@ -27,7 +33,7 @@ func NormalizeBatchParams(command string, params map[string]interface{}) map[str
 		}
 	}
 
-	if isFrameOrRectCreateCommand(cmd) {
+	if isFrameOrRectCreateCommand(cmd) || isModifyCommand(cmd) {
 		applyAlias(out, "color", "bg")
 		applyAlias(out, "cornerRadius", "r")
 	}
@@ -41,6 +47,27 @@ func NormalizeBatchParams(command string, params map[string]interface{}) map[str
 	}
 
 	return out
+}
+
+// stepNameRe matches characters that are NOT alphanumeric or underscore.
+var stepNameRe = regexp.MustCompile(`[^a-z0-9_]+`)
+
+// SanitizeStepName normalizes a batch step name: lowercase, spaces→underscores,
+// strip non-alphanumeric characters (except _).
+func SanitizeStepName(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return ""
+	}
+	name = strings.ToLower(name)
+	name = strings.ReplaceAll(name, " ", "_")
+	name = stepNameRe.ReplaceAllString(name, "")
+	// Collapse multiple underscores
+	for strings.Contains(name, "__") {
+		name = strings.ReplaceAll(name, "__", "_")
+	}
+	name = strings.Trim(name, "_")
+	return name
 }
 
 func normalizeCommand(command string) string {
@@ -107,6 +134,15 @@ func isShapeOrFrameCreateCommand(cmd string) bool {
 func isPaintStrokeCommand(cmd string) bool {
 	switch cmd {
 	case "stroke", "paint.set_stroke", "set_stroke", "set_stroke_color":
+		return true
+	default:
+		return false
+	}
+}
+
+func isModifyCommand(cmd string) bool {
+	switch cmd {
+	case "modify", "node.modify":
 		return true
 	default:
 		return false

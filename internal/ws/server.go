@@ -50,6 +50,13 @@ type Server struct {
 
 	// Client mode: when port is already in use, delegate to an embedded client
 	client *Client
+
+	// Idle auto-shutdown
+	idleTimeout time.Duration
+	lastActivity time.Time
+	idleTimer   *time.Timer
+	startedAt   time.Time
+	httpServer  *http.Server
 }
 
 // NewServer creates a new WebSocket relay server on the given port.
@@ -61,7 +68,38 @@ func NewServer(port int) *Server {
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool { return true },
 		},
+		startedAt:    time.Now(),
+		lastActivity: time.Now(),
 	}
+}
+
+// SetIdleTimeout configures auto-shutdown after a period of no activity.
+// Zero disables idle shutdown.
+func (s *Server) SetIdleTimeout(d time.Duration) {
+	s.idleTimeout = d
+}
+
+// touchActivity resets the idle timer on meaningful activity.
+func (s *Server) touchActivity() {
+	s.mu.Lock()
+	s.lastActivity = time.Now()
+	s.mu.Unlock()
+	if s.idleTimeout > 0 {
+		s.resetIdleTimer()
+	}
+}
+
+// resetIdleTimer resets or starts the idle shutdown timer.
+func (s *Server) resetIdleTimer() {
+	if s.idleTimer != nil {
+		s.idleTimer.Stop()
+	}
+	s.idleTimer = time.AfterFunc(s.idleTimeout, func() {
+		log.Printf("[ws] Relay shutting down after %s of inactivity. CLI will auto-restart on next command.", s.idleTimeout)
+		if s.httpServer != nil {
+			s.httpServer.Close()
+		}
+	})
 }
 
 // Start launches the HTTP server with WebSocket and status endpoints.
@@ -71,8 +109,16 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/status", s.handleStatus)
 
 	addr := fmt.Sprintf(":%d", s.port)
+	s.httpServer = &http.Server{Addr: addr, Handler: mux}
+
+	// Start idle timer if configured
+	if s.idleTimeout > 0 {
+		s.resetIdleTimer()
+		log.Printf("[ws] idle auto-shutdown enabled: %s", s.idleTimeout)
+	}
+
 	log.Printf("[ws] relay server listening on %s", addr)
-	return http.ListenAndServe(addr, mux)
+	return s.httpServer.ListenAndServe()
 }
 
 // ConnectAsClient connects to an existing relay as a WebSocket client.
@@ -310,6 +356,10 @@ func (s *Server) writePump(conn *Conn) {
 
 // routeMessage handles incoming messages based on their type.
 func (s *Server) routeMessage(conn *Conn, msg *Message, raw []byte) {
+	if msg.Type != "ping" {
+		s.touchActivity()
+	}
+
 	switch msg.Type {
 	case "ping":
 		pong, _ := json.Marshal(Message{Type: "pong"})
@@ -482,12 +532,27 @@ func (s *Server) handleStatus(w http.ResponseWriter, _ *http.Request) {
 	}
 	s.mu.RUnlock()
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	status := map[string]interface{}{
 		"status":           "ok",
 		"channels":         channels,
 		"preferredChannel": preferred,
-	})
+		"uptime":           time.Since(s.startedAt).Truncate(time.Second).String(),
+	}
+
+	if s.idleTimeout > 0 {
+		s.mu.RLock()
+		lastAct := s.lastActivity
+		s.mu.RUnlock()
+		remaining := s.idleTimeout - time.Since(lastAct)
+		if remaining < 0 {
+			remaining = 0
+		}
+		status["idleTimeout"] = s.idleTimeout.String()
+		status["idleRemaining"] = remaining.Truncate(time.Second).String()
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(status)
 }
 
 func firstActiveChannelLocked(channels map[string]map[string]*Conn) string {

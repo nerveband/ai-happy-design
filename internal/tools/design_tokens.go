@@ -168,6 +168,28 @@ func ComputeDesignTokens(w, h, dpi float64) map[string]interface{} {
 		"fourCol":   cw4,
 	}
 
+	// Shadow token recommendations per tier
+	shadowTokens := map[string]interface{}{
+		"caption":    map[string]interface{}{"preset": "subtle", "offsetY": 2, "radius": 4, "color": "#00000010"},
+		"body":       map[string]interface{}{"preset": "card", "offsetY": 4, "radius": 12, "color": "#0000001A"},
+		"subheading": map[string]interface{}{"preset": "card", "offsetY": 4, "radius": 12, "color": "#0000001A"},
+		"heading":    map[string]interface{}{"preset": "elevated", "offsetY": 8, "radius": 24, "color": "#00000026"},
+		"title":      map[string]interface{}{"preset": "elevated", "offsetY": 8, "radius": 24, "color": "#00000026"},
+		"hero":       map[string]interface{}{"preset": "floating", "offsetY": 16, "radius": 48, "color": "#00000033"},
+		"display":    map[string]interface{}{"preset": "floating", "offsetY": 16, "radius": 48, "color": "#00000033"},
+	}
+
+	// Tier selection guide
+	tierGuide := map[string]interface{}{
+		"_rule":       "Select text tier based on content length and importance.",
+		"shortText":   "1-3 words (e.g. '250+', 'Go Pro') → title or hero tier",
+		"mediumText":  "1-2 sentences (e.g. subtitle, tagline) → heading or subheading tier",
+		"longText":    "Paragraphs, descriptions → body tier",
+		"metadata":    "Timestamps, footnotes, attribution → caption tier",
+		"cta":         "Button text → body tier (cta alias)",
+		"heroNumbers": "Big statistics, amounts → display tier",
+	}
+
 	result := map[string]interface{}{
 		"_summary": map[string]interface{}{
 			"canvas":      map[string]interface{}{"width": int(w), "height": int(h)},
@@ -249,6 +271,8 @@ func ComputeDesignTokens(w, h, dpi float64) map[string]interface{} {
 				"Card height: set a fixed height that fits your content (e.g., 176-200px for title + description).",
 			},
 		},
+		"tierGuide":    tierGuide,
+		"shadowTokens": shadowTokens,
 		"textRules": map[string]interface{}{
 			"_critical": []string{
 				"TEXT WIDTH: Use the 'width' parameter on text.create to set text wrapping width: text.create {text:'...', x:" + itoa(sidePadding) + ", y:100, width:" + itoa(contentWidth) + ", fontSize:" + itoa(body) + "}",

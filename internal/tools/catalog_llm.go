@@ -683,6 +683,82 @@ func LLMCatalog() map[string]interface{} {
 				"For batch export: export.batch {nodeIds:'id1,id2', format:'PNG', scale:2}",
 			},
 		},
+		"advancedFeatures": map[string]interface{}{
+			"modify": map[string]interface{}{
+				"_overview": "node.modify is a unified 'update any node' action. Pass nodeId + any combination of properties. Supports: x, y, width, height, color/fillColor, opacity, cornerRadius, visible, name, rotation, characters/text, fontSize, fontFamily, fontStyle, textAlignHorizontal, layoutSizingHorizontal, layoutSizingVertical, isMask, blendMode.",
+				"example":   `{"command":"modify","params":{"nodeId":"$card","fillColor":"#FF0000","cornerRadius":16,"opacity":0.9}}`,
+				"tip":       "fillColor is an alias for color — both work. Use modify instead of separate move + resize + paint calls when changing multiple properties at once.",
+			},
+			"findNodes": map[string]interface{}{
+				"_overview": "document.find_nodes is a unified search. Filter by name (query), type (nodeType), and text content (textContent). Returns up to 100 matches.",
+				"example":   `{"command":"find","params":{"query":"button","type":"FRAME"}}`,
+			},
+			"masking": map[string]interface{}{
+				"_overview": "node.set_mask creates a mask group. Pass nodeId (the mask shape) and targetIds (nodes to mask). The mask shape becomes isMask=true as the first child of a new group.",
+				"usage": []string{
+					"Create the mask shape (rect/ellipse/vector) first",
+					"Create or reference the target nodes (images, frames)",
+					`Call: {"command":"mask","params":{"nodeId":"$ellipse","targetIds":["$image"],"name":"Avatar Mask"}}`,
+				},
+				"useCases": "Circular avatar crops, shaped image reveals, gradient fade-outs, rounded image cards.",
+			},
+			"glass": map[string]interface{}{
+				"_overview": "effect.apply_glass applies a complete glass morphism recipe in one call: semi-transparent fill + background blur + subtle stroke.",
+				"intensities": map[string]interface{}{
+					"light":  "8% fill opacity, 20px blur, 10% stroke",
+					"medium": "10% fill opacity, 30px blur, 12% stroke",
+					"heavy":  "15% fill opacity, 40px blur, 15% stroke",
+				},
+				"example": `{"command":"glass","params":{"nodeId":"$card","intensity":"medium","tint":"#FFFFFF"}}`,
+			},
+			"noise": map[string]interface{}{
+				"_overview": "effect.add_noise adds a noise overlay effect (Figma Beta API). Creates organic texture on any surface.",
+				"types":     "monotone (single color), duotone (two colors), multitone (multiple)",
+				"example":   `{"command":"noise","params":{"nodeId":"$bg","noiseType":"monotone","color":"#FFFFFF","noiseSize":100,"density":0.3,"blendMode":"SOFT_LIGHT"}}`,
+				"tip":       "Use low density (0.1-0.3) and SOFT_LIGHT blend mode for subtle organic feel. Higher density for grungy/textured looks.",
+			},
+			"shadowRecipes": map[string]interface{}{
+				"_overview": "Production-grade shadow presets. Layer 2-3 shadows for realistic depth.",
+				"subtle":    map[string]interface{}{"offsetY": 2, "radius": 4, "spread": 0, "color": "#00000010"},
+				"card":      map[string]interface{}{"offsetY": 4, "radius": 12, "spread": -2, "color": "#0000001A"},
+				"elevated":  map[string]interface{}{"offsetY": 8, "radius": 24, "spread": -4, "color": "#00000026"},
+				"floating":  map[string]interface{}{"offsetY": 16, "radius": 48, "spread": -8, "color": "#00000033"},
+				"glow":      map[string]interface{}{"offsetY": 0, "radius": 24, "spread": 4, "color": "accent+40"},
+				"innerLight": map[string]interface{}{"type": "INNER_SHADOW", "offsetY": -1, "radius": 0, "spread": 0, "color": "#FFFFFF20"},
+				"innerDepth": map[string]interface{}{"type": "INNER_SHADOW", "offsetY": 2, "radius": 4, "spread": 0, "color": "#00000020"},
+				"layered": "Combine 2-3 shadows: ambient (large radius, low opacity) + direct (medium) + contact (small radius, close offset). Example: shadow Y:1/R:2/#0D + shadow Y:4/R:12/#1A + shadow Y:16/R:48/#12.",
+			},
+			"svgIcons": map[string]interface{}{
+				"_overview": "Use shape.create_from_svg with inline SVG markup for icons. Common icon libraries: Lucide, Heroicons, Phosphor — LLM can generate the SVG inline.",
+				"example":   `{"command":"shape.create_from_svg","params":{"svgPath":"<svg>...</svg>","x":40,"y":40,"width":24,"height":24,"parentId":"$card","name":"icon-check"}}`,
+				"tip":       "Set width/height to control icon size. Use paint.set_solid to recolor after creation.",
+			},
+			"gradientOverlays": map[string]interface{}{
+				"_overview": "Use gradient overlays on images for text readability. Create a rect over the image with a transparent-to-dark gradient.",
+				"example": `[
+  {"name":"overlay","command":"rect","params":{"pid":"$hero","w":1080,"h":400,"y":680,"name":"gradient-overlay"}},
+  {"command":"gradient","params":{"nodeId":"$overlay","type":"LINEAR","stops":[{"position":0,"color":"#00000000"},{"position":1,"color":"#000000CC"}]}}
+]`,
+			},
+			"blendModes": map[string]interface{}{
+				"MULTIPLY":    "Darkening — great for tinting images, dark overlays",
+				"SCREEN":      "Lightening — great for light effects, glows",
+				"OVERLAY":     "Contrast boost — great for texture overlays on photos",
+				"SOFT_LIGHT":  "Subtle contrast — best for noise/texture overlays",
+				"COLOR_DODGE": "Bright highlights — dramatic light effects",
+			},
+		},
+		"stepNamingRules": map[string]interface{}{
+			"_rule":    "Batch step names MUST be snake_case. Spaces, hyphens, and special characters are auto-sanitized but you should use clean names from the start.",
+			"good":     []string{"hero_bg", "card_title", "gradient_overlay", "cta_button"},
+			"bad":      []string{"Hero BG", "card-title", "Gradient Overlay!", "CTA Button"},
+			"tip":      "Step names are used for interpolation (${{steps.hero_bg.result.id}}). Clean names prevent lookup failures.",
+		},
+		"semanticNaming": map[string]interface{}{
+			"_rule":    "ALWAYS name every layer by its content/role. Never leave Figma defaults like 'Frame 47' or 'Rectangle 12'.",
+			"pattern":  "[Role] - [Detail] or just [Role]",
+			"examples": []string{"Hero Background", "Card - Feature Name", "CTA Button", "Gradient Overlay", "Badge Label", "Deco Ring"},
+		},
 		"imageRules": map[string]interface{}{
 			"_overview": "Images in Figma are fills on shapes, not standalone nodes. Use shape.create_image for a one-step convenience.",
 			"methods": []string{

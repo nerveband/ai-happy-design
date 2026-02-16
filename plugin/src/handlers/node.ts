@@ -49,13 +49,15 @@ export async function handleNode(action: string, params: any): Promise<any> {
     case 'delete': return deleteNode(params);
     case 'clone': return cloneNode(params);
     case 'set_corner_radius': return setCornerRadius(params);
+    case 'modify': return modifyNode(params);
+    case 'set_mask': return setMask(params);
     case 'children':
     case 'get_children':
     case 'list_children':
     case 'get_tree_nodes':
     case 'tree':
     case 'get_tree': return getTree(params);
-    default: throw new Error('Unknown node action: ' + action + '. Available: get_info, create_frame, move, resize, rotate, set_opacity, set_blend_mode, set_visibility, set_locked, rename, delete, clone, set_corner_radius, get_tree');
+    default: throw new Error('Unknown node action: ' + action + '. Available: get_info, create_frame, move, resize, rotate, set_opacity, set_blend_mode, set_visibility, set_locked, rename, delete, clone, set_corner_radius, get_tree, modify, set_mask');
   }
 }
 
@@ -300,6 +302,168 @@ async function getTree(params: any) {
   }
 
   return serializeNode(node as SceneNode, 0, depth ?? 3);
+}
+
+async function modifyNode(params: any) {
+  var nodeId = params.nodeId;
+  if (!nodeId) throw new Error('nodeId is required for modify');
+  var node = await getSceneNodeById(nodeId);
+  var changed: string[] = [];
+
+  // Position
+  if (params.x !== undefined) { node.x = params.x; changed.push('x'); }
+  if (params.y !== undefined) { node.y = params.y; changed.push('y'); }
+
+  // Size
+  if (params.width !== undefined || params.height !== undefined) {
+    if ('resize' in node) {
+      (node as any).resize(
+        params.width !== undefined ? params.width : (node as any).width,
+        params.height !== undefined ? params.height : (node as any).height
+      );
+      changed.push('size');
+    }
+  }
+
+  // Fill color
+  var color = params.color || params.fillColor;
+  if (color) {
+    if ('fills' in node) {
+      var c = parseHexColor(color);
+      (node as any).fills = [{ type: 'SOLID', color: { r: c.r, g: c.g, b: c.b }, opacity: c.a }];
+      changed.push('color');
+    }
+  }
+
+  // Opacity
+  if (params.opacity !== undefined && 'opacity' in node) {
+    node.opacity = Math.max(0, Math.min(1, params.opacity));
+    changed.push('opacity');
+  }
+
+  // Corner radius
+  if (params.cornerRadius !== undefined && 'cornerRadius' in node) {
+    (node as any).cornerRadius = params.cornerRadius;
+    changed.push('cornerRadius');
+  }
+
+  // Visibility
+  if (params.visible !== undefined) {
+    node.visible = params.visible;
+    changed.push('visible');
+  }
+
+  // Name
+  if (params.name !== undefined) {
+    node.name = params.name;
+    changed.push('name');
+  }
+
+  // Rotation
+  if (params.rotation !== undefined && 'rotation' in node) {
+    (node as any).rotation = params.rotation;
+    changed.push('rotation');
+  }
+
+  // Text content (for text nodes)
+  var textContent = params.characters || params.text;
+  if (textContent !== undefined && node.type === 'TEXT') {
+    var textNode = node as TextNode;
+    await figma.loadFontAsync(textNode.fontName as FontName);
+    textNode.characters = textContent;
+    changed.push('characters');
+  }
+
+  // Font size
+  if (params.fontSize !== undefined && node.type === 'TEXT') {
+    var textNode2 = node as TextNode;
+    await figma.loadFontAsync(textNode2.fontName as FontName);
+    textNode2.fontSize = params.fontSize;
+    changed.push('fontSize');
+  }
+
+  // Font family
+  if (params.fontFamily !== undefined && node.type === 'TEXT') {
+    var textNode3 = node as TextNode;
+    var style = params.fontStyle || 'Regular';
+    await figma.loadFontAsync({ family: params.fontFamily, style: style });
+    textNode3.fontName = { family: params.fontFamily, style: style };
+    changed.push('fontFamily');
+  }
+
+  // Text alignment
+  if (params.textAlignHorizontal !== undefined && node.type === 'TEXT') {
+    (node as TextNode).textAlignHorizontal = params.textAlignHorizontal;
+    changed.push('textAlignHorizontal');
+  }
+
+  // isMask
+  if (params.isMask !== undefined) {
+    (node as any).isMask = params.isMask;
+    changed.push('isMask');
+  }
+
+  // Layout sizing
+  if (params.layoutSizingHorizontal !== undefined && 'layoutSizingHorizontal' in node) {
+    (node as any).layoutSizingHorizontal = params.layoutSizingHorizontal;
+    changed.push('layoutSizingHorizontal');
+  }
+  if (params.layoutSizingVertical !== undefined && 'layoutSizingVertical' in node) {
+    (node as any).layoutSizingVertical = params.layoutSizingVertical;
+    changed.push('layoutSizingVertical');
+  }
+
+  // Blend mode
+  if (params.blendMode !== undefined && 'blendMode' in node) {
+    (node as any).blendMode = params.blendMode;
+    changed.push('blendMode');
+  }
+
+  return { id: node.id, name: node.name, type: node.type, modified: changed };
+}
+
+async function setMask(params: any) {
+  var maskNodeId = params.nodeId;
+  var targetIds = params.targetIds;
+  if (!maskNodeId) throw new Error('nodeId (mask shape) is required');
+  if (!targetIds || !Array.isArray(targetIds) || targetIds.length === 0) {
+    throw new Error('targetIds (array of node IDs to mask) is required');
+  }
+
+  var maskNode = await getSceneNodeById(maskNodeId);
+
+  // Collect target nodes
+  var targets: SceneNode[] = [];
+  for (var i = 0; i < targetIds.length; i++) {
+    targets.push(await getSceneNodeById(targetIds[i]));
+  }
+
+  // All nodes must share the same parent for grouping
+  var parent = maskNode.parent;
+  if (!parent || !('appendChild' in parent)) {
+    throw new Error('Mask node must have a valid parent that supports children');
+  }
+
+  // Create a group containing the mask shape + targets
+  var allNodes: SceneNode[] = [maskNode];
+  for (var j = 0; j < targets.length; j++) {
+    allNodes.push(targets[j]);
+  }
+
+  var group = figma.group(allNodes, parent as BaseNode & ChildrenMixin);
+  group.name = params.name || 'Masked Group';
+
+  // Set isMask on the mask shape (must be first child in group)
+  // figma.group preserves order from the array, so maskNode is already first
+  (maskNode as any).isMask = true;
+
+  return {
+    id: group.id,
+    name: group.name,
+    type: group.type,
+    maskNodeId: maskNode.id,
+    maskedNodeIds: targets.map(function(t) { return t.id; }),
+  };
 }
 
 async function setCornerRadius(params: any) {

@@ -257,6 +257,16 @@ func TestResolveCommandRoute_NewRoutes(t *testing.T) {
 		{"layout.check_overlaps", "layout", "check_overlaps"},
 		{"export.batch_export", "export", "batch_export"},
 		{"text.list_fonts", "text", "list_fonts"},
+		// New aliases (v0.6.0+)
+		{"modify", "node", "modify"},
+		{"find", "document", "find_nodes"},
+		{"find_nodes", "document", "find_nodes"},
+		{"search_nodes", "document", "find_nodes"},
+		{"mask", "node", "set_mask"},
+		{"set_mask", "node", "set_mask"},
+		{"noise", "effect", "add_noise"},
+		{"texture", "effect", "add_texture"},
+		{"glass", "effect", "apply_glass"},
 	}
 
 	for _, tt := range tests {

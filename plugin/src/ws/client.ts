@@ -52,8 +52,8 @@ export class WSClient {
 
     this.ws.onopen = () => {
       this.reconnectAttempts = 0;
-      this.options.onStatusChange('connected');
-      this.options.onLog(`Connected! Joining channel: ${this.options.channelKey}`);
+      // Stay in 'connecting' until channel join is confirmed
+      this.options.onLog('Relay reached. Joining channel: ' + this.options.channelKey + '...');
 
       // Join channel
       this.sendRaw({
@@ -61,9 +61,6 @@ export class WSClient {
         channel: this.options.channelKey,
         role: 'plugin',
       });
-
-      // Flush queued messages
-      this.flushQueue();
 
       // Start ping
       this.startPing();
@@ -146,6 +143,14 @@ export class WSClient {
 
   updateOptions(options: Partial<WSClientOptions>): void {
     Object.assign(this.options, options);
+  }
+
+  /** Call when the relay confirms channel join — transitions from 'connecting' to 'connected'. */
+  confirmJoin(): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.options.onStatusChange('connected');
+      this.flushQueue();
+    }
   }
 
   get isConnected(): boolean {

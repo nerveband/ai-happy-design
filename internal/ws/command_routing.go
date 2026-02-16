@@ -145,6 +145,16 @@ var legacyCommandRoutes = map[string]commandRoute{
 	"find_free_space":   {Domain: "document", Action: "find_free_space"},
 
 	// AI-friendly aliases (common guesses that should work)
+	"modify":                 {Domain: "node", Action: "modify"},
+	"find":                   {Domain: "document", Action: "find_nodes"},
+	"find_nodes":             {Domain: "document", Action: "find_nodes"},
+	"search_nodes":           {Domain: "document", Action: "find_nodes"},
+	"mask":                   {Domain: "node", Action: "set_mask"},
+	"set_mask":               {Domain: "node", Action: "set_mask"},
+	"noise":                  {Domain: "effect", Action: "add_noise"},
+	"texture":                {Domain: "effect", Action: "add_texture"},
+	"glass":                  {Domain: "effect", Action: "apply_glass"},
+	"native_glass":           {Domain: "effect", Action: "add_glass"},
 	"frame":                  {Domain: "node", Action: "create_frame"},
 	"rect":                   {Domain: "shape", Action: "create_rectangle"},
 	"ellipse":                {Domain: "shape", Action: "create_ellipse"},

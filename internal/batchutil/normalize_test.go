@@ -89,3 +89,60 @@ func TestNormalizeBatchParams_NilParams(t *testing.T) {
 		t.Fatalf("expected empty params map, got %#v", out)
 	}
 }
+
+func TestNormalizeBatchParams_FillColorAlias(t *testing.T) {
+	out := NormalizeBatchParams("frame", map[string]interface{}{"fillColor": "#FF0000"})
+	if out["color"] != "#FF0000" {
+		t.Fatalf("expected fillColor->color alias, got %#v", out["color"])
+	}
+
+	// fillColor should also work for text, rect, modify commands
+	for _, cmd := range []string{"text", "rect", "modify", "node.modify"} {
+		out2 := NormalizeBatchParams(cmd, map[string]interface{}{"fillColor": "#00FF00"})
+		if out2["color"] != "#00FF00" {
+			t.Fatalf("expected fillColor->color for %s, got %#v", cmd, out2["color"])
+		}
+	}
+
+	// Canonical 'color' should win over 'fillColor'
+	out3 := NormalizeBatchParams("frame", map[string]interface{}{"color": "#111", "fillColor": "#222"})
+	if out3["color"] != "#111" {
+		t.Fatalf("expected canonical color to win, got %#v", out3["color"])
+	}
+}
+
+func TestNormalizeBatchParams_ModifyAliases(t *testing.T) {
+	out := NormalizeBatchParams("modify", map[string]interface{}{"bg": "#333", "r": 12.0})
+	if out["color"] != "#333" {
+		t.Fatalf("expected bg->color on modify, got %#v", out["color"])
+	}
+	if out["cornerRadius"] != 12.0 {
+		t.Fatalf("expected r->cornerRadius on modify, got %#v", out["cornerRadius"])
+	}
+}
+
+func TestSanitizeStepName(t *testing.T) {
+	tests := []struct {
+		in, out string
+	}{
+		{"My Step Name", "my_step_name"},
+		{"card-title", "cardtitle"},
+		{"hero_bg", "hero_bg"},
+		{"  spaces  ", "spaces"},
+		{"UPPER_CASE", "upper_case"},
+		{"step 1 - create", "step_1__create"},
+		{"already_clean", "already_clean"},
+		{"", ""},
+		{"___", ""},
+	}
+	for _, tt := range tests {
+		got := SanitizeStepName(tt.in)
+		// Note: "step 1 - create" becomes "step_1__create" then collapsed to "step_1_create"
+		if tt.in == "step 1 - create" {
+			tt.out = "step_1_create"
+		}
+		if got != tt.out {
+			t.Errorf("SanitizeStepName(%q) = %q, want %q", tt.in, got, tt.out)
+		}
+	}
+}

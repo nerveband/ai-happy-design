@@ -325,7 +325,8 @@ function handleWSMessage(msg: any) {
     }
 
     case 'joined': {
-      addLog('Joined: ' + msg.channel, 'success');
+      addLog('Joined channel: ' + msg.channel, 'success');
+      if (wsClient) wsClient.confirmJoin();
       break;
     }
 

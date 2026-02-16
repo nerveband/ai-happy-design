@@ -31,7 +31,10 @@ const checks = [
   },
   {
     name: 'private class fields',
-    regex: /#[A-Za-z_$][\w$]*/g,
+    // Match #identifier but not hex colors in strings (e.g. "#FFFFFF")
+    // Private class fields appear as: this.#foo or class { #bar }
+    // Hex colors appear inside quotes: "#FF0000" or '#FF0000'
+    regex: /(?<!["'\\])#[A-Za-z_$][\w$]*/g,
     guidance: 'Avoid private class fields in plugin runtime code.',
   },
 ];

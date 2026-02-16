@@ -12,12 +12,14 @@ import (
 // RegisterDocumentTool registers the "document" tool for document-level operations.
 func RegisterDocumentTool(s *server.MCPServer, commander *figma.Commander) {
 	tool := mcp.NewTool("document",
-		mcp.WithDescription("Document operations: get info, get/set selection, scan text nodes, scan by type, get styles, focus viewport, find free canvas space."),
+		mcp.WithDescription("Document operations: get info, get/set selection, scan text nodes, scan by type, get styles, focus viewport, find free canvas space, find_nodes (unified search by name/type/text content)."),
 		mcp.WithString("action", mcp.Required(), mcp.Description("Action to perform"),
-			mcp.Enum("get_info", "get_selection", "set_selection", "scan_text", "scan_by_type", "get_styles", "focus", "find_free_space")),
+			mcp.Enum("get_info", "get_selection", "set_selection", "scan_text", "scan_by_type", "get_styles", "focus", "find_free_space", "find_nodes")),
 		mcp.WithString("nodeId", mcp.Description("Node ID to focus on")),
 		mcp.WithString("nodeIds", mcp.Description("Comma-separated node IDs (for set_selection)")),
 		mcp.WithString("nodeType", mcp.Description("Node type to scan for (e.g. TEXT, FRAME, RECTANGLE)")),
+		mcp.WithString("query", mcp.Description("Search query for find_nodes (matches node names)")),
+		mcp.WithString("textContent", mcp.Description("Search text content for find_nodes (matches TEXT node characters)")),
 		mcp.WithNumber("width", mcp.Description("Desired frame width in pixels (for find_free_space, default 1080)")),
 		mcp.WithNumber("height", mcp.Description("Desired frame height in pixels (for find_free_space, default 1080)")),
 		mcp.WithNumber("gap", mcp.Description("Gap between frames in pixels (for find_free_space, default 100)")),
@@ -79,6 +81,19 @@ func RegisterDocumentTool(s *server.MCPServer, commander *figma.Commander) {
 				params["gap"] = g
 			}
 			return sendCommand(commander, "find_free_space", params)
+
+		case "find_nodes":
+			params := map[string]interface{}{}
+			if hasArg(args, "query") {
+				params["query"] = getStringArg(args, "query", "")
+			}
+			if hasArg(args, "nodeType") {
+				params["type"] = getStringArg(args, "nodeType", "")
+			}
+			if hasArg(args, "textContent") {
+				params["textContent"] = getStringArg(args, "textContent", "")
+			}
+			return sendCommand(commander, "document.find_nodes", params)
 
 		default:
 			return mcp.NewToolResultError(fmt.Sprintf("unknown document action: %s", action)), nil

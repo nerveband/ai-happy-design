@@ -3,6 +3,7 @@ package tools
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/nerveband/ai-happy-design/internal/figma"
@@ -79,4 +80,17 @@ func requireStringArg(args map[string]interface{}, key string) (string, *mcp.Cal
 func hasArg(args map[string]interface{}, key string) bool {
 	_, ok := args[key]
 	return ok
+}
+
+// splitIDs splits a comma-separated string of node IDs into a slice.
+func splitIDs(s string) []string {
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

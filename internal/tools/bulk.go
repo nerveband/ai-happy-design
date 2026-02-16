@@ -22,7 +22,7 @@ type BulkOperation struct {
 // RegisterBulkTool registers the "bulk" tool for executing multiple operations in sequence.
 func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 	tool := mcp.NewTool("bulk",
-		mcp.WithDescription("Execute multiple Figma operations in sequence with retries and optional interpolation."),
+		mcp.WithDescription("Execute multiple Figma operations in sequence with retries and optional interpolation. Compact aliases: frame/rect/text/fill/stroke/gradient/shadow/blur/glass/noise/modify/mask/find. Shorthands: pid=parentId, w=width, h=height, sz=fontSize, ff=fontFamily, lh=lineHeight(auto-PERCENT), bg=color, r=cornerRadius, fillColor=color. Step names must be snake_case (auto-sanitized). Always use semantic names for layers."),
 		mcp.WithString("action", mcp.Required(), mcp.Description("Action to perform"),
 			mcp.Enum("execute")),
 		mcp.WithString("operations", mcp.Required(), mcp.Description("JSON array of operations: [{\"command\": \"...\", \"params\": {...}}, ...]")),
@@ -74,6 +74,7 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 
 			for i, op := range ops {
 				opStart := time.Now()
+				op.Name = batchutil.SanitizeStepName(op.Name)
 				params := batchutil.NormalizeBatchParams(op.Command, op.Params)
 
 				if interpolate {
