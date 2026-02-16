@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -237,12 +238,24 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 			return err
 		}
 
+		// Resolve file:// and path references in imageData
+		if resolved, changed, resolveErr := imgutil.ResolveParamsImageData(params); resolveErr != nil {
+			return fmt.Errorf("imageData resolution failed: %w", resolveErr)
+		} else if changed {
+			params = resolved
+		}
+
 		if err := ensureRelayIfNeeded(); err != nil {
 			return err
 		}
 
 		channelKey, err := resolveChannel(commandChannel)
 		if err != nil {
+			return err
+		}
+
+		// Check plugin connectivity before sending command
+		if err := checkPluginConnected(channelKey); err != nil {
 			return err
 		}
 
@@ -356,17 +369,25 @@ type batchOperation struct {
 	Params  map[string]interface{} `json:"params"`
 }
 
+var batchParallel bool
+
 var batchCmd = &cobra.Command{
-	Use:   "batch [operations-json | operations-file]",
+	Use:   "batch [operations-json | file1.json file2.json ... | directory/]",
 	Short: "Execute a sequence of commands in order",
 	Long: `Runs multiple commands over one connection to support tool chaining workflows.
 
 Operations can be provided in multiple ways (in priority order):
   1. Positional arg (JSON):  batch '[{"command":"node.create_frame","params":{...}}]'
   2. Positional arg (file):  batch ops.json
-  3. Flag (inline JSON):     batch -o '[...]'
-  4. Flag (file path):       batch -f ops.json
-  5. Stdin (piped):          cat ops.json | batch
+  3. Multiple files:         batch file1.json file2.json file3.json
+  4. Directory:              batch ./carousels/  (runs all .json files)
+  5. Glob:                   batch ops/*.json
+  6. Flag (inline JSON):     batch -o '[...]'
+  7. Flag (file path):       batch -f ops.json
+  8. Stdin (piped):          cat ops.json | batch
+
+Use --parallel to run multiple batch files concurrently (max 4).
+Each file gets its own connection and auto-placement.
 
 	Supports interpolation placeholders like ${{steps.0.result.id}} or ${{steps.createCard.result.id}}.
 	Short interpolation also works: $createCard (id), $createCard.width, $last.
@@ -374,31 +395,47 @@ Operations can be provided in multiple ways (in priority order):
 	Command-aware shorthand params are supported in batch/bulk (examples: w/h/pid, sz/ff/lh/ls, sw, bg).
 	Channel resolution: --channel flag, AHD_CHANNEL env, relay preferred/active channel.
 	If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
-	Args: cobra.RangeArgs(0, 1),
+	Args: cobra.ArbitraryArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		log.SetOutput(io.Discard)
 		if err := ensureRelayIfNeeded(); err != nil {
 			return err
 		}
 
-		// Positional arg: if starts with '[' it's inline JSON, otherwise a file path
-		if len(args) == 1 {
-			arg := strings.TrimSpace(args[0])
-			if strings.HasPrefix(arg, "[") {
-				if batchOperations != "" {
-					return fmt.Errorf("provide operations as positional arg OR --operations, not both")
-				}
-				batchOperations = arg
-			} else {
-				if batchOperationsFile != "" {
-					return fmt.Errorf("provide operations file as positional arg OR --operations-file, not both")
-				}
-				batchOperationsFile = arg
+		// Collect batch files: multiple positional args, directory, inline JSON, or single file
+		batchFiles, inlineJSON, err := collectBatchInputs(args, batchOperations, batchOperationsFile)
+		if err != nil {
+			return err
+		}
+
+		// Multi-file mode
+		if len(batchFiles) > 1 || (len(batchFiles) == 1 && inlineJSON == "") {
+			channelKey, chErr := resolveChannel(batchChannel)
+			if chErr != nil {
+				return chErr
 			}
+			if err := checkPluginConnected(channelKey); err != nil {
+				return err
+			}
+			return runMultiBatch(batchFiles, channelKey)
+		}
+
+		// Single batch mode (legacy path)
+		if inlineJSON != "" {
+			batchOperations = inlineJSON
+			batchOperationsFile = ""
+		} else if len(batchFiles) == 1 {
+			batchOperationsFile = batchFiles[0]
+			batchOperations = ""
 		}
 
 		channelKey, err := resolveChannel(batchChannel)
 		if err != nil {
+			return err
+		}
+
+		// Check plugin connectivity
+		if err := checkPluginConnected(channelKey); err != nil {
 			return err
 		}
 
@@ -469,6 +506,13 @@ Operations can be provided in multiple ways (in priority order):
 					continue
 				}
 				params = interpolatedParams
+			}
+
+			// Resolve file:// and path references in imageData
+			if resolved, changed, resolveErr := imgutil.ResolveParamsImageData(params); resolveErr != nil {
+				fmt.Fprintf(os.Stderr, "[resolve] step %d warning: %v\n", i, resolveErr)
+			} else if changed {
+				params = resolved
 			}
 
 			// Opt-in image compression
@@ -1120,6 +1164,363 @@ func resolveChannel(explicit string) (string, error) {
 	)
 }
 
+// checkPluginConnected checks if a Figma plugin is connected on the target channel.
+// If not, it polls for up to 30s with user feedback before failing.
+func checkPluginConnected(channelKey string) error {
+	cfg := loadConfig()
+	statusURL := fmt.Sprintf("http://%s:%d/status", cfg.ServerHost, cfg.Port)
+	httpClient := &http.Client{Timeout: 2 * time.Second}
+
+	check := func() (bool, error) {
+		resp, err := httpClient.Get(statusURL)
+		if err != nil {
+			return false, err
+		}
+		defer resp.Body.Close()
+		var status relayStatus
+		if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+			return false, err
+		}
+		if count, ok := status.Channels[channelKey]; ok && count > 0 {
+			return true, nil
+		}
+		// Also check if ANY channel has clients (channel might not be resolved yet)
+		for _, count := range status.Channels {
+			if count > 0 {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+
+	connected, err := check()
+	if err != nil || connected {
+		return nil // Can't check or already connected — proceed normally
+	}
+
+	// No plugin connected — give feedback and poll
+	fmt.Fprintf(os.Stderr, "Relay running on localhost:%d but no Figma plugin connected on channel %q.\n", cfg.Port, channelKey)
+	fmt.Fprintf(os.Stderr, "Plugin auto-reconnects every ~5s. You can also:\n")
+	fmt.Fprintf(os.Stderr, "  - Press \"Connect\" in the Figma plugin UI\n")
+	fmt.Fprintf(os.Stderr, "  - Pass --channel <key> if using a different channel\n")
+	fmt.Fprintf(os.Stderr, "Waiting up to 30s for plugin...\n")
+
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		time.Sleep(2 * time.Second)
+		connected, _ = check()
+		if connected {
+			fmt.Fprintf(os.Stderr, "Plugin connected!\n")
+			return nil
+		}
+	}
+
+	return fmt.Errorf("no Figma plugin connected after 30s. Start the Figma plugin and click Connect, then retry")
+}
+
+// collectBatchInputs processes positional args for batch command.
+// Returns a list of file paths and/or inline JSON string.
+func collectBatchInputs(args []string, flagOps, flagFile string) (files []string, inlineJSON string, err error) {
+	if len(args) == 0 {
+		// Legacy: use flags or stdin
+		if flagOps != "" {
+			return nil, flagOps, nil
+		}
+		if flagFile != "" {
+			return []string{flagFile}, "", nil
+		}
+		// Will fall through to stdin in loadBatchOperations
+		return nil, "", nil
+	}
+
+	if len(args) == 1 {
+		arg := strings.TrimSpace(args[0])
+		if strings.HasPrefix(arg, "[") {
+			if flagOps != "" {
+				return nil, "", fmt.Errorf("provide operations as positional arg OR --operations, not both")
+			}
+			return nil, arg, nil
+		}
+		// Could be a file, directory, or glob
+		expanded, err := expandBatchPath(arg)
+		if err != nil {
+			return nil, "", err
+		}
+		return expanded, "", nil
+	}
+
+	// Multiple args — all must be files/directories/globs
+	for _, arg := range args {
+		expanded, err := expandBatchPath(arg)
+		if err != nil {
+			return nil, "", err
+		}
+		files = append(files, expanded...)
+	}
+	if len(files) == 0 {
+		return nil, "", fmt.Errorf("no .json files found in provided paths")
+	}
+	return files, "", nil
+}
+
+// expandBatchPath expands a single path arg into file paths.
+// Handles directories (all .json inside), globs, and plain files.
+func expandBatchPath(path string) ([]string, error) {
+	// Check if it's a glob pattern
+	if strings.ContainsAny(path, "*?[") {
+		matches, err := filepath.Glob(path)
+		if err != nil {
+			return nil, fmt.Errorf("invalid glob pattern %q: %w", path, err)
+		}
+		// Filter to .json only
+		var jsonFiles []string
+		for _, m := range matches {
+			if strings.HasSuffix(strings.ToLower(m), ".json") {
+				jsonFiles = append(jsonFiles, m)
+			}
+		}
+		if len(jsonFiles) == 0 {
+			return nil, fmt.Errorf("no .json files matched pattern %q", path)
+		}
+		sort.Strings(jsonFiles)
+		return jsonFiles, nil
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("cannot access %q: %w", path, err)
+	}
+
+	if info.IsDir() {
+		entries, err := os.ReadDir(path)
+		if err != nil {
+			return nil, fmt.Errorf("cannot read directory %q: %w", path, err)
+		}
+		var jsonFiles []string
+		for _, e := range entries {
+			if !e.IsDir() && strings.HasSuffix(strings.ToLower(e.Name()), ".json") {
+				jsonFiles = append(jsonFiles, filepath.Join(path, e.Name()))
+			}
+		}
+		if len(jsonFiles) == 0 {
+			return nil, fmt.Errorf("no .json files found in directory %q", path)
+		}
+		sort.Strings(jsonFiles)
+		return jsonFiles, nil
+	}
+
+	return []string{path}, nil
+}
+
+// runMultiBatch runs one or more batch files, optionally in parallel.
+func runMultiBatch(files []string, channelKey string) error {
+	if batchParallel && len(files) > 1 {
+		return runMultiBatchParallel(files, channelKey)
+	}
+	return runMultiBatchSequential(files, channelKey)
+}
+
+type batchFileResult struct {
+	File    string      `json:"file"`
+	OK      bool        `json:"ok"`
+	Steps   interface{} `json:"steps,omitempty"`
+	Summary interface{} `json:"summary,omitempty"`
+	Timing  interface{} `json:"timing,omitempty"`
+	Error   string      `json:"error,omitempty"`
+}
+
+func runSingleBatchFile(filePath, channelKey string) batchFileResult {
+	ops, err := loadBatchOperations("", filePath)
+	if err != nil {
+		return batchFileResult{File: filePath, OK: false, Error: err.Error()}
+	}
+	if len(ops) == 0 {
+		return batchFileResult{File: filePath, OK: false, Error: "operations array is empty"}
+	}
+
+	client, err := newConnectedClient(channelKey, batchLive)
+	if err != nil {
+		return batchFileResult{File: filePath, OK: false, Error: err.Error()}
+	}
+	defer client.Close()
+
+	// Auto-place root frames
+	if !batchAllowOverlap {
+		autoPlaceRootFrames(client, ops)
+	}
+
+	results := make([]map[string]interface{}, 0, len(ops))
+	stepStates := make([]batchutil.StepState, 0, len(ops))
+	retryDelay := time.Duration(batchRetryDelayMs) * time.Millisecond
+	succeeded, failed, retriesUsed := 0, 0, 0
+	stoppedEarly := false
+	batchStart := time.Now()
+
+	for i, op := range ops {
+		opStart := time.Now()
+		op.Name = batchutil.SanitizeStepName(op.Name)
+		params := batchutil.NormalizeBatchParams(op.Command, op.Params)
+
+		if batchInterpolation {
+			interpolatedParams, iErr := batchutil.InterpolateParams(params, stepStates)
+			if iErr != nil {
+				failed++
+				entry := map[string]interface{}{
+					"index": i, "name": op.Name, "command": op.Command,
+					"ok": false, "error": fmt.Sprintf("interpolation error: %v", iErr),
+					"attempts": 0, "elapsedMs": int(time.Since(opStart).Milliseconds()),
+				}
+				results = append(results, entry)
+				stepStates = append(stepStates, batchutil.StepState{Index: i, Name: op.Name, Command: op.Command, OK: false, Error: entry["error"].(string)})
+				if batchFailFast {
+					stoppedEarly = true
+					break
+				}
+				continue
+			}
+			params = interpolatedParams
+		}
+
+		// Resolve file paths in imageData
+		if resolved, changed, resolveErr := imgutil.ResolveParamsImageData(params); resolveErr != nil {
+			fmt.Fprintf(os.Stderr, "[resolve] %s step %d warning: %v\n", filepath.Base(filePath), i, resolveErr)
+		} else if changed {
+			params = resolved
+		}
+
+		if batchCompressImages {
+			if compressed, changed, compErr := imgutil.CompressParamsImageData(params, imgutil.DefaultOptions()); compErr != nil {
+				fmt.Fprintf(os.Stderr, "[compress] %s step %d warning: %v\n", filepath.Base(filePath), i, compErr)
+			} else if changed {
+				params = compressed
+			}
+		}
+
+		maxAttempts := batchRetries + 1
+		attempts := 0
+		var result json.RawMessage
+		var sendErr error
+		for attempts = 1; attempts <= maxAttempts; attempts++ {
+			result, sendErr = client.SendCommand(op.Command, params)
+			if sendErr == nil {
+				break
+			}
+			if attempts < maxAttempts && retryDelay > 0 {
+				time.Sleep(retryDelay)
+			}
+		}
+		if attempts > 1 {
+			retriesUsed += attempts - 1
+		}
+
+		if sendErr != nil {
+			failed++
+			entry := map[string]interface{}{
+				"index": i, "name": op.Name, "command": op.Command,
+				"ok": false, "attempts": attempts, "error": sendErr.Error(),
+				"elapsedMs": int(time.Since(opStart).Milliseconds()),
+			}
+			results = append(results, entry)
+			stepStates = append(stepStates, batchutil.StepState{Index: i, Name: op.Name, Command: op.Command, OK: false, Error: sendErr.Error()})
+			if batchFailFast {
+				stoppedEarly = true
+				break
+			}
+			continue
+		}
+
+		var parsed interface{}
+		if err := json.Unmarshal(result, &parsed); err != nil {
+			parsed = string(result)
+		}
+		succeeded++
+		entry := map[string]interface{}{
+			"index": i, "name": op.Name, "command": op.Command,
+			"ok": true, "attempts": attempts, "result": parsed,
+			"elapsedMs": int(time.Since(opStart).Milliseconds()),
+		}
+		results = append(results, entry)
+		stepStates = append(stepStates, batchutil.StepState{Index: i, Name: op.Name, Command: op.Command, OK: true, Result: parsed})
+	}
+
+	processed := len(results)
+	pending := len(ops) - processed
+	totalElapsed := time.Since(batchStart)
+	totalMs := int(totalElapsed.Milliseconds())
+	opsPerSec := float64(0)
+	avgMs := float64(0)
+	if processed > 0 {
+		opsPerSec = float64(processed) / totalElapsed.Seconds()
+		avgMs = float64(totalMs) / float64(processed)
+	}
+
+	_ = stoppedEarly
+	return batchFileResult{
+		File: filePath,
+		OK:   failed == 0 && pending == 0,
+		Steps: results,
+		Summary: map[string]interface{}{
+			"total": len(ops), "processed": processed, "succeeded": succeeded,
+			"failed": failed, "pending": pending, "retriesUsed": retriesUsed,
+		},
+		Timing: map[string]interface{}{
+			"totalMs": totalMs, "avgMs": int(avgMs), "opsPerSec": int(opsPerSec),
+		},
+	}
+}
+
+func runMultiBatchSequential(files []string, channelKey string) error {
+	fileResults := make([]batchFileResult, 0, len(files))
+	allOK := true
+	for _, f := range files {
+		fmt.Fprintf(os.Stderr, "[batch] running %s...\n", filepath.Base(f))
+		result := runSingleBatchFile(f, channelKey)
+		if !result.OK {
+			allOK = false
+		}
+		fileResults = append(fileResults, result)
+	}
+	return printJSON(map[string]interface{}{
+		"ok":    allOK,
+		"files": fileResults,
+	})
+}
+
+func runMultiBatchParallel(files []string, channelKey string) error {
+	maxConcurrency := 4
+	if len(files) < maxConcurrency {
+		maxConcurrency = len(files)
+	}
+	sem := make(chan struct{}, maxConcurrency)
+	fileResults := make([]batchFileResult, len(files))
+	var wg sync.WaitGroup
+
+	for i, f := range files {
+		wg.Add(1)
+		go func(idx int, filePath string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			fmt.Fprintf(os.Stderr, "[batch] starting %s (parallel)...\n", filepath.Base(filePath))
+			fileResults[idx] = runSingleBatchFile(filePath, channelKey)
+			fmt.Fprintf(os.Stderr, "[batch] finished %s (ok=%v)\n", filepath.Base(filePath), fileResults[idx].OK)
+		}(i, f)
+	}
+	wg.Wait()
+
+	allOK := true
+	for _, r := range fileResults {
+		if !r.OK {
+			allOK = false
+		}
+	}
+	return printJSON(map[string]interface{}{
+		"ok":       allOK,
+		"parallel": true,
+		"files":    fileResults,
+	})
+}
+
 func main() {
 	rootCmd.PersistentFlags().BoolVar(&noAutoRelay, "no-auto-relay", false, "Disable CLI auto-start of local relay for connect/command/batch")
 	rootCmd.PersistentFlags().IntVar(&globalPort, "port", 0, "Override relay port (default 3055, or PORT env var)")
@@ -1152,6 +1553,7 @@ func main() {
 	batchCmd.Flags().BoolVar(&batchInterpolation, "interpolate", true, "Enable placeholder interpolation from prior step results")
 	batchCmd.Flags().BoolVar(&batchCompressImages, "compress-images", false, "Compress imageData before sending (requires ImageMagick)")
 	batchCmd.Flags().BoolVar(&batchAllowOverlap, "allow-overlap", false, "Skip auto-placement and place frames at exact coordinates (may overlap existing work)")
+	batchCmd.Flags().BoolVar(&batchParallel, "parallel", false, "Run multiple batch files concurrently (max 4 parallel)")
 
 	toolsCmd.Flags().BoolVar(&catalogJSON, "json", true, "Output as JSON for machine-readable discovery")
 	toolsCmd.Flags().BoolVar(&catalogLLM, "llm", false, "Output enriched LLM-focused catalog with examples and playbook")

@@ -58,6 +58,22 @@ func LLMCatalog() map[string]interface{} {
 				"how":  "Use a single command: ai-happy-design command paint.set_solid '{\"nodeId\":\"1:2\",\"color\":\"#FF0000\"}'",
 				"why":  "Fast, precise, no batch overhead needed for one operation.",
 			},
+			"multiBatch": map[string]interface{}{
+				"when": "Creating multiple independent designs (e.g., 6 carousel slides, a set of social posts). Each design is its own batch file.",
+				"how": []string{
+					"Write each design as a separate .json batch file.",
+					"Run all at once: ai-happy-design batch slide1.json slide2.json slide3.json",
+					"Or use a directory: ai-happy-design batch ./slides/",
+					"Or a glob: ai-happy-design batch slides/*.json",
+					"Add --parallel for concurrent execution (up to 4 at a time).",
+				},
+				"parallel": "ai-happy-design batch slide1.json slide2.json --parallel — each file gets its own WebSocket connection and auto-placement.",
+				"why":      "No need for Python scripts or shell loops. Just write JSON files and batch them.",
+			},
+			"connectionDiagnostics": map[string]interface{}{
+				"_overview": "The CLI auto-checks plugin connectivity before sending commands. If no plugin is connected, it shows a diagnostic message and waits up to 30s for the plugin to connect. This prevents the 300s silent hang.",
+				"behavior":  "If relay is running but no plugin is connected, you'll see: 'Relay running but no Figma plugin connected on channel X. Waiting up to 30s...' — then either the plugin connects and the command proceeds, or it fails with a clear error.",
+			},
 		},
 		"designThinking": map[string]interface{}{
 			"_overview": "Think like a frontend developer. You already know HTML/CSS — use that knowledge. Mentally draft the design as HTML/CSS first, then translate each CSS property to Figma commands. This produces dramatically better designs than generating Figma commands directly.",
@@ -765,6 +781,22 @@ func LLMCatalog() map[string]interface{} {
 				"shape.create_image — ONE STEP: creates a rectangle with an image fill from base64 data. Params: imageData (base64), x, y, width, height, parentId, scaleMode, cornerRadius.",
 				"paint.set_image — TWO STEP: first create a shape, then apply an image fill. Good for adding images to existing nodes.",
 				"paint.set_image_url — URL-based: fetches an image from a URL (must be in manifest allowedDomains).",
+			},
+			"filePathSupport": map[string]interface{}{
+				"_overview": "imageData accepts file paths and URLs — no need to manually base64 encode. The CLI auto-detects, downloads/reads, and encodes.",
+				"formats": []string{
+					"file:///absolute/path/to/image.png",
+					"/absolute/path/to/image.png",
+					"~/Pictures/photo.jpg",
+					"https://example.com/image.png",
+					"http://localhost:8080/photo.jpg",
+				},
+				"example_cli":   `ai-happy-design command shape.create_image '{"parentId":"0:1","x":0,"y":0,"width":400,"height":300,"imageData":"file:///tmp/hero.png"}'`,
+				"example_url":   `ai-happy-design command shape.create_image '{"parentId":"0:1","x":0,"y":0,"width":400,"height":300,"imageData":"https://picsum.photos/800/600"}'`,
+				"example_batch": `{"command":"shape.create_image","params":{"parentId":"$root","imageData":"/tmp/card-bg.jpg","x":0,"y":0,"width":1080,"height":600}}`,
+				"supported_ext": ".png, .jpg, .jpeg, .webp, .gif, .svg",
+				"with_compress": "Add --compress-images to compress after reading/downloading.",
+				"url_note":      "HTTP/HTTPS URLs are downloaded by the CLI (up to 50MB, 30s timeout) and converted to base64 data URIs before sending to the plugin. No allowedDomains restriction since the CLI does the fetching.",
 			},
 			"scaleModes": []string{
 				"FILL — fills the entire shape, cropping if needed (most common)",

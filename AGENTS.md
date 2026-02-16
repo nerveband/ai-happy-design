@@ -187,6 +187,39 @@ CLI is the priority path — fastest for bulk ops and what LLM agents use for he
 6. Always target `es6` for plugin builds
 7. Verify balance rules when generating design payloads
 
+## Release Workflow (Full Pipeline)
+
+When pushing code changes, follow this complete pipeline:
+
+```bash
+# 1. Build, sign, install, restart relay
+make deploy
+
+# 2. Commit and push to git
+git add <changed-files>
+git commit -m "Description of changes"
+git push origin main
+
+# 3. Tag and release via goreleaser
+git tag v<next-version>
+git push origin v<next-version>
+GITHUB_TOKEN=$(gh auth token) goreleaser release --clean
+
+# 4. Upgrade local binary to the released version
+ai-happy-design upgrade
+
+# 5. Update the ai-happy-design skill (if CLI features changed)
+# - Edit ~/.claude/skills/ai-happy-design/SKILL.md with new features
+# - Copy to repo: cp ~/.claude/skills/ai-happy-design/SKILL.md skills/ai-happy-design/SKILL.md
+# - The skill is already committed in step 2 if you update it before committing
+
+# 6. Reopen Figma plugin to load new code.js
+```
+
+**When to run the full pipeline**: Any time code is pushed to git, all 6 steps should be executed. This ensures the released binary, local install, and skill docs are all in sync.
+
+**Version numbering**: Check `git tag --sort=-v:refname | head -1` for the latest tag, then increment appropriately (patch for fixes, minor for features, major for breaking changes).
+
 ## External References
 - Figma Plugin docs: https://developers.figma.com/docs/plugins/
 - Figma Plugin API: https://developers.figma.com/docs/plugins/api/api-reference/

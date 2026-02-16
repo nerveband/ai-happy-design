@@ -72,7 +72,7 @@ func (c *Client) Connect(channelKey string) error {
 		return nil
 	case <-time.After(10 * time.Second):
 		_ = c.Close()
-		return fmt.Errorf("timed out waiting to join channel %s", channelKey)
+		return fmt.Errorf("timed out joining channel %q — relay is reachable but no Figma plugin responded. Check the Figma plugin UI or pass --channel <key>", channelKey)
 	case <-c.done:
 		return fmt.Errorf("connection closed before join completed")
 	}
