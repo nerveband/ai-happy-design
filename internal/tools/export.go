@@ -96,7 +96,7 @@ func sendExportCommand(commander *figma.Commander, nodeId, format string, scale 
 		case "PDF":
 			ext = ".pdf"
 		}
-		tempPath = fmt.Sprintf("/tmp/ahd-export-%s-%d%s", nodeIDSafe, time.Now().Unix(), ext)
+		tempPath = fmt.Sprintf("%s/ahd-export-%s-%d%s", os.TempDir(), nodeIDSafe, time.Now().Unix(), ext)
 		if decoded, decErr := base64.StdEncoding.DecodeString(base64Data); decErr == nil {
 			_ = os.WriteFile(tempPath, decoded, 0644)
 		}

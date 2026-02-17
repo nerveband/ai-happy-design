@@ -142,7 +142,7 @@ var toolDescriptions = map[string]map[string]string{
 		"focus":         "Focus viewport on node. Params: nodeId",
 	},
 	"export": {
-		"image": "Export as image (PNG/JPG). Params: nodeId, format, scale",
+		"image": "Export as image (PNG/JPG). Auto-saves to OS temp dir (e.g. /tmp/ahd-export-*). Returns file path in JSON metadata — use your file reader to visually verify the result. Params: nodeId, format, scale",
 		"svg":   "Export as SVG. Params: nodeId, scale",
 		"pdf":   "Export as PDF. Params: nodeId, scale",
 		"batch": "Export multiple frames at once. Params: nodeIds (comma-separated), format, scale",

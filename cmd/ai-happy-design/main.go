@@ -338,7 +338,7 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 				case "JSON":
 					ext = ".json"
 				}
-				outPath = fmt.Sprintf("/tmp/ahd-export-%s-%d%s", name, time.Now().Unix(), ext)
+				outPath = fmt.Sprintf("%s/ahd-export-%s-%d%s", os.TempDir(), name, time.Now().Unix(), ext)
 			}
 
 			if err := os.WriteFile(outPath, fileBytes, 0644); err != nil {
