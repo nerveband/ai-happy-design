@@ -1,4 +1,5 @@
 import { getSceneNodeById } from '../utils/getNode';
+import { sanitizeEffects } from '../utils/sanitizeEffects';
 
 function parseHexColor(color: any, fallback = { r: 0, g: 0, b: 0, a: 0.25 }) {
   if (color && typeof color === 'object' && typeof color.r === 'number') {
@@ -100,7 +101,7 @@ async function addShadow(params: any) {
     blendMode: 'NORMAL',
   };
 
-  const nextEffects = node.effects.slice();
+  const nextEffects = sanitizeEffects(node.effects);
   nextEffects.push(shadow);
   node.effects = nextEffects;
   return { id: node.id, name: node.name, effectCount: node.effects.length };
@@ -115,7 +116,7 @@ async function addBlur(params: any) {
     ? { type: 'BACKGROUND_BLUR', blurType: 'NORMAL', radius, visible }
     : { type: 'LAYER_BLUR', blurType: 'NORMAL', radius, visible };
 
-  const nextEffects = node.effects.slice();
+  const nextEffects = sanitizeEffects(node.effects);
   nextEffects.push(blur);
   node.effects = nextEffects;
   return { id: node.id, name: node.name, effectCount: node.effects.length };
@@ -141,7 +142,7 @@ async function removeEffect(params: any) {
     return { id: node.id, name: node.name, effectCount: 0 };
   }
 
-  const effects = node.effects.slice();
+  const effects = sanitizeEffects(node.effects);
   if (index < 0 || index >= effects.length) throw new Error(`Effect index ${index} out of range`);
   effects.splice(index, 1);
   node.effects = effects;
@@ -189,7 +190,7 @@ async function addNoise(params: any) {
 
   // Try with blendMode first (newer Figma versions), fall back without it
   var blendMode = params.blendMode || 'SOFT_LIGHT';
-  var nextEffects = node.effects.slice();
+  var nextEffects = sanitizeEffects(node.effects);
   var effectWithBlend: any = {};
   for (var k in noiseEffect) {
     effectWithBlend[k] = noiseEffect[k];
@@ -200,7 +201,7 @@ async function addNoise(params: any) {
     node.effects = nextEffects;
   } catch (e: any) {
     // blendMode may not be supported in this Figma version — retry without it
-    var fallbackEffects = node.effects.slice();
+    var fallbackEffects = sanitizeEffects(node.effects);
     fallbackEffects.push(noiseEffect);
     try {
       node.effects = fallbackEffects;
@@ -226,7 +227,7 @@ async function addTexture(params: any) {
     visible: visible,
   };
 
-  var nextEffects = node.effects.slice();
+  var nextEffects = sanitizeEffects(node.effects);
   nextEffects.push(textureEffect);
   try {
     node.effects = nextEffects;
@@ -251,7 +252,7 @@ async function addNativeGlass(params: any) {
     radius: params.radius !== undefined ? params.radius : 0,
   };
 
-  var nextEffects = node.effects.slice();
+  var nextEffects = sanitizeEffects(node.effects);
   nextEffects.push(glassEffect);
   try {
     node.effects = nextEffects;
@@ -296,7 +297,7 @@ async function applyGlass(params: any) {
     radius: nativeParams.radius,
   };
 
-  var nextEffects = node.effects.slice();
+  var nextEffects = sanitizeEffects(node.effects);
   nextEffects.push(glassEffect);
   try {
     node.effects = nextEffects;
@@ -332,7 +333,7 @@ async function applyGlass(params: any) {
     }];
   }
 
-  var simEffects: any[] = node.effects.slice();
+  var simEffects: any[] = sanitizeEffects(node.effects);
   simEffects.push({
     type: 'BACKGROUND_BLUR',
     blurType: 'NORMAL',
@@ -383,6 +384,7 @@ function buildEffect(e: any): Effect {
     case 'BACKGROUND_BLUR':
       return { type: 'BACKGROUND_BLUR', blurType: 'NORMAL', radius: e.radius ?? 10, visible: e.visible ?? true };
     default:
-      throw new Error(`Unknown effect type: ${e.type}`);
+      // Unknown/beta effect type — pass through as-is for forward compatibility
+      return { ...e };
   }
 }
