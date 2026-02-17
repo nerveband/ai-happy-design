@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -66,9 +67,11 @@ func Load() *Config {
 		MCPEnabled:  false,
 	}
 
-	// Load from TOML file (silently ignore if missing or unparseable).
+	// Load from TOML file: apply values on success, warn on parse errors,
+	// silently ignore missing file.
 	var fc fileConfig
-	if _, err := toml.DecodeFile(Path(), &fc); err == nil {
+	_, err := toml.DecodeFile(Path(), &fc)
+	if err == nil {
 		cfg.MCPEnabled = fc.MCP.Enabled
 		if fc.Server.Port > 0 {
 			cfg.Port = fc.Server.Port
@@ -79,6 +82,8 @@ func Load() *Config {
 		if fc.Server.IdleTimeout != "" {
 			cfg.IdleTimeout = parseIdleTimeout(fc.Server.IdleTimeout)
 		}
+	} else if !os.IsNotExist(err) {
+		fmt.Fprintf(os.Stderr, "warning: ignoring malformed config %s: %v\n", Path(), err)
 	}
 
 	// Environment variables override TOML values.
@@ -127,20 +132,29 @@ func loadFile() (*fileConfig, error) {
 	return fc, nil
 }
 
-// saveFile writes the fileConfig to disk as TOML, creating the directory if
-// needed.
+// saveFile writes the fileConfig to disk as TOML atomically (write-to-temp,
+// rename), creating the directory if needed.
 func saveFile(fc *fileConfig) error {
 	dir := Dir()
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
-	f, err := os.Create(Path())
+	tmp, err := os.CreateTemp(dir, "config-*.toml.tmp")
 	if err != nil {
-		return fmt.Errorf("failed to create config file: %w", err)
+		return fmt.Errorf("failed to create temp config file: %w", err)
 	}
-	defer f.Close()
-	enc := toml.NewEncoder(f)
-	return enc.Encode(fc)
+	tmpPath := tmp.Name()
+	enc := toml.NewEncoder(tmp)
+	if err := enc.Encode(fc); err != nil {
+		tmp.Close()
+		os.Remove(tmpPath)
+		return fmt.Errorf("failed to encode config: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		os.Remove(tmpPath)
+		return fmt.Errorf("failed to close temp config file: %w", err)
+	}
+	return os.Rename(tmpPath, Path())
 }
 
 // knownKeys maps dotted key names to their TOML section and field.
@@ -193,6 +207,9 @@ func Set(key, value string) error {
 		if err != nil {
 			return fmt.Errorf("invalid port value %q: %w", value, err)
 		}
+		if p < 1 || p > 65535 {
+			return fmt.Errorf("port must be between 1 and 65535, got %d", p)
+		}
 		fc.Server.Port = p
 	case "server.host":
 		fc.Server.Host = value
@@ -227,5 +244,6 @@ func validKeysString() string {
 	for k := range knownKeys {
 		keys = append(keys, k)
 	}
+	sort.Strings(keys)
 	return strings.Join(keys, ", ")
 }
