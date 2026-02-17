@@ -213,10 +213,13 @@ ai-happy-design upgrade
 # - Copy to repo: cp ~/.claude/skills/ai-happy-design/SKILL.md skills/ai-happy-design/SKILL.md
 # - The skill is already committed in step 2 if you update it before committing
 
-# 6. Reopen Figma plugin to load new code.js
+# 6. Sync skill to all AI CLI tools via skillshare
+skillshare sync
+
+# 7. Reopen Figma plugin to load new code.js
 ```
 
-**When to run the full pipeline**: Any time code is pushed to git, all 6 steps should be executed. This ensures the released binary, local install, and skill docs are all in sync.
+**When to run the full pipeline**: Any time code is pushed to git, all 7 steps should be executed. This ensures the released binary, local install, and skill docs are all in sync across every AI tool.
 
 **Version numbering**: Check `git tag --sort=-v:refname | head -1` for the latest tag, then increment appropriately (patch for fixes, minor for features, major for breaking changes).
 
