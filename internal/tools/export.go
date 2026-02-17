@@ -2,8 +2,12 @@ package tools
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
+	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -81,6 +85,23 @@ func sendExportCommand(commander *figma.Commander, nodeId, format string, scale 
 		return mcp.NewToolResultError("export returned empty data"), nil
 	}
 
+	// Write to temp file for LLM-friendly file access
+	var tempPath string
+	if format != "SVG" {
+		nodeIDSafe := strings.ReplaceAll(nodeID, ":", "-")
+		ext := ".png"
+		switch format {
+		case "JPG":
+			ext = ".jpg"
+		case "PDF":
+			ext = ".pdf"
+		}
+		tempPath = fmt.Sprintf("/tmp/ahd-export-%s-%d%s", nodeIDSafe, time.Now().Unix(), ext)
+		if decoded, decErr := base64.StdEncoding.DecodeString(base64Data); decErr == nil {
+			_ = os.WriteFile(tempPath, decoded, 0644)
+		}
+	}
+
 	// For SVG, return as text (it's not an image content block)
 	if format == "SVG" {
 		text, _ := formatResult(result)
@@ -94,6 +115,9 @@ func sendExportCommand(commander *figma.Commander, nodeId, format string, scale 
 		"format": format,
 		"scale":  scale,
 		"size":   sizeBytes,
+	}
+	if tempPath != "" {
+		meta["path"] = tempPath
 	}
 	metaJSON, _ := json.MarshalIndent(meta, "", "  ")
 

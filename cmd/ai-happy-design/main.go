@@ -322,7 +322,7 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 				}
 				// Sanitize name for filename
 				name = strings.Map(func(r rune) rune {
-					if r == '/' || r == '\\' || r == ':' || r == '*' || r == '?' || r == '"' || r == '<' || r == '>' || r == '|' {
+					if r == '/' || r == '\\' || r == ':' || r == '*' || r == '?' || r == '"' || r == '<' || r == '>' || r == '|' || r == ' ' {
 						return '-'
 					}
 					return r
@@ -338,7 +338,7 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 				case "JSON":
 					ext = ".json"
 				}
-				outPath = name + ext
+				outPath = fmt.Sprintf("/tmp/ahd-export-%s-%d%s", name, time.Now().Unix(), ext)
 			}
 
 			if err := os.WriteFile(outPath, fileBytes, 0644); err != nil {
