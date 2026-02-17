@@ -8,11 +8,14 @@
     "verify:syntax": "node scripts/verify-syntax.mjs",
     "check": "npm run typecheck && npm run build",
     "watch": "node esbuild.config.mjs --watch",
-    "dev": "node esbuild.config.mjs --watch"
+    "dev": "node esbuild.config.mjs --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@figma/plugin-typings": "^1.100.0",
     "esbuild": "^0.27.3",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "vitest": "^4.0.18"
   }
 }
