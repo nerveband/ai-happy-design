@@ -158,6 +158,9 @@ var toolDescriptions = map[string]map[string]string{
 	"design": {
 		"compute_tokens": "Compute design tokens (font sizes, spacing, padding, layout, card widths) for any canvas dimensions. Call FIRST before creating any design. Returns concrete pixel values — no math needed. Params: *width, *height, dpi (optional, default 72 for screen, 300 for print)",
 	},
+	"design_system": {
+		"analyze": "Analyze the current Figma file's styles, variables, and components. Returns categorized rules for colors, typography, spacing, effects, and components with reuse guidance. Use before creating designs in existing files to maintain consistency.",
+	},
 }
 
 // ToolCatalog returns a copy of the server tool/action descriptions for
