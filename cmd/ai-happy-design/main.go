@@ -1026,10 +1026,12 @@ func autoPlaceRootFrames(client *ws.Client, ops []batchOperation) {
 		return // Already in a safe spot
 	}
 
-	fmt.Fprintf(os.Stderr, "⚠ Auto-placing: shifted root frames by (%+.0f, %+.0f) to avoid overlap with %d existing frame(s).\n", dx, dy, freeSpace.ExistingCount)
-	fmt.Fprintf(os.Stderr, "  Use --allow-overlap to place at exact coordinates.\n")
-
-	// Offset all root-level frame creations
+	// Collect all root frame indices and their widths
+	type rootFrame struct {
+		idx   int
+		width float64
+	}
+	var rootFrames []rootFrame
 	for i := range ops {
 		cmd := strings.ToLower(ops[i].Command)
 		if cmd != "frame" && cmd != "node.create_frame" {
@@ -1042,8 +1044,25 @@ func autoPlaceRootFrames(client *ws.Client, ops []batchOperation) {
 		if pid != "" {
 			continue
 		}
-		ops[i].Params["x"] = getFloatParam(ops[i].Params, "x", 0) + dx
-		ops[i].Params["y"] = getFloatParam(ops[i].Params, "y", 0) + dy
+		w := getFloatParam(ops[i].Params, "width", getFloatParam(ops[i].Params, "w", 0))
+		rootFrames = append(rootFrames, rootFrame{idx: i, width: w})
+	}
+
+	if len(rootFrames) == 0 {
+		return
+	}
+
+	fmt.Fprintf(os.Stderr, "⚠ Auto-placing: shifted %d root frame(s) to avoid overlap with %d existing frame(s).\n", len(rootFrames), freeSpace.ExistingCount)
+	fmt.Fprintf(os.Stderr, "  Use --allow-overlap to place at exact coordinates.\n")
+
+	// Place root frames side by side starting at freeSpace.X, freeSpace.Y
+	// Each subsequent frame is offset by the previous frame's width + gap
+	gap := float64(100)
+	currentX := freeSpace.X
+	for _, rf := range rootFrames {
+		ops[rf.idx].Params["x"] = currentX
+		ops[rf.idx].Params["y"] = freeSpace.Y
+		currentX += rf.width + gap
 	}
 }
 
