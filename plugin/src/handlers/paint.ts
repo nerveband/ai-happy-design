@@ -1,4 +1,5 @@
 import { getSceneNodeById } from '../utils/getNode';
+import { sanitizeFills } from '../utils/sanitizeFills';
 
 function parseHexColor(color: any, fallback = { r: 0, g: 0, b: 0, a: 1 }) {
   if (color && typeof color === 'object' && typeof color.r === 'number') {
@@ -216,7 +217,7 @@ async function addFill(params: any) {
     throw new Error(`Unsupported fill type: ${fillType}`);
   }
 
-  const fills = (node.fills as Paint[]).slice();
+  const fills = sanitizeFills(node.fills as Paint[]);
   if (params.index !== undefined) fills.splice(params.index, 0, newFill);
   else fills.push(newFill);
   node.fills = fills;
@@ -226,7 +227,7 @@ async function addFill(params: any) {
 async function removeFill(params: any) {
   const node = await getFillNodeAsync(params.nodeId);
   const index = params.index ?? params.fillIndex ?? 0;
-  const fills = (node.fills as Paint[]).slice();
+  const fills = sanitizeFills(node.fills as Paint[]);
   if (index < 0 || index >= fills.length) throw new Error(`Fill index ${index} out of range`);
   fills.splice(index, 1);
   node.fills = fills;
