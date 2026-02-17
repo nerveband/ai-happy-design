@@ -49,6 +49,15 @@ running on the configured port, it connects as a client instead.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg := loadConfig()
 
+		if !cfg.MCPEnabled {
+			fmt.Fprintln(os.Stderr, "MCP server is disabled by default. To enable it:")
+			fmt.Fprintln(os.Stderr, "  ai-happy-design config set mcp.enabled true")
+			fmt.Fprintln(os.Stderr, "")
+			fmt.Fprintln(os.Stderr, "Or register with an editor (auto-enables MCP):")
+			fmt.Fprintln(os.Stderr, "  ai-happy-design register")
+			os.Exit(1)
+		}
+
 		// Try to start embedded relay, but if port is in use, connect as client
 		wsServer := ws.NewServer(cfg.Port)
 		go func() {
@@ -1599,6 +1608,13 @@ func main() {
 	rootCmd.AddCommand(setupCmd)
 	rootCmd.AddCommand(upgradeCmd)
 	rootCmd.AddCommand(registerCmd)
+
+	configInitCmd.Flags().BoolVar(&configInitForce, "force", false, "Overwrite existing config file")
+	configCmd.AddCommand(configGetCmd)
+	configCmd.AddCommand(configSetCmd)
+	configCmd.AddCommand(configPathCmd)
+	configCmd.AddCommand(configInitCmd)
+	rootCmd.AddCommand(configCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
