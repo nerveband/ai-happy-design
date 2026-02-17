@@ -98,6 +98,10 @@ func Load() *Config {
 	if t := os.Getenv("AHD_IDLE_TIMEOUT"); t != "" {
 		cfg.IdleTimeout = parseIdleTimeout(t)
 	}
+	if m := os.Getenv("AHD_MCP_ENABLED"); m != "" {
+		v := strings.ToLower(m)
+		cfg.MCPEnabled = v == "true" || v == "1" || v == "yes"
+	}
 
 	return cfg
 }

@@ -55,7 +55,7 @@ running on the configured port, it connects as a client instead.`,
 			fmt.Fprintln(os.Stderr, "")
 			fmt.Fprintln(os.Stderr, "Or register with an editor (auto-enables MCP):")
 			fmt.Fprintln(os.Stderr, "  ai-happy-design register")
-			os.Exit(1)
+			return fmt.Errorf("MCP server is disabled")
 		}
 
 		// Try to start embedded relay, but if port is in use, connect as client
