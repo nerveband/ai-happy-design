@@ -1,5 +1,6 @@
 import { resolveStableId } from '../utils/stableId';
 import { getParentById } from '../utils/getNode';
+import { parentHasAutoLayout } from '../utils/layoutGuard';
 
 function parseHexColor(color: any, fallback = { r: 0, g: 0, b: 0, a: 1 }) {
   if (color && typeof color === 'object' && typeof color.r === 'number') {
@@ -38,7 +39,13 @@ function applyLayoutProps(node: SceneNode, params: any) {
   if (params.layoutSizingVertical !== undefined) (node as any).layoutSizingVertical = params.layoutSizingVertical;
   if (params.layoutAlign !== undefined) (node as any).layoutAlign = params.layoutAlign;
   if (params.layoutGrow !== undefined) (node as any).layoutGrow = params.layoutGrow;
-  if (params.layoutPositioning !== undefined) (node as any).layoutPositioning = params.layoutPositioning;
+  if (params.layoutPositioning !== undefined) {
+    // layoutPositioning: "ABSOLUTE" is only valid inside auto-layout frames.
+    // Silently skip if parent has no auto-layout to prevent Figma errors.
+    if (params.layoutPositioning !== 'ABSOLUTE' || parentHasAutoLayout(node.parent)) {
+      (node as any).layoutPositioning = params.layoutPositioning;
+    }
+  }
 }
 
 function applyGeometryStyle(node: GeometryMixin & SceneNode, params: any) {
