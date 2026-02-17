@@ -34,8 +34,12 @@ export function serializeNodeCompact(
   result.push(entry);
 
   if ('children' in node && currentDepth < maxDepth) {
-    for (const child of (node as any).children as SceneNode[]) {
-      result.push(...serializeNodeCompact(child, maxDepth, node.id, currentDepth + 1));
+    var children = (node as any).children as SceneNode[];
+    for (var i = 0; i < children.length; i++) {
+      var childNodes = serializeNodeCompact(children[i], maxDepth, node.id, currentDepth + 1);
+      for (var j = 0; j < childNodes.length; j++) {
+        result.push(childNodes[j]);
+      }
     }
   }
 

@@ -62,7 +62,7 @@ var toolDescriptions = map[string]map[string]string{
 	},
 	"node": {
 		"get_info":       "Get node information. Params: nodeId",
-		"get_tree":       "Get node tree. Params: nodeId, depth",
+		"get_tree":       "Get node tree. Params: nodeId, depth (default 3). Add compact:true for flat summary array [{id,type,name,x,y,w,h,childCount,parentId,depth}] — much more token-efficient for discovery.",
 		"create_frame":   "Create a frame. Params: name, x, y, width, height, parentId, color, layoutMode (HORIZONTAL/VERTICAL), itemSpacing, padding, paddingTop/Right/Bottom/Left, primaryAxisAlign, counterAxisAlign, primaryAxisSizing, counterAxisSizing, layoutWrap, clipsContent",
 		"move":           "Move a node. Params: nodeId, x, y",
 		"resize":         "Resize a node. Params: nodeId, width, height",

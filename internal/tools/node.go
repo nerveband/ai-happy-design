@@ -34,6 +34,7 @@ func RegisterNodeTool(s *server.MCPServer, commander *figma.Commander) {
 		mcp.WithBoolean("noFill", mcp.Description("Remove frame fill on create")),
 		mcp.WithNumber("cornerRadius", mcp.Description("Corner radius for frame")),
 		mcp.WithNumber("depth", mcp.Description("Tree traversal depth (for get_tree)")),
+		mcp.WithBoolean("compact", mcp.Description("Return flat summary array instead of full tree. Each entry: {id, type, name, x, y, w, h, childCount, parentId, depth}. Much more token-efficient for structural discovery.")),
 		mcp.WithString("layoutMode", mcp.Description("Auto-layout direction: HORIZONTAL or VERTICAL"),
 			mcp.Enum("HORIZONTAL", "VERTICAL")),
 		mcp.WithNumber("itemSpacing", mcp.Description("Gap between children in auto-layout")),
@@ -75,8 +76,9 @@ func RegisterNodeTool(s *server.MCPServer, commander *figma.Commander) {
 				return errResult, nil
 			}
 			return sendCommand(commander, "get_node_tree", map[string]interface{}{
-				"nodeId": nodeId,
-				"depth":  getFloat64Arg(args, "depth", 3),
+				"nodeId":  nodeId,
+				"depth":   getFloat64Arg(args, "depth", 3),
+				"compact": getBoolArg(args, "compact", false),
 			})
 
 		case "create_frame":

@@ -1,4 +1,5 @@
 import { serializeNode, serializeNodeSummary } from '../utils/serialize';
+import { serializeNodeCompact } from '../utils/serializeCompact';
 import { resolveStableId } from '../utils/stableId';
 import { getSceneNodeById, getNodeById, getParentById } from '../utils/getNode';
 
@@ -293,7 +294,7 @@ async function cloneNode(params: any) {
 }
 
 async function getTree(params: any) {
-  const { nodeId, depth } = params;
+  const { nodeId, depth, compact } = params;
   const node = await getNodeById(nodeId);
 
   // If it's a page node, load it first so children are accessible
@@ -301,6 +302,9 @@ async function getTree(params: any) {
     await (node as PageNode).loadAsync();
   }
 
+  if (compact) {
+    return serializeNodeCompact(node as SceneNode, depth ?? 3);
+  }
   return serializeNode(node as SceneNode, 0, depth ?? 3);
 }
 
