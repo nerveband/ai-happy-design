@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	"github.com/nerveband/ai-happy-design/internal/config"
 )
 
 type editorConfig struct {
@@ -47,6 +49,16 @@ func runRegister() error {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("failed to find home directory: %w", err)
+	}
+
+	// Auto-enable MCP when registering with editors
+	cfg := config.Load()
+	if !cfg.MCPEnabled {
+		if err := config.Set("mcp.enabled", "true"); err != nil {
+			fmt.Fprintf(os.Stderr, "  [!] Warning: could not enable MCP in config: %v\n", err)
+		} else {
+			fmt.Println("  [+] MCP enabled in config")
+		}
 	}
 
 	editors := detectEditors(home)
