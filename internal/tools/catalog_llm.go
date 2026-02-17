@@ -275,7 +275,7 @@ func LLMCatalog() map[string]interface{} {
 		},
 		"designPatterns": map[string]interface{}{
 			"_overview":     "These patterns produce professional Figma designs. Follow them strictly.",
-			"_decisionTree": "DEFAULT: Use auto-layout (flexbox). Think in rows and columns. Figma auto-layout IS CSS flexbox — you already know it. Create frames with layoutMode, itemSpacing, padding, and alignment in a SINGLE create_frame call. Use absolute positioning ONLY for decorative overlays (layoutPositioning: ABSOLUTE). After creating, run layout.check_overlaps to verify no elements overlap.",
+			"_decisionTree": "DEFAULT: Use auto-layout (flexbox). Think in rows and columns. Figma auto-layout IS CSS flexbox — you already know it. Create frames with layoutMode, itemSpacing, padding, and alignment in a SINGLE create_frame call. For decorative overlays inside auto-layout frames, use layoutPositioning:ABSOLUTE on the child to exempt it from the flow. After creating, run layout.check_overlaps to verify no elements overlap.",
 			"coordinateSystem": map[string]interface{}{
 				"origin":   "Top-left (0,0). X increases right, Y increases down.",
 				"relative": "x/y are ALWAYS relative to the containing parent frame, not the page.",
@@ -384,17 +384,18 @@ func LLMCatalog() map[string]interface{} {
 					"topToBottom": "[[0,1,0],[-1,0,1]]",
 				},
 			},
-			"absolutePositioning": map[string]interface{}{
-				"_recommended":  "DECORATIVE/OVERLAY ONLY. Use layoutPositioning:ABSOLUTE inside auto-layout frames for decorative elements that should NOT participate in the flow.",
-				"rule":          "Absolute positioning is for decorative overlays ONLY — circles, stripes, watermarks. All content (text, cards, buttons) should use auto-layout.",
-				"whenToUse":     "Background decorations, floating badges, overlay effects. NOT for text, cards, or content layout.",
-				"colorShortcut": "node.create_frame, shape.create_rectangle, and text.create all accept a 'color' param (hex string like '#0F0F23' or rgb object). The param name is 'color', NOT 'fillColor' or 'backgroundColor'. This is a shortcut that avoids a separate paint.set_solid call.",
+			"manualPositioning": map[string]interface{}{
+				"_overview":      "For non-auto-layout frames, children are positioned by x/y coordinates relative to the parent. No special property is needed — this is Figma's default behavior. Do NOT set layoutPositioning:ABSOLUTE on children of non-auto-layout frames (it will error).",
+				"rule":           "Non-auto-layout frame + children with x/y = manual positioning. Auto-layout frame + layoutPositioning:ABSOLUTE = exempt child from flow (decorative overlays only).",
+				"WARNING":        "layoutPositioning:ABSOLUTE is ONLY valid inside auto-layout parents. Setting it on a child of a frame with layoutMode:NONE causes an error. If the parent has no auto-layout, just use x/y — no extra property needed.",
+				"colorShortcut":  "node.create_frame, shape.create_rectangle, and text.create all accept a 'color' param (hex string like '#0F0F23' or rgb object). The param name is 'color', NOT 'fillColor' or 'backgroundColor'. This is a shortcut that avoids a separate paint.set_solid call.",
 				"howItWorks": []string{
-					"1. Create root frame: node.create_frame {name, x, y, width, height, color: '#0F0F23'}",
+					"1. Create root frame (NO auto-layout): node.create_frame {name, x, y, width, height, color: '#0F0F23'}",
 					"2. Add children with parentId and x/y: text.create {text, parentId, x, y, width, fontSize, color: '#FFFFFF'}",
-					"3. For badges/buttons that need centered text: add layout.set_auto_layout with CENTER/CENTER alignment",
-					"4. x/y are RELATIVE to the parent frame, not the page.",
-					"5. Text width: use the 'width' parameter on text.create for text wrapping control.",
+					"3. Children are positioned by x/y automatically — NO layoutPositioning needed.",
+					"4. For badges/buttons that need centered text: use auto-layout on the badge frame itself.",
+					"5. x/y are RELATIVE to the parent frame, not the page.",
+					"6. Text width: use the 'width' parameter on text.create for text wrapping control.",
 				},
 				"coordinatePlanning": []string{
 					"Plan your layout TOP-DOWN. Write down the y-coordinate of each major element.",
@@ -403,7 +404,7 @@ func LLMCatalog() map[string]interface{} {
 					"Cards: use consistent heights for siblings (e.g., all 200px). Place with exact x/y.",
 					"Horizontal card rows: cardWidth = (contentWidth - (N-1) * gap) / N, then x[i] = sidePadding + i * (cardWidth + gap).",
 				},
-				"hybridExample": `Root frame (absolute) → Badge (auto-layout for centering) → Hero text (absolute, width param) → Subtitle (absolute, width param) → Cards (absolute x/y) → CTA button (auto-layout for centering)`,
+				"hybridExample": "Root frame (manual x/y) → Badge (auto-layout for centering) → Hero text (x/y, width param) → Subtitle (x/y, width param) → Cards (x/y) → CTA button (auto-layout for centering)",
 			},
 			"buildCard": map[string]interface{}{
 				"description": "A card is a frame with text children positioned using x/y. NEVER create a rectangle + separate floating text.",
@@ -692,7 +693,7 @@ func LLMCatalog() map[string]interface{} {
 				"DEFAULT APPROACH: Use auto-layout (flexbox) for ALL layout. Think in rows and columns.",
 				"Text in auto-layout: set width param on text.create. Plugin auto-sets layoutSizingVertical:HUG.",
 				"CRITICAL: Always set lineHeightUnit:'PERCENT' when calling text.set_line_height. Default is PIXELS which breaks layouts.",
-				"Use layoutPositioning:ABSOLUTE ONLY for decorative overlays (circles, stripes, gradients).",
+				"layoutPositioning:ABSOLUTE is ONLY for decorative overlays inside AUTO-LAYOUT frames. Never use it on children of non-auto-layout frames — they already position by x/y.",
 				"Use padding and spacing values from compute_tokens — never guess pixel values.",
 				"After creating layout, call layout.check_overlaps {nodeId} to verify no elements overlap.",
 				"Name all elements descriptively. Layer background decorations behind content with layer.send_to_back.",
