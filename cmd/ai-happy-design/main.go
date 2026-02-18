@@ -1137,6 +1137,27 @@ func loadBatchOperations(operationsJSON, operationsFile string) ([]batchOperatio
 		raw = fixed
 	}
 
+	// Expand composite commands (slide, banner) into primitive ops
+	if !batchNoFix {
+		var rawOps []map[string]interface{}
+		if unmErr := json.Unmarshal(raw, &rawOps); unmErr == nil {
+			before := len(rawOps)
+			expanded, expErr := batchutil.ExpandAllComposites(rawOps)
+			if expErr != nil {
+				return nil, fmt.Errorf("composite expansion failed: %w", expErr)
+			}
+			after := len(expanded)
+			if after != before {
+				fmt.Fprintf(os.Stderr, "Expanded %d composite commands → %d operations\n", before, after)
+				remarshaled, mErr := json.Marshal(expanded)
+				if mErr != nil {
+					return nil, fmt.Errorf("failed to re-marshal expanded ops: %w", mErr)
+				}
+				raw = remarshaled
+			}
+		}
+	}
+
 	var ops []batchOperation
 	if err := json.Unmarshal(raw, &ops); err != nil {
 		return nil, fmt.Errorf("invalid operations JSON: %w", err)
