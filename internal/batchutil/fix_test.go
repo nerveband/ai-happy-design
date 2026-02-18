@@ -87,3 +87,65 @@ func TestFixBatchOps_NoChanges(t *testing.T) {
 		t.Fatalf("expected no fixes but got: %v", fixes)
 	}
 }
+
+func TestFixBatchOps_ReportsFenceFix(t *testing.T) {
+	in := []byte("```json\n[{\"command\":\"frame\",\"params\":{}}]\n```")
+	_, fixes, err := batchutil.FixBatchOps(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(fixes) == 0 {
+		t.Fatal("expected fence-strip fix message")
+	}
+	found := false
+	for _, f := range fixes {
+		if strings.Contains(f, "fence") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("no fence fix message in: %v", fixes)
+	}
+}
+
+func TestFixBatchOps_StripsLineComments(t *testing.T) {
+	in := []byte(`[
+  // SLIDE 1
+  {"command":"frame","params":{"x":0,"y":0}},
+  // SLIDE 2
+  {"command":"text","params":{"text":"hello"}}
+]`)
+	fixed, fixes, err := batchutil.FixBatchOps(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(fixes) == 0 {
+		t.Fatal("expected comment-strip fix")
+	}
+	var ops []map[string]interface{}
+	if err := json.Unmarshal(fixed, &ops); err != nil {
+		t.Fatalf("output not valid JSON: %v", err)
+	}
+	if len(ops) != 2 {
+		t.Fatalf("expected 2 ops, got %d", len(ops))
+	}
+}
+
+func TestFixBatchOps_StripsBlockComments(t *testing.T) {
+	in := []byte(`[/* preamble */{"command":"frame","params":{}}]`)
+	fixed, fixes, err := batchutil.FixBatchOps(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(fixes) == 0 {
+		t.Fatal("expected comment-strip fix")
+	}
+	var ops []map[string]interface{}
+	if err := json.Unmarshal(fixed, &ops); err != nil {
+		t.Fatalf("output not valid JSON: %v", err)
+	}
+	if len(ops) != 1 {
+		t.Fatalf("expected 1 op, got %d", len(ops))
+	}
+}

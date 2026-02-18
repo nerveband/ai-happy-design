@@ -49,6 +49,58 @@ func StripMarkdownFences(data []byte) []byte {
 	return []byte(strings.Join(filtered, "\n"))
 }
 
+// StripJSONComments removes // line comments and /* block comments */ from
+// JSON-like input. Models occasionally emit JSONC-style comments which are
+// not valid JSON.
+func StripJSONComments(data []byte) []byte {
+	var buf []byte
+	i := 0
+	inString := false
+	for i < len(data) {
+		c := data[i]
+		if inString {
+			buf = append(buf, c)
+			if c == '\\' && i+1 < len(data) {
+				i++
+				buf = append(buf, data[i])
+			} else if c == '"' {
+				inString = false
+			}
+			i++
+			continue
+		}
+		// Outside strings: check for comment start
+		if c == '/' && i+1 < len(data) {
+			if data[i+1] == '/' {
+				// Line comment: skip to end of line
+				i += 2
+				for i < len(data) && data[i] != '\n' {
+					i++
+				}
+				continue
+			}
+			if data[i+1] == '*' {
+				// Block comment: skip to */
+				i += 2
+				for i+1 < len(data) {
+					if data[i] == '*' && data[i+1] == '/' {
+						i += 2
+						break
+					}
+					i++
+				}
+				continue
+			}
+		}
+		if c == '"' {
+			inString = true
+		}
+		buf = append(buf, c)
+		i++
+	}
+	return buf
+}
+
 // FixBatchOps applies auto-corrections to common LLM output drift.
 // Returns: fixed JSON bytes, list of human-readable fix descriptions, error.
 // Error is non-nil only if the input cannot be parsed at all.
@@ -60,6 +112,13 @@ func FixBatchOps(data []byte) ([]byte, []string, error) {
 		fixes = append(fixes, "stripped markdown code fence (``` ... ```)")
 	}
 	data = stripped
+
+	// Strip JSON comments (// line comments and /* block comments */)
+	stripped2 := StripJSONComments(data)
+	if len(stripped2) != len(data) || string(stripped2) != string(data) {
+		fixes = append(fixes, "stripped JSON comments (// or /* */)")
+	}
+	data = stripped2
 
 	// Unwrap {"ops": [...]} or any single-key dict wrapping an array.
 	// Models often output {"ops": [...]} instead of bare [...].
