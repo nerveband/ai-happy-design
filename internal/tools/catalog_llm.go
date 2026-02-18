@@ -897,6 +897,37 @@ func LLMCatalog() map[string]interface{} {
 				"visualFrames":     "Slide backgrounds, cards, and CTA buttons should keep their fill — only wrapper frames need noFill:true.",
 			},
 		},
+		"cliOnlyCommands": map[string]interface{}{
+			"_overview": "These commands are CLI-only (not available as MCP tools). Run via ai-happy-design <command>.",
+			"extract": map[string]interface{}{
+				"description": "Parse HTML/CSS into composite batch JSON (slide/banner ops). Output goes through the normal batch pipeline.",
+				"usage":       "ai-happy-design extract file.html --width 1080 --height 1350",
+				"flags": map[string]interface{}{
+					"--width":    "Canvas width (default 1080)",
+					"--height":   "Canvas height (default 1080)",
+					"-o / --output": "Output file path (default: stdout)",
+				},
+				"workflow": "extract file.html > ops.json && ai-happy-design batch ops.json",
+			},
+			"benchmark": map[string]interface{}{
+				"description": "Provider-agnostic performance benchmarking. No LLM API calls built in — times CLI execution and accepts external timing for LLM generation phase.",
+				"subcommands": map[string]interface{}{
+					"exec": map[string]interface{}{
+						"description": "Time batch execution against Figma over N runs. Reports aggregate ops/s, median, p95.",
+						"usage":       "ai-happy-design benchmark exec ops.json --runs 3",
+						"flags":       "--runs N (default 3), --allow-overlap, --channel",
+					},
+					"pipe": map[string]interface{}{
+						"description": "Accept batch JSON from stdin with external LLM generation timing. Combine with any LLM provider.",
+						"usage":       "cat ops.json | ai-happy-design benchmark pipe --phase-a-ms 4200",
+						"flags":       "--phase-a-ms N (LLM generation time), --allow-overlap, --channel",
+					},
+					"compare": map[string]interface{}{
+						"description": "Compare extraction methods (stub — not yet implemented).",
+					},
+				},
+			},
+		},
 		"tools": toolsOut,
 	}
 }

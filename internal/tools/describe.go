@@ -239,6 +239,11 @@ func RegisterDescribeTool(s *server.MCPServer, _ *figma.Commander) {
 				}
 				sb.WriteString("\n")
 			}
+			sb.WriteString("CLI-only commands (not MCP tools — run via ai-happy-design <command>):\n")
+			sb.WriteString("  extract [file.html] --width W --height H — Parse HTML/CSS into composite batch JSON (slide/banner ops)\n")
+			sb.WriteString("  benchmark exec [file.json] --runs N — Time batch execution against Figma over N runs\n")
+			sb.WriteString("  benchmark pipe --phase-a-ms N — Accept piped batch JSON with external LLM generation timing\n")
+			sb.WriteString("\n")
 			return mcp.NewToolResultText(sb.String()), nil
 
 		case "catalog":
