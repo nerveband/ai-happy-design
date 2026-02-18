@@ -48,7 +48,8 @@ var toolDescriptions = map[string]map[string]string{
 		"get_segments":   "Get styled text segments. Params: nodeId",
 		"load_font":      "Load a font for use. Params: fontFamily, fontStyle",
 		"set_style_id":   "Apply a text style. Params: nodeId, styleId",
-		"list_fonts":     "List available fonts. Params: fontFamily (optional filter substring)",
+		"list_fonts":       "List available fonts. Params: fontFamily (optional filter substring)",
+		"set_range_style": "Apply multiple styles to character ranges. Params: nodeId, ranges[{match|start+end, bold, italic, color, fontSize, fontFamily, fontStyle, letterSpacing, lineHeight, textDecoration, textCase}]",
 	},
 	"layout": {
 		"set_auto_layout": "Enable auto-layout on a frame. Params: nodeId, direction, itemSpacing, padding*, primaryAxisAlign, counterAxisAlign",
@@ -149,6 +150,8 @@ var toolDescriptions = map[string]map[string]string{
 	},
 	"bulk": {
 		"execute": "Execute multiple operations with retry and optional interpolation. Params: operations (JSON array of {name?, command, params}), failFast (default false), retries, retryDelayMs, interpolate",
+		"slide":   "Composite: creates a full social media slide. Auto-expands into multiple primitive ops. Params: canvas (WxH string), bg, gradient, elements[]. Element types: eyebrow, headline, body, bar, counter, cta, url, stats, progress, arabic",
+		"banner":  "Composite: creates an email banner. Auto-expands into multiple primitive ops. Params: canvas (WxH string), bg, gradient, dividerX, elements[]. Element types: headline, subtitle",
 	},
 	"connect": {
 		"join":       "Join a channel. Params: channelKey",

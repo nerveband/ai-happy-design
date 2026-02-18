@@ -725,6 +725,12 @@ func LLMCatalog() map[string]interface{} {
 				"For batch export: export.batch {nodeIds:'id1,id2', format:'PNG', scale:2}",
 			},
 		},
+		"compositeCommands": map[string]interface{}{
+			"description": "Higher-level commands that auto-expand into multiple primitive operations",
+			"slide":       "Creates a full social media slide. Params: canvas (WxH), bg, gradient, elements[]. Element types: eyebrow, headline, body, bar, counter, cta, url, stats, progress, arabic",
+			"banner":      "Creates an email banner. Params: canvas (WxH), bg, gradient, dividerX, elements[]. Element types: headline, subtitle",
+			"example":     map[string]interface{}{"command": "slide", "params": map[string]interface{}{"canvas": "1080x1350", "bg": "#0C1E2C", "elements": []interface{}{map[string]interface{}{"type": "headline", "text": "Hello", "tier": "hero"}}}},
+		},
 		"advancedFeatures": map[string]interface{}{
 			"modify": map[string]interface{}{
 				"_overview": "node.modify is a unified 'update any node' action. Pass nodeId + any combination of properties. Supports: x, y, width, height, color/fillColor, opacity, cornerRadius, visible, name, rotation, characters/text, fontSize, fontFamily, fontStyle, textAlignHorizontal, layoutSizingHorizontal, layoutSizingVertical, isMask, blendMode.",
