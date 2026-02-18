@@ -202,7 +202,40 @@ var legacyCommandRoutes = map[string]commandRoute{
 	"remove_auto_layout":     {Domain: "layout", Action: "remove_auto_layout"},
 }
 
+// compoundAliases intercepts common LLM hallucinations for dotted commands
+// (e.g. "document.list_pages") before they reach the wrong domain handler.
+// These are checked BEFORE splitting on "." in resolveCommandRoute.
+var compoundAliases = map[string]commandRoute{
+	// Page operations — LLMs often guess document.* for these
+	"document.list_pages":  {Domain: "page", Action: "get_all"},
+	"document.get_pages":   {Domain: "page", Action: "get_all"},
+	"document.pages":       {Domain: "page", Action: "get_all"},
+	"document.create_page": {Domain: "page", Action: "create"},
+	"document.delete_page": {Domain: "page", Action: "delete"},
+	"document.rename_page": {Domain: "page", Action: "rename"},
+	"document.switch_page": {Domain: "page", Action: "set_current"},
+	"document.set_page":    {Domain: "page", Action: "set_current"},
+	// Layer operations — LLMs often guess node.* for these
+	"node.group":          {Domain: "layer", Action: "group"},
+	"node.ungroup":        {Domain: "layer", Action: "ungroup"},
+	"node.bring_to_front": {Domain: "layer", Action: "bring_to_front"},
+	"node.send_to_back":   {Domain: "layer", Action: "send_to_back"},
+	"node.bring_forward":  {Domain: "layer", Action: "bring_forward"},
+	"node.send_backward":  {Domain: "layer", Action: "send_backward"},
+	"node.move_to_parent": {Domain: "layer", Action: "insert_child"},
+	"node.reorder":        {Domain: "layer", Action: "set_order"},
+	// Design system — LLMs might try document.*
+	"document.analyze":           {Domain: "design_system", Action: "analyze"},
+	"document.get_design_system": {Domain: "design_system", Action: "analyze"},
+	"document.design_system":     {Domain: "design_system", Action: "analyze"},
+}
+
 func resolveCommandRoute(command string, params map[string]interface{}) (string, string, error) {
+	// Check compound aliases first — catches LLM hallucinations like "document.list_pages"
+	if route, ok := compoundAliases[command]; ok {
+		return route.Domain, route.Action, nil
+	}
+
 	if dot := strings.Index(command, "."); dot > 0 && dot < len(command)-1 {
 		return command[:dot], command[dot+1:], nil
 	}
