@@ -3,6 +3,9 @@ package tools
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -233,11 +236,25 @@ func RegisterShapeTool(s *server.MCPServer, commander *figma.Commander) {
 			if errResult != nil {
 				return errResult, nil
 			}
+			// Auto-resolve file paths: /path/to/icon.svg or ~/icon.svg → read SVG content
+			svgContent := svgPath
+			if strings.HasPrefix(svgPath, "file://") || strings.HasPrefix(svgPath, "/") || strings.HasPrefix(svgPath, "~/") {
+				rawPath := strings.TrimPrefix(svgPath, "file://")
+				if strings.HasPrefix(rawPath, "~/") {
+					home, _ := os.UserHomeDir()
+					rawPath = filepath.Join(home, rawPath[2:])
+				}
+				data, readErr := os.ReadFile(rawPath)
+				if readErr != nil {
+					return mcp.NewToolResultError(fmt.Sprintf("cannot read SVG file %s: %v", rawPath, readErr)), nil
+				}
+				svgContent = string(data)
+			}
 			return sendCommand(commander, "create_from_svg", map[string]interface{}{
 				"name":     getStringArg(args, "name", "SVG"),
 				"x":        getFloat64Arg(args, "x", 0),
 				"y":        getFloat64Arg(args, "y", 0),
-				"svgPath":  svgPath,
+				"svgPath":  svgContent,
 				"parentId": getStringArg(args, "parentId", ""),
 			})
 

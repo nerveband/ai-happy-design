@@ -820,7 +820,7 @@ func LLMCatalog() map[string]interface{} {
 				"example_cli":   `ai-happy-design command shape.create_image '{"parentId":"0:1","x":0,"y":0,"width":400,"height":300,"imageData":"file:///tmp/hero.png"}'`,
 				"example_url":   `ai-happy-design command shape.create_image '{"parentId":"0:1","x":0,"y":0,"width":400,"height":300,"imageData":"https://picsum.photos/800/600"}'`,
 				"example_batch": `{"command":"shape.create_image","params":{"parentId":"$root","imageData":"/tmp/card-bg.jpg","x":0,"y":0,"width":1080,"height":600}}`,
-				"supported_ext": ".png, .jpg, .jpeg, .webp, .gif, .svg",
+				"supported_ext": ".png, .jpg, .jpeg, .webp, .gif  (raster only — SVG is NOT supported here; use shape.create_from_svg for SVG)",
 				"with_compress": "Add --compress-images to compress after reading/downloading.",
 				"url_note":      "HTTP/HTTPS URLs are downloaded by the CLI (up to 50MB, 30s timeout) and converted to base64 data URIs before sending to the plugin. No allowedDomains restriction since the CLI does the fetching.",
 			},

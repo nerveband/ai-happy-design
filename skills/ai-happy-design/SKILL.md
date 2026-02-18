@@ -216,7 +216,39 @@ ai-happy-design command shape.create_image '{"parentId":"0:1","x":0,"y":0,"width
 {"command":"image","params":{"pid":"$root","imageData":"https://example.com/photo.jpg","w":400,"h":300}}
 ```
 
-Supported: `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.svg`. URLs are downloaded (max 50MB, 30s timeout). Add `--compress-images` to optimize after loading.
+Supported raster formats: `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`. URLs are downloaded (max 50MB, 30s timeout). Add `--compress-images` to optimize after loading.
+
+**SVG is NOT a raster format** — use `shape.create_from_svg` instead (see below).
+
+## SVG Import (Vector Graphics)
+
+Figma's API fully supports SVG via `figma.createNodeFromSvg()` — it creates native vector nodes:
+
+```bash
+# Inline SVG markup
+ai-happy-design command shape.create_from_svg '{
+  "svgPath": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M12 2L2 7l10 5 10-5-10-5z\"/></svg>",
+  "parentId": "123:456",
+  "x": 40,
+  "y": 40,
+  "name": "icon-star"
+}'
+
+# SVG file path — CLI reads the file automatically
+ai-happy-design command shape.create_from_svg '{
+  "svgPath": "/tmp/icon.svg",
+  "parentId": "123:456",
+  "x": 0,
+  "y": 0
+}'
+```
+
+In batch:
+```json
+{"name":"icon","command":"shape.create_from_svg","params":{"svgPath":"<svg>...</svg>","parentId":"${{steps.card.result.id}}","x":24,"y":24,"name":"check-icon"}}
+```
+
+After creation, recolor with `paint.set_solid`. Resize with `node.modify {width, height}`.
 
 ## Connection Diagnostics
 

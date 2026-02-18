@@ -65,6 +65,9 @@ func ResolveImageData(imageData string) (string, error) {
 	}
 
 	mime := mimeFromExt(filepath.Ext(filePath))
+	if mime == "image/svg+xml" {
+		return "", fmt.Errorf("SVG files cannot be used as image fills — Figma's createImage only accepts raster formats (PNG/JPG/WebP/GIF). To import an SVG as vector nodes, use shape.create_from_svg with the SVG content instead")
+	}
 	encoded := base64.StdEncoding.EncodeToString(data)
 	return fmt.Sprintf("data:%s;base64,%s", mime, encoded), nil
 }
@@ -139,6 +142,9 @@ func downloadAndEncode(url string) (string, error) {
 	if mime == "" || mime == "application/octet-stream" {
 		// Detect from magic bytes
 		mime = detectMimeFromBytes(data)
+	}
+	if mime == "image/svg+xml" {
+		return "", fmt.Errorf("SVG URLs cannot be used as image fills — Figma's createImage only accepts raster formats (PNG/JPG/WebP/GIF). To import an SVG as vector nodes, use shape.create_from_svg with the SVG content instead")
 	}
 
 	encoded := base64.StdEncoding.EncodeToString(data)
