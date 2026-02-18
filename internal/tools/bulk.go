@@ -43,8 +43,14 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 				return errResult, nil
 			}
 
+			// Auto-normalize LLM output (fences, comments, type→command, top-level props)
+			opsBytes, fixes, fixErr := batchutil.FixBatchOps([]byte(opsStr))
+			if fixErr != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("cannot parse operations JSON: %v", fixErr)), nil
+			}
+
 			var ops []BulkOperation
-			if err := json.Unmarshal([]byte(opsStr), &ops); err != nil {
+			if err := json.Unmarshal(opsBytes, &ops); err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("invalid operations JSON: %v", err)), nil
 			}
 
@@ -199,6 +205,10 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 				},
 				"stoppedEarly": stoppedEarly,
 				"steps":        results,
+			}
+
+			if len(fixes) > 0 {
+				out["autoNormalized"] = fixes
 			}
 
 			text, err := formatResult(out)
