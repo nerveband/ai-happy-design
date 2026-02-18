@@ -842,7 +842,7 @@ func LLMCatalog() map[string]interface{} {
 			},
 		},
 		"quickPrompts": []string{
-			"VALIDATE ALWAYS: Run 'ai-happy-design validate --fix ops.json' before every batch. Fixes fences, type→command, top-level params automatically. Exit 0 = safe.",
+			"BATCH AUTO-NORMALIZES: 'ai-happy-design batch ops.json' auto-fixes fences, type→command, JSON comments, top-level params before running. Use --no-fix for strict mode. Use validate --fix to inspect corrections without running.",
 			"For CREATING designs: use auto-layout frames. Create frames with layoutMode, itemSpacing, padding in one call. Batch for multiple elements.",
 			"For EDITING existing nodes: use single commands like paint.set_solid or node.resize.",
 			"DEFAULT: Use auto-layout (flexbox) for ALL layout. Absolute positioning only for decorative overlays.",
