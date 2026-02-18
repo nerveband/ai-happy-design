@@ -222,7 +222,7 @@ var compoundAliases = map[string]commandRoute{
 	"node.send_to_back":   {Domain: "layer", Action: "send_to_back"},
 	"node.bring_forward":  {Domain: "layer", Action: "bring_forward"},
 	"node.send_backward":  {Domain: "layer", Action: "send_backward"},
-	"node.move_to_parent": {Domain: "layer", Action: "insert_child"},
+	"node.move_to_parent": {Domain: "layer", Action: "move_to_parent"},
 	"node.reorder":        {Domain: "layer", Action: "set_order"},
 	// Design system — LLMs might try document.*
 	"document.analyze":           {Domain: "design_system", Action: "analyze"},
@@ -231,6 +231,7 @@ var compoundAliases = map[string]commandRoute{
 }
 
 func resolveCommandRoute(command string, params map[string]interface{}) (string, string, error) {
+	command = strings.TrimSpace(command)
 	// Check compound aliases first — catches LLM hallucinations like "document.list_pages"
 	if route, ok := compoundAliases[command]; ok {
 		return route.Domain, route.Action, nil
