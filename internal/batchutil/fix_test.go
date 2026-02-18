@@ -1,6 +1,8 @@
 package batchutil_test
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/nerveband/ai-happy-design/internal/batchutil"
@@ -14,6 +16,17 @@ func TestStripMarkdownFences(t *testing.T) {
 	}
 }
 
+func TestStripMarkdownFences_TrailingNewline(t *testing.T) {
+	// Model often appends a trailing newline after the closing fence
+	in := "```json\n[{\"command\":\"frame\",\"params\":{}}]\n```\n"
+	out := batchutil.StripMarkdownFences([]byte(in))
+	got := strings.TrimSpace(string(out))
+	want := `[{"command":"frame","params":{}}]`
+	if got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+}
+
 func TestFixBatchOps_TypeToCommand(t *testing.T) {
 	in := []byte(`[{"type":"frame","params":{}}]`)
 	fixed, fixes, err := batchutil.FixBatchOps(in)
@@ -23,8 +36,15 @@ func TestFixBatchOps_TypeToCommand(t *testing.T) {
 	if len(fixes) == 0 {
 		t.Fatal("expected fixes")
 	}
-	if string(fixed) == string(in) {
-		t.Fatal("data unchanged")
+	var ops []map[string]interface{}
+	if err := json.Unmarshal(fixed, &ops); err != nil {
+		t.Fatalf("output is not valid JSON: %v", err)
+	}
+	if _, hasType := ops[0]["type"]; hasType {
+		t.Fatal("output still has 'type' field")
+	}
+	if cmd, _ := ops[0]["command"].(string); cmd != "frame" {
+		t.Fatalf("expected command=frame, got %q", cmd)
 	}
 }
 
@@ -48,8 +68,12 @@ func TestFixBatchOps_UnwrapDict(t *testing.T) {
 	if len(fixes) == 0 {
 		t.Fatal("expected unwrap fix")
 	}
-	if len(fixed) == 0 {
-		t.Fatal("empty output")
+	var arr []map[string]interface{}
+	if err := json.Unmarshal(fixed, &arr); err != nil {
+		t.Fatalf("output is not a valid JSON array: %v", err)
+	}
+	if len(arr) != 1 {
+		t.Fatalf("expected 1 element, got %d", len(arr))
 	}
 }
 

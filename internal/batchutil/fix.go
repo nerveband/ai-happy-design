@@ -1,7 +1,6 @@
 package batchutil
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -28,12 +27,21 @@ func StripMarkdownFences(data []byte) []byte {
 	}
 	lines := strings.Split(s, "\n")
 	var filtered []string
+	// Find the last non-empty line to check for closing fence
+	lastNonEmpty := len(lines) - 1
+	for lastNonEmpty > 0 && strings.TrimSpace(lines[lastNonEmpty]) == "" {
+		lastNonEmpty--
+	}
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if i == 0 && strings.HasPrefix(trimmed, "```") {
 			continue
 		}
-		if i == len(lines)-1 && trimmed == "```" {
+		if i == lastNonEmpty && trimmed == "```" {
+			continue
+		}
+		// Skip trailing empty lines after the closing fence
+		if i > lastNonEmpty {
 			continue
 		}
 		filtered = append(filtered, line)
@@ -49,18 +57,18 @@ func FixBatchOps(data []byte) ([]byte, []string, error) {
 
 	// Unwrap {"ops": [...]} or any single-key dict wrapping an array.
 	// Models often output {"ops": [...]} instead of bare [...].
+	// Guard: only unwrap if the dict has exactly one key to avoid non-deterministic selection.
 	var raw interface{}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, nil, err
 	}
 	var fixes []string
-	if obj, isObj := raw.(map[string]interface{}); isObj {
+	if obj, isObj := raw.(map[string]interface{}); isObj && len(obj) == 1 {
 		for k, v := range obj {
 			if arr, isArr := v.([]interface{}); isArr {
 				fixes = append(fixes, fmt.Sprintf("unwrapped dict key %q to get ops array", k))
 				b, _ := json.Marshal(arr)
 				data = b
-				break
 			}
 		}
 	}
@@ -80,12 +88,15 @@ func FixBatchOps(data []byte) ([]byte, []string, error) {
 			if _, hasCmd := op["command"]; !hasCmd {
 				op["command"] = typeVal
 				fixes = append(fixes, label+`: renamed "type" to "command"`)
+			} else {
+				fixes = append(fixes, label+`: removed redundant "type" field (command already present)`)
 			}
 			delete(op, "type")
 		}
 
-		// Ensure params exists
+		// Ensure params exists; track whether it was nil before
 		params, _ := op["params"].(map[string]interface{})
+		paramsWasNil := params == nil
 		if params == nil {
 			params = map[string]interface{}{}
 		}
@@ -103,7 +114,10 @@ func FixBatchOps(data []byte) ([]byte, []string, error) {
 			fixes = append(fixes, fmt.Sprintf(`%s: moved %s into "params"`, label, strings.Join(hoisted, ", ")))
 		}
 
-		op["params"] = params
+		// Only write params back when hoisting occurred or params was nil
+		if len(hoisted) > 0 || paramsWasNil {
+			op["params"] = params
+		}
 		ops[i] = op
 	}
 
@@ -111,9 +125,5 @@ func FixBatchOps(data []byte) ([]byte, []string, error) {
 	if err != nil {
 		return nil, fixes, err
 	}
-	// Preserve ${{...}} interpolation tokens — json.Marshal HTML-escapes < > & by default
-	fixed = bytes.ReplaceAll(fixed, []byte(`\u0026`), []byte(`&`))
-	fixed = bytes.ReplaceAll(fixed, []byte(`\u003c`), []byte(`<`))
-	fixed = bytes.ReplaceAll(fixed, []byte(`\u003e`), []byte(`>`))
 	return fixed, fixes, nil
 }
