@@ -153,6 +153,22 @@ func TestFixBatchOps_StripFencesThenFix(t *testing.T) {
 	}
 }
 
+func TestFixBatchOps_UnwrapDictWrapper(t *testing.T) {
+	// Model outputs {"ops": [...]} instead of bare [...]
+	input := `{"ops":[{"name":"bg","command":"frame","params":{"x":0}}]}`
+	fixed, fixes, err := fixBatchOps([]byte(input))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(fixes) == 0 {
+		t.Error("expected fix for dict unwrap")
+	}
+	errs := validateBatchOps(fixed)
+	if len(errs) != 0 {
+		t.Errorf("expected valid after unwrap, got: %v", errs)
+	}
+}
+
 func TestValidateWithFix_EndToEnd(t *testing.T) {
 	// Simulates the full --fix workflow: bad input → fixed → valid
 	bad := `[{"name":"bg","type":"frame","x":0,"y":0,"color":"#1a1a1a","params":{}}]`

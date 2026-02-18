@@ -128,12 +128,29 @@ func stripMarkdownFences(data []byte) []byte {
 func fixBatchOps(data []byte) ([]byte, []string, error) {
 	data = stripMarkdownFences(data)
 
-	var ops []map[string]interface{}
-	if err := json.Unmarshal(data, &ops); err != nil {
+	// Unwrap {"ops": [...]} or any single-key dict wrapping an array
+	// Models often output {"ops": [...]} instead of bare [...]
+	var raw interface{}
+	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, nil, err
 	}
-
 	var fixes []string
+	if obj, isObj := raw.(map[string]interface{}); isObj {
+		// Find the first array value
+		for k, v := range obj {
+			if arr, isArr := v.([]interface{}); isArr {
+				fixes = append(fixes, fmt.Sprintf("unwrapped dict key %q to get ops array", k))
+				b, _ := json.Marshal(arr)
+				data = b
+				break
+			}
+		}
+	}
+
+	var ops []map[string]interface{}
+	if err := json.Unmarshal(data, &ops); err != nil {
+		return nil, fixes, err
+	}
 	for i, op := range ops {
 		label := fmt.Sprintf("op[%d]", i)
 		if name, ok := op["name"].(string); ok && name != "" {

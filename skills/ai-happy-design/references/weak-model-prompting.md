@@ -149,8 +149,8 @@ Use the CLI — no Python needed:
 # Fix common issues in-place, then validate
 ai-happy-design validate --fix output.json
 
-# Fix from stdin (e.g. piped from model call), output corrected JSON
-echo '{"ops":[...]}' | python3 -c "import sys,json; d=json.load(sys.stdin); print(json.dumps(d['ops'] if isinstance(d,dict) else d))" | ai-happy-design validate --fix -
+# Fix from stdin — also handles {"ops": [...]} dict wrapper automatically
+echo '{"ops":[...]}' | ai-happy-design validate --fix -
 
 # Full workflow
 ai-happy-design validate --fix output.json && ai-happy-design batch output.json
