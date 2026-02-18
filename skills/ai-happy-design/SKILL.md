@@ -169,7 +169,7 @@ For designs needing 30+ ops, split into multiple files and run sequentially:
 ```bash
 ai-happy-design batch phase1.json && ai-happy-design batch phase2.json
 ```
-Use `ai-happy-design validate` to catch schema errors before sending.
+Use `ai-happy-design validate --fix` to auto-correct and validate before sending.
 
 ### Batch Aliases
 
@@ -464,7 +464,8 @@ ai-happy-design batch f1.json f2.json f3.json        # multi-file batch
 ai-happy-design batch ./slides/                       # directory batch
 ai-happy-design batch f1.json f2.json --parallel      # concurrent execution
 ai-happy-design validate batch.json                  # validate batch schema before sending to Figma
-cat model-output.json | ai-happy-design validate -   # validate from stdin
+ai-happy-design validate --fix batch.json            # auto-fix common issues then validate (recommended for model output)
+cat model-output.json | ai-happy-design validate --fix -  # fix + validate from stdin; outputs corrected JSON
 ai-happy-design --port 4000 command ...               # custom port
 ai-happy-design actions                               # list all available actions
 ai-happy-design tools                                 # full tool catalog
@@ -487,7 +488,8 @@ ai-happy-design tools                                 # full tool catalog
 - **Wrong domain for layer ops**: Use `layer.group` / `layer.bring_to_front` / `layer.send_to_back` — these are NOT under `node.*`
 - **Design system scan**: `design_system.analyze` not `document.analyze` or `document.get_design_system`
 - **Compact tree for discovery**: `node.get_tree {"nodeId":"...", "compact":true}` gives a flat summary array — 3-5x fewer tokens than default
-- **`type` instead of `command`**: The batch format uses `"command"`, not `"type"`. Always `{"command": "node.create_frame", ...}`.
-- **Top-level params**: ALL design properties go inside `"params"`: `{"command":"...","params":{"x":0,"color":"#fff"}}` — never `{"command":"...","x":0,"color":"#fff"}`.
-- **Step name mismatch**: If a step is named `"bg"`, reference it as `${{steps.bg.result.id}}` — not `background`, `Background`, `root`. Mismatch fails silently.
+- **`type` instead of `command`**: Use `"command"` not `"type"`. Run `validate --fix` to auto-correct this.
+- **Top-level params**: x, y, color, etc. must be inside `"params"`. Run `validate --fix` to auto-correct this.
+- **Step name mismatch**: If a step is named `"bg"`, reference it as `${{steps.bg.result.id}}` — not `background`, `Background`, `root`. `validate` catches this but cannot auto-fix it (step name is ambiguous).
 - **Over-length batches**: Keep ≤15 ops per batch file. Schema compliance degrades at 30+ ops in production. Split large designs.
+- **Always run `validate --fix` on model output** before `batch` — catches and fixes common drift automatically.

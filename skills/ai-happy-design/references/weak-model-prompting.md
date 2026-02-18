@@ -10,13 +10,21 @@ All patterns below were validated in a real parallel generation session (36 slid
 ```
 Smaller/faster model (creative, parallel)
   → generates {"ops": [...]} JSON per design
-  → strip markdown fences (always needed, even with explicit "no markdown" prompt)
-  → Python normalize/validate (fix common drift, reject garbage)
-  → ai-happy-design validate output.json (final deterministic check)
-  → ai-happy-design batch output.json (only reaches Figma if clean)
+  → ai-happy-design validate --fix output.json   (fixes fences, type→command, top-level props)
+  → ai-happy-design batch output.json            (sends to Figma only if valid)
 ```
 
-**Never send model output directly to Figma.** Always normalize first.
+The CLI handles all normalization. **The model's only job is generating JSON.**
+
+`validate --fix` auto-corrects:
+- Markdown fences (` ```json ... ``` ` wrappers models add despite being told not to)
+- `"type"` → `"command"` rename
+- Top-level design props (`x`, `y`, `color`, etc.) hoisted into `"params"`
+
+What `validate --fix` cannot fix (model must get right):
+- Step name mismatches in `${{steps.X.result.id}}` references
+- Missing `"command"` entirely
+- Structurally invalid JSON
 
 ---
 
@@ -133,50 +141,22 @@ def call_model(api_key: str, endpoint: str, model: str,
 
 ---
 
-## Python Normalizer
+## Normalization
 
-Run on model output BEFORE sending to the CLI. Fixes common drift, rejects unrecoverable ops.
+Use the CLI — no Python needed:
 
-```python
-TOP_LEVEL_PARAMS = {
-    "x","y","width","height","w","h","color","bg","fillColor","cornerRadius","r",
-    "parentId","pid","fontSize","sz","fontFamily","ff","fontStyle","fs","lineHeight","lh",
-    "text","opacity","stroke","strokeWidth","sw","letterSpacing","ls","textCase","textAlign",
-    "layoutMode","itemSpacing","padding","primaryAxisAlign","counterAxisAlign","imageData",
-    "noFill","clipsContent","primaryAxisSizing","counterAxisSizing",
-}
+```bash
+# Fix common issues in-place, then validate
+ai-happy-design validate --fix output.json
 
-def normalize_ops(ops: list) -> list:
-    """Normalize model output: fix type→command, hoist top-level params into params dict."""
-    result = []
-    for op in ops:
-        if not isinstance(op, dict):
-            continue
-        normalized = {}
+# Fix from stdin (e.g. piped from model call), output corrected JSON
+echo '{"ops":[...]}' | python3 -c "import sys,json; d=json.load(sys.stdin); print(json.dumps(d['ops'] if isinstance(d,dict) else d))" | ai-happy-design validate --fix -
 
-        # Fix "type" → "command"
-        if "type" in op and "command" not in op:
-            normalized["command"] = op.pop("type")
-
-        # Copy known op-level fields
-        for k in ("name", "command", "params"):
-            if k in op:
-                normalized[k] = op[k]
-
-        # Hoist misplaced design props into params
-        params = dict(normalized.get("params") or {})
-        for k, v in op.items():
-            if k in TOP_LEVEL_PARAMS:
-                params[k] = v
-        if params:
-            normalized["params"] = params
-
-        # Drop ops with no command — unrecoverable
-        if "command" in normalized and "params" in normalized:
-            result.append(normalized)
-
-    return result
+# Full workflow
+ai-happy-design validate --fix output.json && ai-happy-design batch output.json
 ```
+
+The `--fix` flag handles what the Python `normalize_ops()` function used to do. No custom normalization code needed.
 
 ---
 
@@ -254,7 +234,7 @@ Adds ~1s. Catches residual drift before the CLI gate.
 
 ```python
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import subprocess
+import subprocess, json, os
 
 designs = [
     {"id": "post_1", "spec": "Hero image post, brand blue, white text",
@@ -275,18 +255,24 @@ Output ONLY {{"ops": [...]}}. Max 15 ops."""
         json.dump(ops, f, indent=2)
     return design["id"], path
 
+# Generate all in parallel
 with ThreadPoolExecutor(max_workers=8) as ex:
     futures = {ex.submit(generate_one, d): d["id"] for d in designs}
     for fut in as_completed(futures):
         slide_id, path = fut.result()
-        print(f"✓ {slide_id} → {path}")
+        print(f"✓ generated {slide_id} → {path}")
 
-# Validate then send
+# Fix, validate, send — CLI handles all normalization
 for design in designs:
     path = f"/tmp/batch_{design['id']}.json"
-    r = subprocess.run(["ai-happy-design", "validate", path], capture_output=True)
+    # --fix auto-corrects fences, type→command, top-level props
+    r = subprocess.run(["ai-happy-design", "validate", "--fix", path],
+                       capture_output=True, text=True)
     if r.returncode == 0:
         subprocess.run(["ai-happy-design", "batch", path])
+        print(f"✓ sent {design['id']}")
     else:
-        print(f"✗ {design['id']} validation failed:\n{r.stderr.decode()}")
+        print(f"✗ {design['id']} still invalid after fix:\n{r.stderr}")
 ```
+
+No Python normalization code. The model generates JSON, the CLI fixes and validates it.
