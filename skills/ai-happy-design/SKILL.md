@@ -463,6 +463,8 @@ ai-happy-design batch operations.json
 ai-happy-design batch f1.json f2.json f3.json        # multi-file batch
 ai-happy-design batch ./slides/                       # directory batch
 ai-happy-design batch f1.json f2.json --parallel      # concurrent execution
+ai-happy-design validate batch.json                  # validate batch schema before sending to Figma
+cat model-output.json | ai-happy-design validate -   # validate from stdin
 ai-happy-design --port 4000 command ...               # custom port
 ai-happy-design actions                               # list all available actions
 ai-happy-design tools                                 # full tool catalog
