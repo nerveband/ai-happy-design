@@ -66,7 +66,7 @@ Full CSS-to-Figma mapping: See [references/css-to-figma.md](references/css-to-fi
 3. **Think in CSS**: Picture the design as a webpage. What HTML elements? What CSS?
 4. **Create in one step**: Use `node.create_frame` with all params — no need for separate commands
 5. **Batch create**: Build a JSON array of operations. Write to a file.
-6. **Validate & fix**: `ai-happy-design validate --fix ops.json` — auto-corrects schema drift (fences, `type`→`command`, top-level props). Then `ai-happy-design batch ops.json`
+6. **Send batch**: `ai-happy-design batch ops.json` — auto-normalizes LLM output before sending (fences, `type`→`command`, top-level props, JSON comments). Use `--no-fix` for strict mode.
 7. **Balance check**: All siblings MUST match — same height, padding, spacing, radius, text sizes
 8. **Export & verify**: `ai-happy-design command export.image '{"nodeId": "...", "scale": 2}' -o output.png`
 
@@ -170,7 +170,7 @@ For designs needing 30+ ops, split into multiple files and run sequentially:
 ```bash
 ai-happy-design batch phase1.json && ai-happy-design batch phase2.json
 ```
-Use `ai-happy-design validate --fix` to auto-correct and validate before sending.
+The `batch` command auto-normalizes input. Use `ai-happy-design validate --fix` to inspect what would be corrected without running.
 
 ### Batch Aliases
 
@@ -464,9 +464,10 @@ ai-happy-design batch operations.json
 ai-happy-design batch f1.json f2.json f3.json        # multi-file batch
 ai-happy-design batch ./slides/                       # directory batch
 ai-happy-design batch f1.json f2.json --parallel      # concurrent execution
-ai-happy-design validate batch.json                  # validate batch schema before sending to Figma
-ai-happy-design validate --fix batch.json            # auto-fix common issues then validate (recommended for model output)
-cat model-output.json | ai-happy-design validate --fix -  # fix + validate from stdin; outputs corrected JSON
+ai-happy-design validate batch.json             # inspect batch schema (batch already auto-normalizes — this is for debugging)
+ai-happy-design validate --fix batch.json       # preview what auto-fix would do, without running
+ai-happy-design batch --no-fix batch.json       # strict mode — disable auto-normalization
+cat model-output.json | ai-happy-design validate --fix -  # preview fixes from stdin; outputs corrected JSON
 ai-happy-design --port 4000 command ...               # custom port
 ai-happy-design actions                               # list all available actions
 ai-happy-design tools                                 # full tool catalog
@@ -493,4 +494,4 @@ ai-happy-design tools                                 # full tool catalog
 - **Top-level params**: x, y, color, etc. must be inside `"params"`. Run `validate --fix` to auto-correct this.
 - **Step name mismatch**: If a step is named `"bg"`, reference it as `${{steps.bg.result.id}}` — not `background`, `Background`, `root`. `validate` catches this but cannot auto-fix it (step name is ambiguous).
 - **Over-length batches**: Keep ≤15 ops per batch file. Schema compliance degrades at 30+ ops in production. Split large designs.
-- **Always run `validate --fix` on model output** before `batch` — catches and fixes common drift automatically.
+- **`batch` auto-normalizes**: fences, `type`→`command`, JSON comments, top-level params are all corrected automatically. Use `validate --fix` to inspect what would be fixed; use `--no-fix` to disable.
