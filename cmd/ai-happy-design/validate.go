@@ -1,14 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
+
+var validateFixFlag bool
 
 var validateCmd = &cobra.Command{
 	Use:   "validate [file.json or '-' for stdin]",
@@ -21,19 +25,53 @@ Detects:
   - Design properties at top level instead of inside params
   - Broken ${{steps.X.result.id}} references (X not defined as a step name)
 
+Use --fix to auto-correct common issues in-place before validating:
+  - Strips markdown fences (models add these even when told not to)
+  - Renames "type" to "command"
+  - Hoists top-level design props (x, y, color, etc.) into "params"
+
 Exit code 0 = valid, 1 = validation errors found.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		fromFile := len(args) > 0 && args[0] != "-"
+
 		var data []byte
 		var err error
-
-		if len(args) == 0 || args[0] == "-" {
-			data, err = io.ReadAll(os.Stdin)
-		} else {
+		if fromFile {
 			data, err = os.ReadFile(args[0])
+		} else {
+			data, err = io.ReadAll(os.Stdin)
 		}
 		if err != nil {
 			return fmt.Errorf("read error: %w", err)
+		}
+
+		if validateFixFlag {
+			fixed, fixes, fixErr := fixBatchOps(data)
+			if fixErr != nil {
+				fmt.Fprintf(os.Stderr, "✗ Could not parse input: %v\n", fixErr)
+				os.Exit(1)
+				return nil
+			}
+
+			if len(fixes) > 0 {
+				fmt.Fprintf(os.Stderr, "✎ Applied %d fix(es):\n", len(fixes))
+				for _, f := range fixes {
+					fmt.Fprintf(os.Stderr, "  %s\n", f)
+				}
+				if fromFile {
+					if writeErr := os.WriteFile(args[0], fixed, 0644); writeErr != nil {
+						return fmt.Errorf("write error: %w", writeErr)
+					}
+					fmt.Fprintf(os.Stderr, "  → written back to %s\n", args[0])
+				} else {
+					// stdin mode: emit fixed JSON to stdout
+					fmt.Println(string(fixed))
+					return nil
+				}
+				fmt.Fprintln(os.Stderr, "")
+			}
+			data = fixed
 		}
 
 		errs := validateBatchOps(data)
@@ -63,6 +101,88 @@ var knownTopLevelProps = []string{
 
 var interpolationRef = regexp.MustCompile(`\$\{\{steps\.([a-zA-Z0-9_]+)\.result\.[a-z]+\}\}`)
 
+// stripMarkdownFences removes ```json ... ``` or ``` ... ``` wrappers that
+// models add even when explicitly told not to.
+func stripMarkdownFences(data []byte) []byte {
+	s := strings.TrimSpace(string(data))
+	if !strings.HasPrefix(s, "```") {
+		return data
+	}
+	lines := strings.Split(s, "\n")
+	var filtered []string
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if i == 0 && strings.HasPrefix(trimmed, "```") {
+			continue // opening fence
+		}
+		if i == len(lines)-1 && trimmed == "```" {
+			continue // closing fence
+		}
+		filtered = append(filtered, line)
+	}
+	return []byte(strings.Join(filtered, "\n"))
+}
+
+// fixBatchOps applies auto-corrections to common model output drift.
+// Returns: fixed JSON bytes, list of human-readable fix descriptions, error.
+func fixBatchOps(data []byte) ([]byte, []string, error) {
+	data = stripMarkdownFences(data)
+
+	var ops []map[string]interface{}
+	if err := json.Unmarshal(data, &ops); err != nil {
+		return nil, nil, err
+	}
+
+	var fixes []string
+	for i, op := range ops {
+		label := fmt.Sprintf("op[%d]", i)
+		if name, ok := op["name"].(string); ok && name != "" {
+			label = fmt.Sprintf("op[%d] %q", i, name)
+		}
+
+		// Fix "type" → "command"
+		if typeVal, hasType := op["type"]; hasType {
+			if _, hasCmd := op["command"]; !hasCmd {
+				op["command"] = typeVal
+				fixes = append(fixes, label+`: renamed "type" to "command"`)
+			}
+			delete(op, "type")
+		}
+
+		// Ensure params exists
+		params, _ := op["params"].(map[string]interface{})
+		if params == nil {
+			params = map[string]interface{}{}
+		}
+
+		// Hoist known top-level design props into params
+		var hoisted []string
+		for _, prop := range knownTopLevelProps {
+			if val, ok := op[prop]; ok {
+				params[prop] = val
+				delete(op, prop)
+				hoisted = append(hoisted, prop)
+			}
+		}
+		if len(hoisted) > 0 {
+			fixes = append(fixes, fmt.Sprintf(`%s: moved %s into "params"`, label, strings.Join(hoisted, ", ")))
+		}
+
+		op["params"] = params
+		ops[i] = op
+	}
+
+	fixed, err := json.MarshalIndent(ops, "", "  ")
+	if err != nil {
+		return nil, fixes, err
+	}
+	// Preserve ${{...}} interpolation — json.Marshal escapes < > & by default
+	fixed = bytes.ReplaceAll(fixed, []byte(`\u0026`), []byte(`&`))
+	fixed = bytes.ReplaceAll(fixed, []byte(`\u003c`), []byte(`<`))
+	fixed = bytes.ReplaceAll(fixed, []byte(`\u003e`), []byte(`>`))
+	return fixed, fixes, nil
+}
+
 func validateBatchOps(data []byte) []string {
 	var ops []map[string]interface{}
 	if err := json.Unmarshal(data, &ops); err != nil {
@@ -82,24 +202,17 @@ func validateBatchOps(data []byte) []string {
 			label = fmt.Sprintf("op[%d] %q", i, name)
 		}
 
-		// "type" instead of "command"
 		if _, hasType := op["type"]; hasType {
 			errs = append(errs, label+`: use "command" not "type"`)
 		}
-
-		// Missing "command"
 		if cmd, ok := op["command"].(string); !ok || cmd == "" {
 			errs = append(errs, label+`: missing "command" field`)
 		}
-
-		// Missing or wrong-type "params"
 		if p, hasParams := op["params"]; !hasParams {
 			errs = append(errs, label+`: missing "params" field`)
 		} else if _, ok := p.(map[string]interface{}); !ok {
 			errs = append(errs, label+`: "params" must be an object`)
 		}
-
-		// Design props at top level
 		for _, prop := range knownTopLevelProps {
 			if _, ok := op[prop]; ok {
 				errs = append(errs, fmt.Sprintf(`%s: %q must be inside "params", not at top level`, label, prop))
@@ -107,7 +220,6 @@ func validateBatchOps(data []byte) []string {
 		}
 	}
 
-	// Second pass: validate all interpolation references
 	raw, _ := json.Marshal(ops)
 	for _, m := range interpolationRef.FindAllSubmatch(raw, -1) {
 		refName := string(m[1])
@@ -120,5 +232,6 @@ func validateBatchOps(data []byte) []string {
 }
 
 func init() {
+	validateCmd.Flags().BoolVar(&validateFixFlag, "fix", false, "Auto-fix common issues: markdown fences, type→command, top-level params")
 	rootCmd.AddCommand(validateCmd)
 }

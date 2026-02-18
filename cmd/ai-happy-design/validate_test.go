@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -74,5 +75,96 @@ func TestValidateBatchOps_ShortAliasCommands(t *testing.T) {
 	errs := validateBatchOps([]byte(input))
 	if len(errs) != 0 {
 		t.Errorf("short alias commands should be valid, got: %v", errs)
+	}
+}
+
+func TestStripMarkdownFences_WithFences(t *testing.T) {
+	input := "```json\n[{\"name\":\"bg\"}]\n```"
+	result := stripMarkdownFences([]byte(input))
+	if strings.Contains(string(result), "```") {
+		t.Errorf("expected fences stripped, got: %s", result)
+	}
+	if !strings.Contains(string(result), `"name"`) {
+		t.Errorf("expected JSON content preserved, got: %s", result)
+	}
+}
+
+func TestStripMarkdownFences_WithoutFences(t *testing.T) {
+	input := `[{"name":"bg","command":"frame","params":{}}]`
+	result := stripMarkdownFences([]byte(input))
+	if string(result) != input {
+		t.Errorf("expected unchanged input, got: %s", result)
+	}
+}
+
+func TestFixBatchOps_TypeToCommand(t *testing.T) {
+	input := `[{"name":"bg","type":"frame","params":{"x":0}}]`
+	fixed, fixes, err := fixBatchOps([]byte(input))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(fixes) == 0 {
+		t.Error("expected at least one fix")
+	}
+	var ops []map[string]interface{}
+	json.Unmarshal(fixed, &ops)
+	if _, hasType := ops[0]["type"]; hasType {
+		t.Error("expected 'type' to be removed")
+	}
+	if cmd, ok := ops[0]["command"].(string); !ok || cmd != "frame" {
+		t.Errorf("expected command=frame, got: %v", ops[0]["command"])
+	}
+}
+
+func TestFixBatchOps_HoistTopLevelProps(t *testing.T) {
+	input := `[{"name":"bg","command":"frame","params":{},"x":10,"y":20,"color":"#fff"}]`
+	fixed, fixes, err := fixBatchOps([]byte(input))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(fixes) == 0 {
+		t.Error("expected fixes for hoisted props")
+	}
+	var ops []map[string]interface{}
+	json.Unmarshal(fixed, &ops)
+	params := ops[0]["params"].(map[string]interface{})
+	if params["x"] == nil || params["y"] == nil || params["color"] == nil {
+		t.Errorf("expected x, y, color in params, got: %v", params)
+	}
+	if ops[0]["x"] != nil || ops[0]["color"] != nil {
+		t.Error("expected x and color removed from top level")
+	}
+}
+
+func TestFixBatchOps_StripFencesThenFix(t *testing.T) {
+	// Model output with both fences AND type error
+	input := "```json\n[{\"name\":\"bg\",\"type\":\"frame\",\"x\":0,\"params\":{}}]\n```"
+	fixed, fixes, err := fixBatchOps([]byte(input))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(fixes) == 0 {
+		t.Error("expected fixes applied")
+	}
+	// After fix, should be valid
+	errs := validateBatchOps(fixed)
+	if len(errs) != 0 {
+		t.Errorf("expected valid after fix, got errors: %v", errs)
+	}
+}
+
+func TestValidateWithFix_EndToEnd(t *testing.T) {
+	// Simulates the full --fix workflow: bad input → fixed → valid
+	bad := `[{"name":"bg","type":"frame","x":0,"y":0,"color":"#1a1a1a","params":{}}]`
+	fixed, fixes, err := fixBatchOps([]byte(bad))
+	if err != nil {
+		t.Fatalf("fixBatchOps error: %v", err)
+	}
+	if len(fixes) == 0 {
+		t.Error("expected fixes")
+	}
+	errs := validateBatchOps(fixed)
+	if len(errs) != 0 {
+		t.Errorf("expected clean after fix, got: %v", errs)
 	}
 }
