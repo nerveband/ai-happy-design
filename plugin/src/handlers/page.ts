@@ -5,6 +5,9 @@ export async function handlePage(action: string, params: any): Promise<any> {
     case 'create': return createPage(params);
     case 'delete': return deletePage(params);
     case 'rename': return renamePage(params);
+    case 'switch':        // alias for set_current
+    case 'navigate':      // alias for set_current
+    case 'go_to':         // alias for set_current
     case 'set_current': return setCurrentPage(params);
     case 'list':
     case 'list_pages':
@@ -15,7 +18,7 @@ export async function handlePage(action: string, params: any): Promise<any> {
     case 'get_active':
     case 'get_current': return getCurrentPage(params);
     case 'duplicate': return duplicatePage(params);
-    default: throw new Error('Unknown page action: ' + action + '. Available: create, delete, rename, set_current, get_all, get_current, duplicate');
+    default: throw new Error('Unknown page action: ' + action + '. Available: create, delete, rename, set_current (aliases: switch, navigate), get_all, get_current, duplicate');
   }
 }
 

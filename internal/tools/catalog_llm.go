@@ -852,6 +852,45 @@ func LLMCatalog() map[string]interface{} {
 			"FONTS: Call text.list_fonts {fontFamily:'Inter'} to discover available fonts and styles.",
 			"BATCH EXPORT: export.batch {nodeIds:'id1,id2', format:'PNG', scale:2} to export multiple frames.",
 		},
+		"commonMistakes": map[string]interface{}{
+			"_overview": "Silent failures and wrong parameter names that cause designs to look wrong without any error. Read this section before debugging.",
+			"parameterNames": map[string]interface{}{
+				"textColor":         "Use 'color' NOT 'fillColor' on text.create. fillColor is a frame parameter. text.create {text:'...', color:'#FF0000'} ✓  text.create {text:'...', fillColor:'#FF0000'} ✗ (silently ignored)",
+				"frameColor":        "Use 'color' (NOT 'bg' or 'backgroundColor') on node.create_frame. The batch alias 'bg' works but canonical is 'color'.",
+				"fontWeight":        "fontStyle is a STRING like 'Bold', 'SemiBold', 'Regular' — NOT a number. text.create {fontStyle:'Bold'} ✓  text.create {fontWeight:700} ✗ (wrong param name).",
+				"strokeVsFill":      "stroke/strokeColor is for BORDERS. color/fillColor is for BACKGROUND FILL. Never use color to set a stroke or stroke to set a fill.",
+				"lineHeightUnit":    "MUST pass lineHeightUnit:'PERCENT'. Without it, lineHeight value is treated as PIXELS (e.g., 150px not 150%). In batch mode this is auto-fixed. In direct text.create calls, always include it.",
+				"removeFill":        "Command is paint.remove_fill (singular). paint.remove_fills (plural) is also supported as an alias but the index param is required: {nodeId, index:0}.",
+			},
+			"pageSwitching": map[string]interface{}{
+				"correct":    "page.set_current {pageId} to switch the active page. Aliases: page.switch, page.navigate, page.go_to all work.",
+				"wrong":      "page.switch used to fail with 'Unknown page action'. Now aliased to set_current.",
+				"tip":        "After creating a page with page.create, use the returned id in page.set_current to activate it.",
+			},
+			"layoutPositioning": map[string]interface{}{
+				"rule":   "layoutPositioning:ABSOLUTE is ONLY valid on children of AUTO-LAYOUT frames (layoutMode:VERTICAL or HORIZONTAL). On non-auto-layout frames, children use x/y by default — no special property needed.",
+				"wrong":  "Setting layoutPositioning:ABSOLUTE on a child of a non-auto-layout frame is silently skipped (no error).",
+				"use":    "Decorative overlays that should float on top of auto-layout content. E.g., a badge in the corner of a card.",
+			},
+			"scanScope": map[string]interface{}{
+				"scanByType": "document.scan_by_type scans ALL pages, not just the current page. Use node.get_tree {nodeId:currentPageId, compact:true} to scan only the current page.",
+				"getTree":    "node.get_tree {compact:true} returns a FLAT array (not nested). Includes parentId and depth for rebuilding hierarchy client-side.",
+			},
+			"colorParsing": map[string]interface{}{
+				"formats":  "Accepted: '#RRGGBB', '#RGB', '#RRGGBBAA' (hex with alpha), or {r,g,b} or {r,g,b,a} object (0-1 range). Invalid formats fall back to black #000000 silently.",
+				"alpha":    "For semi-transparent colors, use object form: {r:1, g:1, b:1, a:0.5}. Or 8-digit hex: '#FFFFFF80'.",
+				"opacity":  "Prefer color alpha over node opacity for text. Node opacity affects the whole node including effects.",
+			},
+			"textHeight": map[string]interface{}{
+				"widthEnablesWrap": "Setting 'width' on text.create auto-enables HEIGHT resize (text wraps within width). The returned height will be taller than fontSize.",
+				"lineHeightImpact": "A 152px text at 150% lineHeight = 228px node height. Plan Y positions accordingly — label nodes must come AFTER the text node's bottom edge.",
+				"noLineBreaks":     "NEVER use \\n in text content. Create separate text nodes for each line. \\n creates awkward fixed-height gaps.",
+			},
+			"structuralFrames": map[string]interface{}{
+				"defaultWhiteFill": "Figma adds a white fill to all new frames by default. Structural/wrapper frames should use noFill:true in node.create_frame, or call paint.remove_fill {nodeId, index:0} after creation.",
+				"visualFrames":     "Slide backgrounds, cards, and CTA buttons should keep their fill — only wrapper frames need noFill:true.",
+			},
+		},
 		"tools": toolsOut,
 	}
 }

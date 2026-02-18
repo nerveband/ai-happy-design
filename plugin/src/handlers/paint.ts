@@ -62,6 +62,9 @@ export async function handlePaint(action: string, params: any): Promise<any> {
     case 'image_from_url':
     case 'set_image_fill_from_url': return setImageUrl(params);
     case 'add_fill': return addFill(params);
+    case 'remove_fills': // alias — LLMs often use plural form
+    case 'clear_fill':
+    case 'delete_fill':
     case 'remove_fill': return removeFill(params);
     case 'fills':
     case 'list_fills':
