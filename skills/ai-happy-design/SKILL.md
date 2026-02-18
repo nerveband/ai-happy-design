@@ -441,6 +441,7 @@ The relay auto-starts on port 3055 and auto-shuts down after 15 minutes of inact
 - **[Design patterns](references/design-patterns.md)** — Layout structures, card building, color systems
 - **[Batch examples](references/batch-examples.md)** — Ready-to-use batch payloads for common designs
 - **[Advanced effects](references/advanced-effects.md)** — Glass, noise, shadows, masking, creative techniques
+- **[Weak Model Prompting](references/weak-model-prompting.md)** — System prompt template, Python normalizer, API call pattern, chunking strategy for smaller/faster models (production-validated)
 
 ## Key CLI Commands
 
