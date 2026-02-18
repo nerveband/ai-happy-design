@@ -20,6 +20,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/nerveband/ai-happy-design/internal/batchutil"
+	"github.com/nerveband/ai-happy-design/internal/benchmark"
 	"github.com/nerveband/ai-happy-design/internal/config"
 	"github.com/nerveband/ai-happy-design/internal/imgutil"
 	"github.com/nerveband/ai-happy-design/internal/mcp"
@@ -1588,6 +1589,254 @@ func runMultiBatchParallel(files []string, channelKey string) error {
 	})
 }
 
+// --- Benchmark commands ---
+
+var benchmarkRuns int
+var benchmarkAllowOverlap bool
+var benchmarkPhaseAMs int
+var benchmarkWidth int
+var benchmarkHeight int
+
+var benchmarkCmd = &cobra.Command{
+	Use:   "benchmark",
+	Short: "Provider-agnostic performance benchmarking",
+	Long: `Benchmark AI Happy Design workflows without calling any LLM API directly.
+Times stdin/stdout pipes so you can wrap ANY LLM curl call externally.
+
+Subcommands:
+  exec     Time batch execution against Figma
+  pipe     Accept batch JSON from stdin with external LLM timing
+  compare  Compare extraction methods (stub)`,
+}
+
+var benchmarkExecCmd = &cobra.Command{
+	Use:   "exec [file.json]",
+	Short: "Time batch execution only",
+	Long: `Runs a batch JSON file N times and reports aggregate timing.
+Connects to Figma for each run, executes the batch, and measures Phase B (CLI execution).
+
+Example:
+  benchmark exec ops.json --runs 5
+  benchmark exec ops.json --runs 3 --allow-overlap`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		log.SetOutput(io.Discard)
+		filePath := args[0]
+
+		if benchmarkRuns < 1 {
+			return fmt.Errorf("--runs must be >= 1")
+		}
+
+		if err := ensureRelayIfNeeded(); err != nil {
+			return err
+		}
+
+		channelKey, err := resolveChannel(batchChannel)
+		if err != nil {
+			return err
+		}
+		if err := checkPluginConnected(channelKey); err != nil {
+			return err
+		}
+
+		runs := make([]benchmark.RunResult, 0, benchmarkRuns)
+
+		for i := 0; i < benchmarkRuns; i++ {
+			fmt.Fprintf(os.Stderr, "[benchmark] run %d/%d...\n", i+1, benchmarkRuns)
+
+			result := benchExecOnce(filePath, channelKey)
+			runs = append(runs, result)
+
+			if result.Error != nil {
+				fmt.Fprintf(os.Stderr, "[benchmark] run %d error: %v\n", i+1, result.Error)
+			} else {
+				fmt.Fprintf(os.Stderr, "[benchmark] run %d: %d ops in %s (%.1f ops/s)\n",
+					i+1, result.PhaseB.OpsCount, result.PhaseB.Duration.Round(time.Millisecond),
+					float64(result.PhaseB.OpsCount)/result.PhaseB.Duration.Seconds())
+			}
+		}
+
+		agg := benchmark.Aggregate(runs)
+		fmt.Println(agg.String())
+		return nil
+	},
+}
+
+// benchExecOnce runs a single batch file and returns a RunResult with Phase B timing.
+func benchExecOnce(filePath, channelKey string) benchmark.RunResult {
+	ops, err := loadBatchOperations("", filePath)
+	if err != nil {
+		return benchmark.RunResult{Error: err}
+	}
+	if len(ops) == 0 {
+		return benchmark.RunResult{Error: fmt.Errorf("operations array is empty")}
+	}
+
+	client, err := newConnectedClient(channelKey, false)
+	if err != nil {
+		return benchmark.RunResult{Error: err}
+	}
+	defer client.Close()
+
+	if !benchmarkAllowOverlap {
+		autoPlaceRootFrames(client, ops)
+	}
+
+	retryDelay := time.Duration(batchRetryDelayMs) * time.Millisecond
+	maxAttempts := batchRetries + 1
+	opsCount := 0
+	errors := 0
+
+	start := time.Now()
+	stepStates := make([]batchutil.StepState, 0, len(ops))
+
+	for i, op := range ops {
+		op.Name = batchutil.SanitizeStepName(op.Name)
+		params := batchutil.NormalizeBatchParams(op.Command, op.Params)
+
+		if batchInterpolation {
+			interpolatedParams, iErr := batchutil.InterpolateParams(params, stepStates)
+			if iErr != nil {
+				errors++
+				stepStates = append(stepStates, batchutil.StepState{Index: i, Name: op.Name, Command: op.Command, OK: false, Error: iErr.Error()})
+				continue
+			}
+			params = interpolatedParams
+		}
+
+		// Resolve file paths in imageData
+		if resolved, changed, resolveErr := imgutil.ResolveParamsImageData(params); resolveErr != nil {
+			fmt.Fprintf(os.Stderr, "[resolve] step %d warning: %v\n", i, resolveErr)
+		} else if changed {
+			params = resolved
+		}
+
+		attempts := 0
+		var result json.RawMessage
+		var sendErr error
+		for attempts = 1; attempts <= maxAttempts; attempts++ {
+			result, sendErr = client.SendCommand(op.Command, params)
+			if sendErr == nil {
+				break
+			}
+			if attempts < maxAttempts && retryDelay > 0 {
+				time.Sleep(retryDelay)
+			}
+		}
+
+		opsCount++
+		if sendErr != nil {
+			errors++
+			stepStates = append(stepStates, batchutil.StepState{Index: i, Name: op.Name, Command: op.Command, OK: false, Error: sendErr.Error()})
+			continue
+		}
+
+		var parsed interface{}
+		if err := json.Unmarshal(result, &parsed); err != nil {
+			parsed = string(result)
+		}
+		stepStates = append(stepStates, batchutil.StepState{Index: i, Name: op.Name, Command: op.Command, OK: true, Result: parsed})
+	}
+
+	elapsed := time.Since(start)
+
+	return benchmark.RunResult{
+		PhaseB: benchmark.PhaseTiming{
+			Label:    "CLI Exec",
+			Duration: elapsed,
+			OpsCount: opsCount,
+			Errors:   errors,
+		},
+	}
+}
+
+var benchmarkPipeCmd = &cobra.Command{
+	Use:   "pipe",
+	Short: "Accept batch JSON from stdin with external LLM timing",
+	Long: `Reads batch JSON from stdin, executes it against Figma, and reports
+combined Phase A (LLM generation, user-provided) + Phase B (CLI execution) timing.
+
+User provides their LLM generation time via --phase-a-ms.
+
+Example:
+  cat ops.json | benchmark pipe --phase-a-ms 4200
+  curl ... | jq .ops | benchmark pipe --phase-a-ms 3500`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		log.SetOutput(io.Discard)
+
+		if err := ensureRelayIfNeeded(); err != nil {
+			return err
+		}
+
+		channelKey, err := resolveChannel(batchChannel)
+		if err != nil {
+			return err
+		}
+		if err := checkPluginConnected(channelKey); err != nil {
+			return err
+		}
+
+		// Read batch JSON from stdin
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeCharDevice) != 0 {
+			return fmt.Errorf("no input on stdin. Pipe batch JSON, e.g.: cat ops.json | benchmark pipe --phase-a-ms 4200")
+		}
+
+		raw, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return fmt.Errorf("failed to read stdin: %w", err)
+		}
+
+		// Write to a temp file and use benchExecOnce
+		tmpFile, err := os.CreateTemp("", "ahd-bench-*.json")
+		if err != nil {
+			return fmt.Errorf("failed to create temp file: %w", err)
+		}
+		defer os.Remove(tmpFile.Name())
+
+		if _, err := tmpFile.Write(raw); err != nil {
+			tmpFile.Close()
+			return fmt.Errorf("failed to write temp file: %w", err)
+		}
+		tmpFile.Close()
+
+		fmt.Fprintf(os.Stderr, "[benchmark] executing batch from stdin...\n")
+
+		result := benchExecOnce(tmpFile.Name(), channelKey)
+		result.PhaseA = benchmark.PhaseTiming{
+			Label:    "LLM Gen",
+			Duration: time.Duration(benchmarkPhaseAMs) * time.Millisecond,
+		}
+
+		runs := []benchmark.RunResult{result}
+		agg := benchmark.Aggregate(runs)
+		fmt.Println(agg.String())
+		return nil
+	},
+}
+
+var benchmarkCompareCmd = &cobra.Command{
+	Use:   "compare [file.html]",
+	Short: "Compare extraction methods (stub)",
+	Long: `Compare lightweight extraction vs computed extraction on an HTML file.
+Runs both extraction methods, executes the resulting batches, and prints
+a side-by-side comparison table.
+
+NOTE: This command requires the extract package (Task 5) which is being
+built in parallel. Currently stubbed.`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// TODO: Implement once the extract package (Task 5) is available.
+		// The plan:
+		// 1. Run lightweight extraction on file.html -> batch JSON A
+		// 2. Run computed extraction on file.html -> batch JSON B (if Chrome available)
+		// 3. Execute batch A N times, time it
+		// 4. Execute batch B N times, time it
+		// 5. Print side-by-side comparison table
+		return fmt.Errorf("benchmark compare is not yet implemented (waiting for extract package, Task 5)")
+	},
+}
+
 func main() {
 	rootCmd.PersistentFlags().BoolVar(&noAutoRelay, "no-auto-relay", false, "Disable CLI auto-start of local relay for connect/command/batch")
 	rootCmd.PersistentFlags().IntVar(&globalPort, "port", 0, "Override relay port (default 3055, or PORT env var)")
@@ -1648,6 +1897,24 @@ func main() {
 	rootCmd.AddCommand(setupCmd)
 	rootCmd.AddCommand(upgradeCmd)
 	rootCmd.AddCommand(registerCmd)
+
+	// Benchmark subcommands
+	benchmarkExecCmd.Flags().IntVar(&benchmarkRuns, "runs", 3, "Number of benchmark runs")
+	benchmarkExecCmd.Flags().BoolVar(&benchmarkAllowOverlap, "allow-overlap", false, "Skip auto-placement (may overlap existing work)")
+	benchmarkExecCmd.Flags().StringVar(&batchChannel, "channel", "", "Channel key override")
+
+	benchmarkPipeCmd.Flags().IntVar(&benchmarkPhaseAMs, "phase-a-ms", 0, "LLM generation time in milliseconds (user-reported)")
+	benchmarkPipeCmd.Flags().BoolVar(&benchmarkAllowOverlap, "allow-overlap", false, "Skip auto-placement (may overlap existing work)")
+	benchmarkPipeCmd.Flags().StringVar(&batchChannel, "channel", "", "Channel key override")
+
+	benchmarkCompareCmd.Flags().IntVar(&benchmarkRuns, "runs", 3, "Number of benchmark runs per method")
+	benchmarkCompareCmd.Flags().IntVar(&benchmarkWidth, "width", 1080, "Canvas width for extraction")
+	benchmarkCompareCmd.Flags().IntVar(&benchmarkHeight, "height", 1350, "Canvas height for extraction")
+
+	benchmarkCmd.AddCommand(benchmarkExecCmd)
+	benchmarkCmd.AddCommand(benchmarkPipeCmd)
+	benchmarkCmd.AddCommand(benchmarkCompareCmd)
+	rootCmd.AddCommand(benchmarkCmd)
 
 	configInitCmd.Flags().BoolVar(&configInitForce, "force", false, "Overwrite existing config file")
 	configCmd.AddCommand(configGetCmd)
