@@ -121,6 +121,24 @@ For print: add `"dpi": 300` to get point-based sizes.
 
 ## Batch Operations
 
+> **Schema Contract** — this is a custom format. Read carefully before generating.
+>
+> Every element MUST have exactly these three keys:
+> ```json
+> {"name": "stepName", "command": "domain.action", "params": {"key": "value"}}
+> ```
+> **WRONG** (common mistakes that break silently):
+> ```json
+> {"type": "node.create_frame", "x": 0, "color": "#fff"}           ← "type" not "command", params not nested
+> {"command": "frame", "name": "bg", "x": 0, "y": 0}               ← x/y at top level, not inside params
+> {"command": "text.create", "params": {"text": "Hi"}, "name": ""}  ← empty name breaks interpolation
+> ```
+> **RIGHT**:
+> ```json
+> {"name": "bg", "command": "node.create_frame", "params": {"x": 0, "y": 0, "width": 1080, "height": 1080}}
+> {"name": "title", "command": "text.create", "params": {"text": "Hello", "parentId": "${{steps.bg.result.id}}", "fontSize": 84}}
+> ```
+
 Build a JSON array with named steps and `${{steps.name.result.id}}` interpolation:
 
 ```bash
@@ -130,6 +148,28 @@ ai-happy-design batch '[
   {"command":"text","params":{"text":"Hello World","pid":"${{steps.content.result.id}}","sz":80,"fontStyle":"Bold","color":"#ffffff","textAlign":"CENTER","w":952}}
 ]'
 ```
+
+### Interpolation Rules
+
+Reference earlier step results by exact name:
+```
+${{steps.EXACT_STEP_NAME.result.id}}
+```
+
+**Rules:**
+1. Step names must be unique, snake_case, no spaces: `bg`, `card_1`, `title_text`
+2. You can only reference steps that appear EARLIER in the array
+3. The name in `${{steps.X.result.id}}` must match the `"name"` field EXACTLY — `bg` ≠ `background` ≠ `Background`
+4. **Define your step manifest before writing ops and use only those names.** Never invent a name mid-array.
+
+### Chunking Limit
+
+**Keep batches to ≤15 operations per file.** Schema compliance degrades on longer outputs — confirmed in production at 30+ ops.
+For designs needing 30+ ops, split into multiple files and run sequentially:
+```bash
+ai-happy-design batch phase1.json && ai-happy-design batch phase2.json
+```
+Use `ai-happy-design validate` to catch schema errors before sending.
 
 ### Batch Aliases
 
@@ -444,3 +484,7 @@ ai-happy-design tools                                 # full tool catalog
 - **Wrong domain for layer ops**: Use `layer.group` / `layer.bring_to_front` / `layer.send_to_back` — these are NOT under `node.*`
 - **Design system scan**: `design_system.analyze` not `document.analyze` or `document.get_design_system`
 - **Compact tree for discovery**: `node.get_tree {"nodeId":"...", "compact":true}` gives a flat summary array — 3-5x fewer tokens than default
+- **`type` instead of `command`**: The batch format uses `"command"`, not `"type"`. Always `{"command": "node.create_frame", ...}`.
+- **Top-level params**: ALL design properties go inside `"params"`: `{"command":"...","params":{"x":0,"color":"#fff"}}` — never `{"command":"...","x":0,"color":"#fff"}`.
+- **Step name mismatch**: If a step is named `"bg"`, reference it as `${{steps.bg.result.id}}` — not `background`, `Background`, `root`. Mismatch fails silently.
+- **Over-length batches**: Keep ≤15 ops per batch file. Schema compliance degrades at 30+ ops in production. Split large designs.
