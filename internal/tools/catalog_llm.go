@@ -65,8 +65,15 @@ func LLMCatalog() map[string]interface{} {
 			},
 			"create": map[string]interface{}{
 				"when": "Building new designs, layouts, multi-element compositions, or anything with 3+ elements.",
-				"how":  "1) Call document.find_free_space to get x,y. 2) Build a JSON array of operations. First step = root frame at returned x,y. Subsequent steps can use compact refs like $frame or $last (long form ${{steps.name.result.id}} still works). 3) Prefer compact command aliases (frame/rect/ellipse/text/fill/stroke/parent/autolayout). 4) Send: 'ai-happy-design batch '[...]'' or bulk.execute via MCP.",
+				"how":  "1) Call document.find_free_space to get x,y. 2) Build a JSON array of operations. First step = root frame at returned x,y. Subsequent steps can use compact refs like $frame or $last (long form ${{steps.name.result.id}} still works). 3) Prefer compact command aliases (frame/rect/ellipse/text/fill/stroke/parent/autolayout). 4) Write ops to a file. 5) VALIDATE: 'ai-happy-design validate --fix ops.json' to auto-fix schema drift. 6) Send: 'ai-happy-design batch ops.json' or bulk.execute via MCP.",
 				"why":  "One WebSocket connection, no process overhead per step, automatic ID chaining. 150 steps in ~6 seconds vs ~8 minutes with individual commands.",
+			},
+			"validateBeforeBatch": map[string]interface{}{
+				"when": "Any time model-generated batch JSON will be sent to Figma — ALWAYS.",
+				"how":  "File: 'ai-happy-design validate --fix ops.json' then 'ai-happy-design batch ops.json'. Stdin: echo '[...]' | ai-happy-design validate --fix - (outputs corrected JSON to stdout).",
+				"what": "Auto-corrects: markdown fences, type renamed to command, design props at top level hoisted into params, dict wrapper {ops:[...]} unwrapped to bare array.",
+				"cannotFix": "Step name mismatches in interpolation — reported as errors, fix by matching name fields to references exactly.",
+				"why":  "LLMs produce predictable schema drift. Validate --fix corrects all auto-fixable drift before it reaches Figma. Exit 0 = safe to batch. Exit 1 = errors remain.",
 			},
 			"edit": map[string]interface{}{
 				"when": "Changing a color, moving a node, resizing, renaming, or any single-property change on an existing node.",
@@ -282,6 +289,7 @@ func LLMCatalog() map[string]interface{} {
 			"5. THINK IN CSS: Draft the design as HTML/CSS in your head. The compute_tokens response includes a CSS analogy. Translate to Figma using the cssToFigma map.",
 			"6. HIERARCHY: Assign each element a level. Use the modular type scale from compute_tokens: display=hero stats/amounts, hero=campaign headlines, title=slide headlines, heading=section titles, subheading=labels, body=copy, caption=footnotes. Use button tokens for CTA sizing.",
 			"7. CREATE: Multi-element = batch/bulk with named steps and interpolation. Single change = direct command.",
+			"7b. VALIDATE: Before running batch, run 'ai-happy-design validate --fix ops.json'. Auto-fixes fences, type→command, top-level props. Exit 0 = safe to batch.",
 			"8. FRAME POSITIONING: Call document.find_free_space to get exact coordinates. NEVER hardcode or guess x/y for root frames.",
 			"9. BALANCE: ALL siblings MUST match — padding, spacing, radius, text sizes from compute_tokens.",
 			"10. TEXT WIDTH: After creating text inside auto-layout, resize text to contentWidth from compute_tokens.",
@@ -834,6 +842,7 @@ func LLMCatalog() map[string]interface{} {
 			},
 		},
 		"quickPrompts": []string{
+			"VALIDATE ALWAYS: Run 'ai-happy-design validate --fix ops.json' before every batch. Fixes fences, type→command, top-level params automatically. Exit 0 = safe.",
 			"For CREATING designs: use auto-layout frames. Create frames with layoutMode, itemSpacing, padding in one call. Batch for multiple elements.",
 			"For EDITING existing nodes: use single commands like paint.set_solid or node.resize.",
 			"DEFAULT: Use auto-layout (flexbox) for ALL layout. Absolute positioning only for decorative overlays.",

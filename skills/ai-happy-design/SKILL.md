@@ -65,9 +65,10 @@ Full CSS-to-Figma mapping: See [references/css-to-figma.md](references/css-to-fi
 2. **Find free space**: `ai-happy-design command document.find_free_space '{"width": 1080, "height": 1080}'`
 3. **Think in CSS**: Picture the design as a webpage. What HTML elements? What CSS?
 4. **Create in one step**: Use `node.create_frame` with all params — no need for separate commands
-5. **Batch create**: Build a JSON array of operations. Send via `ai-happy-design batch`
-6. **Balance check**: All siblings MUST match — same height, padding, spacing, radius, text sizes
-7. **Export & verify**: `ai-happy-design command export.image '{"nodeId": "...", "scale": 2}' -o output.png`
+5. **Batch create**: Build a JSON array of operations. Write to a file.
+6. **Validate & fix**: `ai-happy-design validate --fix ops.json` — auto-corrects schema drift (fences, `type`→`command`, top-level props). Then `ai-happy-design batch ops.json`
+7. **Balance check**: All siblings MUST match — same height, padding, spacing, radius, text sizes
+8. **Export & verify**: `ai-happy-design command export.image '{"nodeId": "...", "scale": 2}' -o output.png`
 
 **Auto-placement**: Batch mode auto-calls `find_free_space` before placing root frames, so your design won't overlap existing work. Use `--allow-overlap` to skip.
 
