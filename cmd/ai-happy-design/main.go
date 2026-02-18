@@ -371,6 +371,7 @@ var batchRetryDelayMs int
 var batchInterpolation bool
 var batchCompressImages bool
 var batchAllowOverlap bool
+var batchNoFix bool
 
 type batchOperation struct {
 	Name    string                 `json:"name,omitempty"`
@@ -1120,6 +1121,22 @@ func loadBatchOperations(operationsJSON, operationsFile string) ([]batchOperatio
 		}
 	}
 
+	// Auto-normalize LLM output (strip fences, fix type→command, hoist top-level params)
+	// unless --no-fix is set. Fixes are printed to stderr so callers can see corrections.
+	if !batchNoFix {
+		fixed, fixes, fixErr := batchutil.FixBatchOps(raw)
+		if fixErr != nil {
+			return nil, fmt.Errorf("cannot parse operations JSON: %w", fixErr)
+		}
+		if len(fixes) > 0 {
+			fmt.Fprintf(os.Stderr, "✎ Auto-normalized %d issue(s) in batch input:\n", len(fixes))
+			for _, f := range fixes {
+				fmt.Fprintf(os.Stderr, "  • %s\n", f)
+			}
+		}
+		raw = fixed
+	}
+
 	var ops []batchOperation
 	if err := json.Unmarshal(raw, &ops); err != nil {
 		return nil, fmt.Errorf("invalid operations JSON: %w", err)
@@ -1583,6 +1600,7 @@ func main() {
 	batchCmd.Flags().BoolVar(&batchCompressImages, "compress-images", false, "Compress imageData before sending (requires ImageMagick)")
 	batchCmd.Flags().BoolVar(&batchAllowOverlap, "allow-overlap", false, "Skip auto-placement and place frames at exact coordinates (may overlap existing work)")
 	batchCmd.Flags().BoolVar(&batchParallel, "parallel", false, "Run multiple batch files concurrently (max 4 parallel)")
+	batchCmd.Flags().BoolVar(&batchNoFix, "no-fix", false, "Skip automatic LLM output normalization (use if your JSON is already valid)")
 
 	toolsCmd.Flags().BoolVar(&catalogJSON, "json", true, "Output as JSON for machine-readable discovery")
 	toolsCmd.Flags().BoolVar(&catalogLLM, "llm", false, "Output enriched LLM-focused catalog with examples and playbook")

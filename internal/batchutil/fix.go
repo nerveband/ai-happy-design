@@ -53,7 +53,13 @@ func StripMarkdownFences(data []byte) []byte {
 // Returns: fixed JSON bytes, list of human-readable fix descriptions, error.
 // Error is non-nil only if the input cannot be parsed at all.
 func FixBatchOps(data []byte) ([]byte, []string, error) {
-	data = StripMarkdownFences(data)
+	var fixes []string
+
+	stripped := StripMarkdownFences(data)
+	if len(stripped) != len(data) || string(stripped) != string(data) {
+		fixes = append(fixes, "stripped markdown code fence (``` ... ```)")
+	}
+	data = stripped
 
 	// Unwrap {"ops": [...]} or any single-key dict wrapping an array.
 	// Models often output {"ops": [...]} instead of bare [...].
@@ -62,7 +68,6 @@ func FixBatchOps(data []byte) ([]byte, []string, error) {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, nil, err
 	}
-	var fixes []string
 	if obj, isObj := raw.(map[string]interface{}); isObj && len(obj) == 1 {
 		for k, v := range obj {
 			if arr, isArr := v.([]interface{}); isArr {
