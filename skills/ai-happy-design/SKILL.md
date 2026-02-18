@@ -370,6 +370,21 @@ ai-happy-design command text.create '{
 | Circular avatars | `image` + `ellipse` + `mask` |
 | Buttons | Frame + auto-layout + inner shadow bevel + layered shadows |
 
+## Page Management
+
+Pages are separate from document operations. Use `page.*` commands — NOT `document.*`.
+
+```bash
+ai-happy-design command page.get_all '{}'                                        # list all pages
+ai-happy-design command page.create '{"name": "Slide 2"}'                       # new page
+ai-happy-design command page.set_current '{"pageId": "3:0"}'                    # switch to page
+ai-happy-design command page.rename '{"pageId": "3:0", "name": "Final"}'        # rename page
+ai-happy-design command page.duplicate '{"pageId": "3:0"}'                      # duplicate page
+ai-happy-design command page.delete '{"pageId": "3:0"}'                         # delete page
+```
+
+**Common mistake**: `document.list_pages` → correct command is `page.get_all`
+
 ## Relay & Port Configuration
 
 The relay auto-starts on port 3055 and auto-shuts down after 15 minutes of inactivity. CLI auto-restarts it on next command.
@@ -397,6 +412,11 @@ ai-happy-design command text.list_fonts
 ai-happy-design command text.list_fonts '{"family": "Inter"}'
 ai-happy-design command export.image '{"nodeId": "...", "scale": 2}' -o output.png
 ai-happy-design command layout.check_overlaps '{"nodeId": "..."}'
+ai-happy-design command design_system.analyze '{}'                                    # scan file for existing styles/components/variables
+ai-happy-design command node.get_tree '{"nodeId": "...", "compact": true}'            # flat tree summary (3-5x fewer tokens)
+ai-happy-design command document.get_info '{}'                                        # document metadata
+ai-happy-design command document.get_selection '{}'                                   # currently selected nodes
+ai-happy-design command document.scan_by_type '{"nodeType": "FRAME"}'                 # scan all nodes of a type
 ai-happy-design batch '<json-array-of-operations>'
 ai-happy-design batch operations.json
 ai-happy-design batch f1.json f2.json f3.json        # multi-file batch
@@ -420,3 +440,7 @@ ai-happy-design tools                                 # full tool catalog
 - For large batch payloads, write JSON to a temp file to avoid shell quoting issues.
 - Use `color` (not `fillColor`) for frame/text colors — `fillColor` is auto-aliased but `color` is canonical.
 - Step names in batch must be snake_case (no spaces) — auto-sanitized but best to write correctly.
+- **Wrong domain for pages**: Use `page.get_all` not `document.list_pages` — all page operations use `page.*` not `document.*`
+- **Wrong domain for layer ops**: Use `layer.group` / `layer.bring_to_front` / `layer.send_to_back` — these are NOT under `node.*`
+- **Design system scan**: `design_system.analyze` not `document.analyze` or `document.get_design_system`
+- **Compact tree for discovery**: `node.get_tree {"nodeId":"...", "compact":true}` gives a flat summary array — 3-5x fewer tokens than default
