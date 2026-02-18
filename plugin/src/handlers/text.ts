@@ -78,7 +78,10 @@ export async function handleText(action: string, params: any): Promise<any> {
     case 'list_fonts':
     case 'available_fonts':
     case 'list_available_fonts': return listFonts(params);
-    default: throw new Error('Unknown text action: ' + action + '. Available: create, set_content, set_font, set_size, set_weight, set_color, set_align, set_spacing, set_line_height, set_letter_spacing, set_decoration, set_case, set_paragraph_spacing, get_content, get_segments, load_font, set_style_id, list_fonts');
+    case 'set_range_style':
+    case 'range_style':
+    case 'style_ranges': return setRangeStyle(params);
+    default: throw new Error('Unknown text action: ' + action + '. Available: create, set_content, set_font, set_size, set_weight, set_color, set_align, set_spacing, set_line_height, set_letter_spacing, set_decoration, set_case, set_paragraph_spacing, get_content, get_segments, load_font, set_style_id, list_fonts, set_range_style');
   }
 }
 
@@ -426,4 +429,141 @@ async function listFonts(params: any) {
   }
 
   return { fonts: result, count: result.length };
+}
+
+/**
+ * Resolve a range specification to {start, end} indices.
+ * Exported for testing.
+ */
+export function resolveRange(
+  range: { match?: string; start?: number; end?: number },
+  text: string,
+): { start: number; end: number } | null {
+  let start: number;
+  let end: number;
+
+  if (typeof range.match === 'string') {
+    const idx = text.indexOf(range.match);
+    if (idx === -1) return null;
+    start = idx;
+    end = idx + range.match.length;
+  } else if (typeof range.start === 'number' && typeof range.end === 'number') {
+    start = range.start;
+    end = range.end;
+  } else {
+    return null;
+  }
+
+  // Clamp to text bounds
+  const len = text.length;
+  start = Math.max(0, Math.min(start, len));
+  end = Math.max(start, Math.min(end, len));
+  if (start === end) return null;
+
+  return { start, end };
+}
+
+async function setRangeStyle(params: any) {
+  const node = await getTextNodeById(params.nodeId);
+  await loadNodeFonts(node);
+
+  const ranges: any[] = params.ranges;
+  if (!Array.isArray(ranges) || ranges.length === 0) {
+    throw new Error('set_range_style requires a non-empty "ranges" array');
+  }
+
+  const text = node.characters;
+  let rangesApplied = 0;
+
+  for (const range of ranges) {
+    const resolved = resolveRange(range, text);
+    if (!resolved) continue;
+
+    const { start, end } = resolved;
+
+    // --- Font name (bold / italic / fontFamily / fontStyle) ---
+    if (range.bold !== undefined || range.italic !== undefined || range.fontFamily || range.fontStyle) {
+      // Get current font at range start to use as base
+      let baseFontName: FontName;
+      const rangeFont = node.getRangeFontName(start, start + 1);
+      if (rangeFont === figma.mixed) {
+        const overall = node.fontName;
+        baseFontName = overall === figma.mixed
+          ? { family: 'Inter', style: 'Regular' }
+          : overall;
+      } else {
+        baseFontName = rangeFont;
+      }
+
+      let family = range.fontFamily
+        ? resolveFontFamily(range.fontFamily)
+        : baseFontName.family;
+
+      let style: string;
+      if (range.fontStyle) {
+        // Explicit fontStyle takes priority
+        style = range.fontStyle;
+      } else {
+        // Build style from bold/italic flags
+        const isBold = range.bold !== undefined ? range.bold : /Bold/i.test(baseFontName.style);
+        const isItalic = range.italic !== undefined ? range.italic : /Italic/i.test(baseFontName.style);
+
+        if (isBold && isItalic) style = 'Bold Italic';
+        else if (isBold) style = 'Bold';
+        else if (isItalic) style = 'Italic';
+        else style = 'Regular';
+      }
+
+      await loadFont(family, style);
+      node.setRangeFontName(start, end, { family, style });
+    }
+
+    // --- Font size ---
+    if (range.fontSize !== undefined) {
+      node.setRangeFontSize(start, end, range.fontSize);
+    }
+
+    // --- Color ---
+    if (range.color !== undefined) {
+      const c = parseHexColor(range.color);
+      const fill: SolidPaint = {
+        type: 'SOLID',
+        color: { r: c.r, g: c.g, b: c.b },
+        opacity: c.a,
+      };
+      node.setRangeFills(start, end, [fill]);
+    }
+
+    // --- Letter spacing ---
+    if (range.letterSpacing !== undefined) {
+      const unit = range.letterSpacingUnit ?? 'PIXELS';
+      node.setRangeLetterSpacing(start, end, {
+        value: range.letterSpacing,
+        unit: unit === 'PERCENT' ? 'PERCENT' : 'PIXELS',
+      });
+    }
+
+    // --- Line height ---
+    if (range.lineHeight !== undefined) {
+      const unit = range.lineHeightUnit ?? 'PIXELS';
+      const lh: LineHeight = unit === 'AUTO'
+        ? { unit: 'AUTO' }
+        : { value: range.lineHeight, unit: unit === 'PERCENT' ? 'PERCENT' : 'PIXELS' };
+      node.setRangeLineHeight(start, end, lh);
+    }
+
+    // --- Text decoration ---
+    if (range.textDecoration !== undefined) {
+      node.setRangeTextDecoration(start, end, range.textDecoration);
+    }
+
+    // --- Text case ---
+    if (range.textCase !== undefined) {
+      node.setRangeTextCase(start, end, range.textCase);
+    }
+
+    rangesApplied++;
+  }
+
+  return { id: node.id, name: node.name, rangesApplied };
 }
