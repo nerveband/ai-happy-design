@@ -75,8 +75,8 @@ func FromHTML(r io.Reader, opts Options) ([]map[string]interface{}, error) {
 			return false
 		}
 
-		// Check for standalone .eb (email banner)
-		if hasClass(classes, "eb") {
+		// Check for standalone .eb or .email-banner
+		if hasClass(classes, "eb") || hasClass(classes, "email-banner") {
 			op := extractBanner(n, styles, opts, bannerIdx)
 			if op != nil {
 				ops = append(ops, op)
@@ -214,6 +214,24 @@ func extractBanner(node *html.Node, styles map[string]map[string]string, opts Op
 	}
 
 	bgColor, gradient := resolveBackground(merged)
+
+	// Also check child overlay elements (.eb-ov) for inline gradient
+	if gradient == nil {
+		walkDOM(node, func(n *html.Node) bool {
+			if n == node {
+				return true
+			}
+			if hasClass(getAttr(n, "class"), "eb-ov") {
+				ovStyle := parseInlineStyle(getAttr(n, "style"))
+				_, g := resolveBackground(ovStyle)
+				if g != nil {
+					gradient = g
+				}
+				return false
+			}
+			return true
+		})
+	}
 
 	params := map[string]interface{}{
 		"canvas": fmt.Sprintf("%dx%d", canvasW, canvasH),

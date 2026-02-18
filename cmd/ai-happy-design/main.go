@@ -21,6 +21,7 @@ import (
 
 	"github.com/nerveband/ai-happy-design/internal/batchutil"
 	"github.com/nerveband/ai-happy-design/internal/benchmark"
+	"github.com/nerveband/ai-happy-design/internal/extract"
 	"github.com/nerveband/ai-happy-design/internal/config"
 	"github.com/nerveband/ai-happy-design/internal/imgutil"
 	"github.com/nerveband/ai-happy-design/internal/mcp"
@@ -1591,6 +1592,44 @@ func runMultiBatchParallel(files []string, channelKey string) error {
 
 // --- Benchmark commands ---
 
+// ── Extract command ──────────────────────────────────────────────────
+
+var extractCmd = &cobra.Command{
+	Use:   "extract [file.html]",
+	Short: "Convert HTML/CSS to batch JSON",
+	Long:  "Parse an HTML file and output Figma batch operations as composite commands (slide/banner).",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		inputPath := args[0]
+		canvasWidth, _ := cmd.Flags().GetInt("width")
+		canvasHeight, _ := cmd.Flags().GetInt("height")
+		outputPath, _ := cmd.Flags().GetString("output")
+
+		f, ferr := os.Open(inputPath)
+		if ferr != nil {
+			return ferr
+		}
+		defer f.Close()
+
+		ops, err := extract.FromHTML(f, extract.Options{
+			CanvasWidth:  canvasWidth,
+			CanvasHeight: canvasHeight,
+		})
+		if err != nil {
+			return err
+		}
+
+		data, _ := json.MarshalIndent(ops, "", "  ")
+		if outputPath != "" {
+			return os.WriteFile(outputPath, data, 0644)
+		}
+		fmt.Println(string(data))
+		return nil
+	},
+}
+
+// ── Benchmark command ────────────────────────────────────────────────
+
 var benchmarkRuns int
 var benchmarkAllowOverlap bool
 var benchmarkPhaseAMs int
@@ -1910,6 +1949,11 @@ func main() {
 	benchmarkCompareCmd.Flags().IntVar(&benchmarkRuns, "runs", 3, "Number of benchmark runs per method")
 	benchmarkCompareCmd.Flags().IntVar(&benchmarkWidth, "width", 1080, "Canvas width for extraction")
 	benchmarkCompareCmd.Flags().IntVar(&benchmarkHeight, "height", 1350, "Canvas height for extraction")
+
+	extractCmd.Flags().Int("width", 1080, "Canvas width")
+	extractCmd.Flags().Int("height", 1080, "Canvas height")
+	extractCmd.Flags().StringP("output", "o", "", "Output file path (default: stdout)")
+	rootCmd.AddCommand(extractCmd)
 
 	benchmarkCmd.AddCommand(benchmarkExecCmd)
 	benchmarkCmd.AddCommand(benchmarkPipeCmd)
