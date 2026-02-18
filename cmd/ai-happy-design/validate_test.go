@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/nerveband/ai-happy-design/internal/batchutil"
 )
 
 func TestValidateBatchOps_Valid(t *testing.T) {
@@ -80,7 +82,7 @@ func TestValidateBatchOps_ShortAliasCommands(t *testing.T) {
 
 func TestStripMarkdownFences_WithFences(t *testing.T) {
 	input := "```json\n[{\"name\":\"bg\"}]\n```"
-	result := stripMarkdownFences([]byte(input))
+	result := batchutil.StripMarkdownFences([]byte(input))
 	if strings.Contains(string(result), "```") {
 		t.Errorf("expected fences stripped, got: %s", result)
 	}
@@ -91,7 +93,7 @@ func TestStripMarkdownFences_WithFences(t *testing.T) {
 
 func TestStripMarkdownFences_WithoutFences(t *testing.T) {
 	input := `[{"name":"bg","command":"frame","params":{}}]`
-	result := stripMarkdownFences([]byte(input))
+	result := batchutil.StripMarkdownFences([]byte(input))
 	if string(result) != input {
 		t.Errorf("expected unchanged input, got: %s", result)
 	}
@@ -99,7 +101,7 @@ func TestStripMarkdownFences_WithoutFences(t *testing.T) {
 
 func TestFixBatchOps_TypeToCommand(t *testing.T) {
 	input := `[{"name":"bg","type":"frame","params":{"x":0}}]`
-	fixed, fixes, err := fixBatchOps([]byte(input))
+	fixed, fixes, err := batchutil.FixBatchOps([]byte(input))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -118,7 +120,7 @@ func TestFixBatchOps_TypeToCommand(t *testing.T) {
 
 func TestFixBatchOps_HoistTopLevelProps(t *testing.T) {
 	input := `[{"name":"bg","command":"frame","params":{},"x":10,"y":20,"color":"#fff"}]`
-	fixed, fixes, err := fixBatchOps([]byte(input))
+	fixed, fixes, err := batchutil.FixBatchOps([]byte(input))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -139,7 +141,7 @@ func TestFixBatchOps_HoistTopLevelProps(t *testing.T) {
 func TestFixBatchOps_StripFencesThenFix(t *testing.T) {
 	// Model output with both fences AND type error
 	input := "```json\n[{\"name\":\"bg\",\"type\":\"frame\",\"x\":0,\"params\":{}}]\n```"
-	fixed, fixes, err := fixBatchOps([]byte(input))
+	fixed, fixes, err := batchutil.FixBatchOps([]byte(input))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -156,7 +158,7 @@ func TestFixBatchOps_StripFencesThenFix(t *testing.T) {
 func TestFixBatchOps_UnwrapDictWrapper(t *testing.T) {
 	// Model outputs {"ops": [...]} instead of bare [...]
 	input := `{"ops":[{"name":"bg","command":"frame","params":{"x":0}}]}`
-	fixed, fixes, err := fixBatchOps([]byte(input))
+	fixed, fixes, err := batchutil.FixBatchOps([]byte(input))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -172,7 +174,7 @@ func TestFixBatchOps_UnwrapDictWrapper(t *testing.T) {
 func TestValidateWithFix_EndToEnd(t *testing.T) {
 	// Simulates the full --fix workflow: bad input → fixed → valid
 	bad := `[{"name":"bg","type":"frame","x":0,"y":0,"color":"#1a1a1a","params":{}}]`
-	fixed, fixes, err := fixBatchOps([]byte(bad))
+	fixed, fixes, err := batchutil.FixBatchOps([]byte(bad))
 	if err != nil {
 		t.Fatalf("fixBatchOps error: %v", err)
 	}
