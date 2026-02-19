@@ -37,6 +37,7 @@ export interface SerializedNode {
   textAlignVertical?: string;
   componentId?: string;
   mainComponentId?: string;
+  parentChain?: Array<{id: string, name: string, type: string}>;
 }
 
 export function serializeNode(node: SceneNode, depth: number = 0, maxDepth: number = 10): SerializedNode {

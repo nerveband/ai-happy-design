@@ -172,7 +172,7 @@ async function createText(params: any) {
     text.opacity = Math.max(0, Math.min(1, params.opacity));
   }
 
-  return { id: stableId, name: text.name, type: text.type, width: text.width, height: text.height };
+  return { id: stableId, name: text.name, type: text.type, width: text.width, height: text.height, parentId: params.parentId || figma.currentPage.id };
 }
 
 async function setContent(params: any) {

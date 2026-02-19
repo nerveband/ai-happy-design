@@ -62,10 +62,22 @@ export async function handleNode(action: string, params: any): Promise<any> {
   }
 }
 
+function getParentChain(node: BaseNode): Array<{id: string, name: string, type: string}> {
+  var chain: Array<{id: string, name: string, type: string}> = [];
+  var current = node.parent;
+  while (current && current.type !== 'DOCUMENT') {
+    chain.push({ id: current.id, name: current.name, type: current.type });
+    current = current.parent;
+  }
+  return chain;
+}
+
 async function getInfo(params: any) {
   const { nodeId, depth } = params;
   const node = await getSceneNodeById(nodeId);
-  return serializeNode(node, 0, depth ?? 3);
+  var result = serializeNode(node, 0, depth ?? 3);
+  result.parentChain = getParentChain(node);
+  return result;
 }
 
 async function createFrame(params: any) {
@@ -182,7 +194,7 @@ async function createFrame(params: any) {
   }
 
   var stableId = await resolveStableId(frame, container);
-  return { id: stableId, name: frame.name, type: frame.type, x: frame.x, y: frame.y, layoutMode: frame.layoutMode };
+  return { id: stableId, name: frame.name, type: frame.type, x: frame.x, y: frame.y, width: frame.width, height: frame.height, layoutMode: frame.layoutMode, parentId: parentId || figma.currentPage.id };
 }
 
 async function moveNode(params: any) {

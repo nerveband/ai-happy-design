@@ -382,6 +382,7 @@ type batchOperation struct {
 }
 
 var batchParallel bool
+var batchCompact bool
 
 var batchCmd = &cobra.Command{
 	Use:   "batch [operations-json | file1.json file2.json ... | directory/]",
@@ -562,6 +563,7 @@ Each file gets its own connection and auto-placement.
 					"ok":        false,
 					"attempts":  attempts,
 					"error":     sendErr.Error(),
+					"errorCode": classifyError(sendErr.Error()),
 					"elapsedMs": int(time.Since(opStart).Milliseconds()),
 				}
 				results = append(results, entry)
@@ -613,25 +615,48 @@ Each file gets its own connection and auto-placement.
 			opsPerSec = float64(processed) / totalElapsed.Seconds()
 			avgMs = float64(totalMs) / float64(processed)
 		}
-		out := map[string]interface{}{
-			"ok": failed == 0 && pending == 0,
-			"summary": map[string]interface{}{
-				"total":         len(ops),
-				"processed":     processed,
-				"succeeded":     succeeded,
-				"failed":        failed,
-				"pending":       pending,
-				"retriesUsed":   retriesUsed,
-				"failFast":      batchFailFast,
-				"interpolation": batchInterpolation,
-			},
-			"timing": map[string]interface{}{
-				"totalMs":   totalMs,
-				"avgMs":     int(avgMs),
-				"opsPerSec": int(opsPerSec),
-			},
-			"stoppedEarly": stoppedEarly,
-			"steps":        results,
+		var out map[string]interface{}
+		if batchCompact {
+			// Compact mode: minimal output for LLM token efficiency
+			compactSteps := make([]map[string]interface{}, len(results))
+			for j, r := range results {
+				cs := map[string]interface{}{
+					"name": r["name"],
+					"ok":   r["ok"],
+				}
+				if r["ok"] == true {
+					cs["result"] = r["result"]
+				} else {
+					cs["error"] = r["error"]
+					cs["errorCode"] = r["errorCode"]
+				}
+				compactSteps[j] = cs
+			}
+			out = map[string]interface{}{
+				"ok":    failed == 0 && pending == 0,
+				"steps": compactSteps,
+			}
+		} else {
+			out = map[string]interface{}{
+				"ok": failed == 0 && pending == 0,
+				"summary": map[string]interface{}{
+					"total":         len(ops),
+					"processed":     processed,
+					"succeeded":     succeeded,
+					"failed":        failed,
+					"pending":       pending,
+					"retriesUsed":   retriesUsed,
+					"failFast":      batchFailFast,
+					"interpolation": batchInterpolation,
+				},
+				"timing": map[string]interface{}{
+					"totalMs":   totalMs,
+					"avgMs":     int(avgMs),
+					"opsPerSec": int(opsPerSec),
+				},
+				"stoppedEarly": stoppedEarly,
+				"steps":        results,
+			}
 		}
 		return printJSON(out)
 	},
@@ -960,6 +985,33 @@ func newConnectedClient(channelKey string, live bool) (*ws.Client, error) {
 		return nil, fmt.Errorf("%w%s", err, hint)
 	}
 	return client, nil
+}
+
+// classifyError returns a machine-readable error code from an error message.
+func classifyError(msg string) string {
+	lower := strings.ToLower(msg)
+	switch {
+	case strings.Contains(lower, "not found") || strings.Contains(lower, "node with id"):
+		return "NODE_NOT_FOUND"
+	case strings.Contains(lower, "timed out") || strings.Contains(lower, "timeout"):
+		return "TIMEOUT"
+	case strings.Contains(lower, "no active plugin") || strings.Contains(lower, "no figma plugin"):
+		return "NO_PLUGIN"
+	case strings.Contains(lower, "cannot be resized") || strings.Contains(lower, "does not support"):
+		return "UNSUPPORTED_OPERATION"
+	case strings.Contains(lower, "unknown") && (strings.Contains(lower, "action") || strings.Contains(lower, "command")):
+		return "UNKNOWN_COMMAND"
+	case strings.Contains(lower, "invalid") || strings.Contains(lower, "parse"):
+		return "INVALID_PARAMS"
+	case strings.Contains(lower, "font") && (strings.Contains(lower, "not available") || strings.Contains(lower, "missing")):
+		return "FONT_NOT_FOUND"
+	case strings.Contains(lower, "failed to send") || strings.Contains(lower, "connection"):
+		return "CONNECTION_ERROR"
+	case strings.Contains(lower, "fill index") || strings.Contains(lower, "out of range"):
+		return "INDEX_OUT_OF_RANGE"
+	default:
+		return "UNKNOWN_ERROR"
+	}
 }
 
 func printJSON(v interface{}) error {
@@ -1910,6 +1962,7 @@ func main() {
 	batchCmd.Flags().BoolVar(&batchAllowOverlap, "allow-overlap", false, "Skip auto-placement and place frames at exact coordinates (may overlap existing work)")
 	batchCmd.Flags().BoolVar(&batchParallel, "parallel", false, "Run multiple batch files concurrently (max 4 parallel)")
 	batchCmd.Flags().BoolVar(&batchNoFix, "no-fix", false, "Skip automatic LLM output normalization (use if your JSON is already valid)")
+	batchCmd.Flags().BoolVar(&batchCompact, "compact", false, "Minimal output: only ok, step names, and results (saves tokens for LLM agents)")
 
 	toolsCmd.Flags().BoolVar(&catalogJSON, "json", true, "Output as JSON for machine-readable discovery")
 	toolsCmd.Flags().BoolVar(&catalogLLM, "llm", false, "Output enriched LLM-focused catalog with examples and playbook")

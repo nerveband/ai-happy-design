@@ -135,7 +135,7 @@ async function createRectangle(params: any) {
   parent.appendChild(rect);
   applyLayoutProps(rect, params);
   var stableId = await resolveStableId(rect, parent);
-  return { id: stableId, name: rect.name, type: rect.type };
+  return { id: stableId, name: rect.name, type: rect.type, parentId: params.parentId || figma.currentPage.id };
 }
 
 async function createEllipse(params: any) {
