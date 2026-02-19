@@ -232,16 +232,72 @@ ai-happy-design command export.pdf '{"nodeId":"47:765"}' -o output.pdf
 
 SVG exports are saved as raw SVG text. PNG/JPG/PDF are decoded from base64. The `-o` flag specifies the output path; without it, a filename is auto-generated from the node name.
 
+## Composite Commands (v0.10+)
+
+Write one high-level command, get a complete Figma slide or banner. Composites auto-expand into 5–15 primitive operations with design tokens, gradients, and layout.
+
+```bash
+# One slide command → 7-15 Figma operations
+ai-happy-design batch '[{
+  "name": "s1",
+  "command": "slide",
+  "params": {
+    "canvas": "1080x1350",
+    "color": "#0C1E2C",
+    "gradient": {"type":"LINEAR","angle":150,"stops":[
+      {"color":"#0C1E2C","position":0},{"color":"#14344A","position":1}
+    ]},
+    "elements": [
+      {"type": "eyebrow", "text": "RAMADAN 2026", "color": "#7FBCD2"},
+      {"type": "headline", "text": "The Care\nBehind\nthe Care", "tier": "hero"},
+      {"type": "bar", "color": "#029056"},
+      {"type": "body", "text": "250+ chaplains serve.", "color": "#FAFCFBB3"},
+      {"type": "cta", "text": "Donate Now", "bg": "#029056"},
+      {"type": "url", "text": "example.com/donate"}
+    ]
+  }
+}]'
+```
+
+Element types: `eyebrow`, `headline`, `body`, `bar`, `cta`, `url`, `counter`, `stats`, `progress`, `arabic`. Banner command supports `headline` and `subtitle`.
+
+## HTML → Figma (v0.10+)
+
+Extract slides and banners from styled HTML files directly into Figma:
+
+```bash
+# Parse HTML/CSS → composite batch JSON
+ai-happy-design extract social-posts.html --width 1080 --height 1350
+
+# Full pipeline: HTML → Figma in one line
+ai-happy-design extract input.html -o /tmp/ops.json && ai-happy-design batch /tmp/ops.json
+```
+
+The extract command parses `<style>` blocks, inline styles, gradients, colors, and font weights. Each `.slide` becomes a `slide` composite command, each `.email-banner` becomes a `banner`.
+
+## Benchmarking (v0.10+)
+
+Provider-agnostic performance measurement — no LLM API calls built in:
+
+```bash
+# Time batch execution against Figma
+ai-happy-design benchmark exec ops.json --runs 3
+
+# Time external LLM + execution (pipe any LLM output)
+START=$(date +%s%N)
+BATCH=$(curl -sS your-llm-api... | jq -r '.choices[0].message.content')
+MS=$(( ($(date +%s%N) - START) / 1000000 ))
+echo "$BATCH" | ai-happy-design benchmark pipe --phase-a-ms $MS
+```
+
 ## Performance
 
-Benchmarked with a 5-slide carousel (108 operations):
-
-| Metric | Value |
-|--------|-------|
-| Total time | ~10s |
-| Operations/sec | ~11 |
-| Avg per operation | ~83ms |
-| Connection overhead | ~500ms (one-time) |
+| Scenario | Time | Ops/sec |
+|----------|------|---------|
+| Single slide (composite) | ~1.4s | 6–8 |
+| 5-slide carousel (20 ops) | ~2.8s | 7.3 |
+| 36-frame campaign (146 ops) | ~18s | 8.1 |
+| E2E with Cerebras LLM (1 slide) | ~2.0s | — |
 
 CLI batch sends all operations over one WebSocket connection. MCP sends each tool call individually. For designs with 20+ operations, CLI batch is significantly faster.
 
@@ -298,8 +354,107 @@ Batch output includes per-operation `elapsedMs` and a `timing` summary with `tot
 | `ai-happy-design batch` | Execute a batch of commands |
 | `ai-happy-design actions` | List all domain.action pairs |
 | `ai-happy-design tools` | Print tool catalog |
+| `ai-happy-design extract <file.html>` | Parse HTML/CSS into batch JSON |
+| `ai-happy-design benchmark exec/pipe` | Provider-agnostic performance benchmarking |
 | `ai-happy-design relay start/stop/status/logs` | Manage the relay process |
 | `ai-happy-design upgrade` | Upgrade to the latest version |
+
+## Usage Scenarios
+
+### Scenario 1: AI Agent Designs from a Prompt
+
+The AI calls the MCP tools directly. No manual work needed.
+
+> **You:** "Create a 5-slide Instagram carousel about Muslim chaplains"
+
+The AI will:
+1. Call `describe(action="catalog")` to learn the tools
+2. Call `design.compute_tokens` for 1080×1350 sizing
+3. Call `document.find_free_space` for placement
+4. Call `bulk.execute` with composite `slide` commands
+5. Call `export.image` to verify
+
+### Scenario 2: CLI Batch from a JSON File
+
+Write (or have AI generate) a JSON batch file and execute it directly:
+
+```bash
+# Create a batch file with composite commands
+cat > /tmp/slides.json << 'EOF'
+[
+  {"name":"s1","command":"slide","params":{"canvas":"1080x1350","color":"#1a1a2e",
+    "elements":[
+      {"type":"headline","text":"Hello World","tier":"hero"},
+      {"type":"body","text":"Made with AI Happy Design","color":"#ffffffB3"}
+    ]}}
+]
+EOF
+
+# Execute against Figma
+ai-happy-design batch /tmp/slides.json
+```
+
+### Scenario 3: HTML File → Figma
+
+Have a designer's HTML spec? Extract and execute in one pipeline:
+
+```bash
+# Two-step (inspect the JSON first)
+ai-happy-design extract mockup.html --width 1080 --height 1350 -o /tmp/ops.json
+ai-happy-design batch /tmp/ops.json
+
+# One-liner
+ai-happy-design extract mockup.html -o /tmp/ops.json && ai-happy-design batch /tmp/ops.json
+```
+
+### Scenario 4: LLM Generates JSON, CLI Executes
+
+Use any LLM (Cerebras, OpenAI, Claude API, local models) to generate the batch JSON, then pipe it to the CLI:
+
+```bash
+# Cerebras (fast, cheap)
+curl -sS https://api.cerebras.ai/v1/chat/completions \
+  -H "Authorization: Bearer $CEREBRAS_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"qwen-3-235b-a22b-instruct-2507","messages":[
+    {"role":"system","content":"Output ONLY a JSON array of slide composite commands."},
+    {"role":"user","content":"Create a fundraiser slide, 1080x1350, dark blue theme"}
+  ]}' | jq -r '.choices[0].message.content' | ai-happy-design batch
+
+# OpenAI
+curl -sS https://api.openai.com/v1/chat/completions \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"gpt-4o","messages":[
+    {"role":"system","content":"Output ONLY a JSON array of slide composite commands."},
+    {"role":"user","content":"Create a fundraiser slide"}
+  ]}' | jq -r '.choices[0].message.content' | ai-happy-design batch
+```
+
+### Scenario 5: Multi-File Batch
+
+Execute multiple JSON files at once, or an entire directory:
+
+```bash
+ai-happy-design batch slides.json banners.json     # two files
+ai-happy-design batch ./campaign/                    # all .json in directory
+ai-happy-design batch *.json --parallel              # concurrent (max 4)
+```
+
+### Scenario 6: Benchmark Your Pipeline
+
+Measure end-to-end performance with any LLM provider:
+
+```bash
+# Just measure execution speed
+ai-happy-design benchmark exec ops.json --runs 3
+
+# Measure LLM generation + execution
+START=$(date +%s%N)
+JSON=$(curl -sS your-llm... | jq -r '.choices[0].message.content')
+MS=$(( ($(date +%s%N) - START) / 1000000 ))
+echo "$JSON" | ai-happy-design benchmark pipe --phase-a-ms $MS
+```
 
 ## Documentation
 
