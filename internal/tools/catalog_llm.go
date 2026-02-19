@@ -37,17 +37,25 @@ func LLMCatalog() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"version": "3.2",
+		"version": "3.3",
 		"discovery": map[string]interface{}{
 			"cliCatalog":       "ai-happy-design tools --json",
 			"llmCatalog":       "ai-happy-design tools --llm --json",
 			"examples":         "ai-happy-design examples [category] — ready-to-use batch JSON payloads. Categories: slide, carousel, banner, effects, batch, newsletter. Output is valid JSON, pipeable to batch.",
 			"mcpDescribe":      "describe(action='catalog')",
 			"cliActions":       "ai-happy-design actions [domain]",
+			"batchHelp":        "ai-happy-design batch --help",
 			"domainActionHint": "Prefer domain.action names like paint.set_solid over legacy command aliases.",
+			"quickStart": []string{
+				"ai-happy-design tools --llm --json",
+				"ai-happy-design actions shape",
+				"ai-happy-design actions paint",
+				"ai-happy-design batch --help",
+			},
+			"batchOutputFields": "After every batch run, inspect output.summary, output.timing, and output.imagePrep. With --strict-quality, also inspect summary.qualityGate and summary.qualityIssues.",
 		},
 		"executionRules": map[string]interface{}{
-			"_overview": "Follow these rules for every design task. They prevent the most common LLM efficiency mistakes.",
+			"_overview":           "Follow these rules for every design task. They prevent the most common LLM efficiency mistakes.",
 			"1_oneBatchFile":      "All operations in a SINGLE JSON array → one ai-happy-design batch call. Never write separate files per slide.",
 			"2_compositesFirst":   "Use slide/banner commands before building frames manually. One composite = complete design with auto-sized text.",
 			"3_batchPlacement":    "Don't call find_free_space — batch does it automatically.",
@@ -57,32 +65,48 @@ func LLMCatalog() map[string]interface{} {
 			"7_cssPropsWork":      "You can use CSS property names in batch params: flexDirection, gap, padding shorthand, background, borderRadius, border shorthand, justifyContent, alignItems, width:'100%'. The CLI auto-normalizes to Figma properties.",
 			"8_nameEverything":    "Name every frame and element descriptively. Never leave Figma defaults like 'Frame 47'. Use: 'Hero Section', 'CTA Button', 'Card — Feature Name'.",
 			"9_lintAfterCreate":   "Use --lint flag on batch to auto-check for overlaps, overflow, text sizing, and naming issues after creation.",
+			"10_captureTelemetry": "Always read batch summary/timing/imagePrep fields and feed them into the next iteration prompt.",
 		},
 		"cssPropertySupport": map[string]interface{}{
-			"_overview": "Batch params accept CSS property names — write what you know, the CLI translates to Figma. These are ADDITIVE: native Figma params still work and take priority.",
-			"flexDirection":  "'column' → layoutMode:VERTICAL, 'row' → layoutMode:HORIZONTAL",
-			"gap":            "→ itemSpacing",
-			"background":     "→ color (frame fill)",
+			"_overview":       "Batch params accept CSS property names — write what you know, the CLI translates to Figma. These are ADDITIVE: native Figma params still work and take priority.",
+			"flexDirection":   "'column' → layoutMode:VERTICAL, 'row' → layoutMode:HORIZONTAL",
+			"gap":             "→ itemSpacing",
+			"background":      "→ color (frame fill)",
 			"backgroundColor": "→ color",
-			"borderRadius":   "→ cornerRadius",
-			"border":         "'1px solid #333' → strokeWeight:1, stroke:'#333'",
-			"padding":        "'24' → all sides. '24 32' → TB=24, LR=32. '24 32 16 32' → TRBL individual",
-			"justifyContent": "'flex-start'→MIN, 'center'→CENTER, 'flex-end'→MAX, 'space-between'→SPACE_BETWEEN → primaryAxisAlignItems",
-			"alignItems":     "'flex-start'→MIN, 'center'→CENTER, 'flex-end'→MAX → counterAxisAlignItems",
-			"width_percent":  "'100%' → layoutSizingHorizontal:FILL, 'auto' → HUG",
-			"height_percent": "'100%' → layoutSizingVertical:FILL, 'auto' → HUG",
-			"boxShadow":     "'0 4px 12px rgba(0,0,0,0.1)' → parsed into _shadows array for auto shadow creation",
+			"borderRadius":    "→ cornerRadius",
+			"border":          "'1px solid #333' → strokeWeight:1, stroke:'#333'",
+			"padding":         "'24' → all sides. '24 32' → TB=24, LR=32. '24 32 16 32' → TRBL individual",
+			"justifyContent":  "'flex-start'→MIN, 'center'→CENTER, 'flex-end'→MAX, 'space-between'→SPACE_BETWEEN → primaryAxisAlignItems",
+			"alignItems":      "'flex-start'→MIN, 'center'→CENTER, 'flex-end'→MAX → counterAxisAlignItems",
+			"width_percent":   "'100%' → layoutSizingHorizontal:FILL, 'auto' → HUG",
+			"height_percent":  "'100%' → layoutSizingVertical:FILL, 'auto' → HUG",
+			"boxShadow":       "'0 4px 12px rgba(0,0,0,0.1)' → parsed into _shadows array for auto shadow creation",
 			"example": `Instead of: {"layoutMode":"VERTICAL","itemSpacing":16,"paddingTop":24,"paddingBottom":24,"primaryAxisAlignItems":"CENTER"}
 Write: {"flexDirection":"column","gap":16,"padding":"24","justifyContent":"center"}`,
 		},
 		"lintChecks": map[string]interface{}{
-			"_overview": "Use --lint on batch to auto-validate designs after creation. Also available as: document.lint {nodeId}",
+			"_overview":       "Use --lint on batch to auto-validate designs after creation. Also available as: document.lint {nodeId}",
 			"overflow":        "Children extending beyond parent frame bounds",
 			"overlap":         "Sibling elements overlapping each other (in non-auto-layout frames)",
 			"text_too_large":  "Text fontSize exceeds 50% of parent frame height",
 			"text_too_small":  "Text fontSize below 12px (unreadable)",
 			"default_name":    "Nodes with Figma default names (Frame 47, Rectangle 12, etc.)",
 			"oversized_child": "Child width/height exceeds parent by more than 10%",
+			"qualityGate":     "Use --strict-quality to fail the run on any lint warning/error and expose summary.qualityGate in output.",
+		},
+		"batchObservability": map[string]interface{}{
+			"_overview": "Batch is instrumented for feedback loops. Use these fields to understand speed and bottlenecks.",
+			"where":     "Read JSON output from every batch run (normal or --compact mode).",
+			"fields": map[string]interface{}{
+				"summary":   "Operation counts and outcomes: total, processed, succeeded, failed, pending, retriesUsed.",
+				"timing":    "Runtime metrics: totalMs, avgMs, opsPerSec, imagePrepMs.",
+				"imagePrep": "Image preprocessing telemetry: candidates, unique, cacheHits, prepared, changed, resolved, compressed, failed, totalMs, avgMs, slowestMs.",
+			},
+			"stderrProgress": []string{
+				"[image-prep] preparing N unique image payload(s) ...",
+				"[image-prep] done X/N (ok|skip|fail) ...",
+				"[image-prep] completed in <ms> (unique=..., cacheHits=..., changed=..., failed=...)",
+			},
 		},
 		"workflow": map[string]interface{}{
 			"rule":      "CREATING = batch (one payload, many steps). EDITING = single command (precise, targeted).",
@@ -104,7 +128,7 @@ Write: {"flexDirection":"column","gap":16,"padding":"24","justifyContent":"cente
 			},
 			"create": map[string]interface{}{
 				"when": "Building new designs, layouts, multi-element compositions, or anything with 3+ elements.",
-				"how":  "1) Call document.find_free_space to get x,y. 2) Build a JSON array of operations. First step = root frame at returned x,y. Subsequent steps can use compact refs like $frame or $last (long form ${{steps.name.result.id}} still works). 3) Prefer compact command aliases (frame/rect/ellipse/text/fill/stroke/parent/autolayout). 4) Write ops to a file or inline. 5) Send: 'ai-happy-design batch ops.json' — auto-normalizes LLM output (fences, type→command, JSON comments, top-level params) before executing. Use --no-fix to disable. Or use bulk.execute via MCP — it also auto-normalizes.",
+				"how":  "1) Call document.find_free_space to get x,y. 2) Build a JSON array of operations. First step = root frame at returned x,y. Subsequent steps can use compact refs like $frame or $last (long form ${{steps.name.result.id}} still works). 3) Prefer compact command aliases (frame/rect/ellipse/text/fill/stroke/parent/autolayout). 4) Write ops to a file or inline. 5) Send: 'ai-happy-design batch ops.json --strict-quality' — auto-normalizes LLM output (fences, type→command, JSON comments, top-level params) before executing and fails if quality lint finds issues. Use --no-fix to disable normalization. Or use bulk.execute via MCP — it also auto-normalizes.",
 				"why":  "One WebSocket connection, no process overhead per step, automatic ID chaining. 150 steps in ~6 seconds vs ~8 minutes with individual commands.",
 			},
 			"validateBeforeBatch": map[string]interface{}{
@@ -120,7 +144,7 @@ Write: {"flexDirection":"column","gap":16,"padding":"24","justifyContent":"cente
 				"why":  "Fast, precise, no batch overhead needed for one operation.",
 			},
 			"multiBatch": map[string]interface{}{
-				"when":     "Creating multiple independent designs (e.g., 6 carousel slides, a set of social posts).",
+				"when":      "Creating multiple independent designs (e.g., 6 carousel slides, a set of social posts).",
 				"preferred": "Put ALL slides/designs into ONE JSON array in ONE file. Use composite commands (slide/banner) — each composite is a named step. Run: ai-happy-design batch /tmp/all-ops.json",
 				"alternative": []string{
 					"If designs are truly independent and large, split into separate files.",
@@ -463,10 +487,10 @@ Write: {"flexDirection":"column","gap":16,"padding":"24","justifyContent":"cente
 				},
 			},
 			"manualPositioning": map[string]interface{}{
-				"_overview":      "For non-auto-layout frames, children are positioned by x/y coordinates relative to the parent. No special property is needed — this is Figma's default behavior. Do NOT set layoutPositioning:ABSOLUTE on children of non-auto-layout frames (it will error).",
-				"rule":           "Non-auto-layout frame + children with x/y = manual positioning. Auto-layout frame + layoutPositioning:ABSOLUTE = exempt child from flow (decorative overlays only).",
-				"WARNING":        "layoutPositioning:ABSOLUTE is ONLY valid inside auto-layout parents. Setting it on a child of a frame with layoutMode:NONE causes an error. If the parent has no auto-layout, just use x/y — no extra property needed.",
-				"colorShortcut":  "node.create_frame, shape.create_rectangle, and text.create all accept a 'color' param (hex string like '#0F0F23' or rgb object). The param name is 'color', NOT 'fillColor' or 'backgroundColor'. This is a shortcut that avoids a separate paint.set_solid call.",
+				"_overview":     "For non-auto-layout frames, children are positioned by x/y coordinates relative to the parent. No special property is needed — this is Figma's default behavior. Do NOT set layoutPositioning:ABSOLUTE on children of non-auto-layout frames (it will error).",
+				"rule":          "Non-auto-layout frame + children with x/y = manual positioning. Auto-layout frame + layoutPositioning:ABSOLUTE = exempt child from flow (decorative overlays only).",
+				"WARNING":       "layoutPositioning:ABSOLUTE is ONLY valid inside auto-layout parents. Setting it on a child of a frame with layoutMode:NONE causes an error. If the parent has no auto-layout, just use x/y — no extra property needed.",
+				"colorShortcut": "node.create_frame, shape.create_rectangle, and text.create all accept a 'color' param (hex string like '#0F0F23' or rgb object). The param name is 'color', NOT 'fillColor' or 'backgroundColor'. This is a shortcut that avoids a separate paint.set_solid call.",
 				"howItWorks": []string{
 					"1. Create root frame (NO auto-layout): node.create_frame {name, x, y, width, height, color: '#0F0F23'}",
 					"2. Add children with parentId and x/y: text.create {text, parentId, x, y, width, fontSize, color: '#FFFFFF'}",
@@ -819,15 +843,15 @@ Write: {"flexDirection":"column","gap":16,"padding":"24","justifyContent":"cente
 				"tip":       "Use low density (0.1-0.3) and SOFT_LIGHT blend mode for subtle organic feel. Higher density for grungy/textured looks.",
 			},
 			"shadowRecipes": map[string]interface{}{
-				"_overview": "Production-grade shadow presets. Layer 2-3 shadows for realistic depth.",
-				"subtle":    map[string]interface{}{"offsetY": 2, "radius": 4, "spread": 0, "color": "#00000010"},
-				"card":      map[string]interface{}{"offsetY": 4, "radius": 12, "spread": -2, "color": "#0000001A"},
-				"elevated":  map[string]interface{}{"offsetY": 8, "radius": 24, "spread": -4, "color": "#00000026"},
-				"floating":  map[string]interface{}{"offsetY": 16, "radius": 48, "spread": -8, "color": "#00000033"},
-				"glow":      map[string]interface{}{"offsetY": 0, "radius": 24, "spread": 4, "color": "accent+40"},
+				"_overview":  "Production-grade shadow presets. Layer 2-3 shadows for realistic depth.",
+				"subtle":     map[string]interface{}{"offsetY": 2, "radius": 4, "spread": 0, "color": "#00000010"},
+				"card":       map[string]interface{}{"offsetY": 4, "radius": 12, "spread": -2, "color": "#0000001A"},
+				"elevated":   map[string]interface{}{"offsetY": 8, "radius": 24, "spread": -4, "color": "#00000026"},
+				"floating":   map[string]interface{}{"offsetY": 16, "radius": 48, "spread": -8, "color": "#00000033"},
+				"glow":       map[string]interface{}{"offsetY": 0, "radius": 24, "spread": 4, "color": "accent+40"},
 				"innerLight": map[string]interface{}{"type": "INNER_SHADOW", "offsetY": -1, "radius": 0, "spread": 0, "color": "#FFFFFF20"},
 				"innerDepth": map[string]interface{}{"type": "INNER_SHADOW", "offsetY": 2, "radius": 4, "spread": 0, "color": "#00000020"},
-				"layered": "Combine 2-3 shadows: ambient (large radius, low opacity) + direct (medium) + contact (small radius, close offset). Example: shadow Y:1/R:2/#0D + shadow Y:4/R:12/#1A + shadow Y:16/R:48/#12.",
+				"layered":    "Combine 2-3 shadows: ambient (large radius, low opacity) + direct (medium) + contact (small radius, close offset). Example: shadow Y:1/R:2/#0D + shadow Y:4/R:12/#1A + shadow Y:16/R:48/#12.",
 			},
 			"svgIcons": map[string]interface{}{
 				"_overview": "Use shape.create_from_svg with inline SVG markup for icons. Common icon libraries: Lucide, Heroicons, Phosphor — LLM can generate the SVG inline.",
@@ -850,10 +874,10 @@ Write: {"flexDirection":"column","gap":16,"padding":"24","justifyContent":"cente
 			},
 		},
 		"stepNamingRules": map[string]interface{}{
-			"_rule":    "Batch step names MUST be snake_case. Spaces, hyphens, and special characters are auto-sanitized but you should use clean names from the start.",
-			"good":     []string{"hero_bg", "card_title", "gradient_overlay", "cta_button"},
-			"bad":      []string{"Hero BG", "card-title", "Gradient Overlay!", "CTA Button"},
-			"tip":      "Step names are used for interpolation (${{steps.hero_bg.result.id}}). Clean names prevent lookup failures.",
+			"_rule": "Batch step names MUST be snake_case. Spaces, hyphens, and special characters are auto-sanitized but you should use clean names from the start.",
+			"good":  []string{"hero_bg", "card_title", "gradient_overlay", "cta_button"},
+			"bad":   []string{"Hero BG", "card-title", "Gradient Overlay!", "CTA Button"},
+			"tip":   "Step names are used for interpolation (${{steps.hero_bg.result.id}}). Clean names prevent lookup failures.",
 		},
 		"semanticNaming": map[string]interface{}{
 			"_rule":    "ALWAYS name every layer by its content/role. Never leave Figma defaults like 'Frame 47' or 'Rectangle 12'.",
@@ -889,9 +913,24 @@ Write: {"flexDirection":"column","gap":16,"padding":"24","justifyContent":"cente
 				"CROP — like FILL but uses a specific crop rectangle",
 				"TILE — tiles the image across the shape",
 			},
+			"batchPrepPipeline": map[string]interface{}{
+				"_overview": "Batch pre-processes imageData before step execution. This is automatic and does not require extra commands.",
+				"inputSupport": []string{
+					"Accepts base64/data URLs directly.",
+					"Accepts local file paths and file:// URLs.",
+					"Accepts HTTP/HTTPS URLs (downloaded by CLI).",
+				},
+				"optimizer": []string{
+					"De-duplicates repeated image sources across operations.",
+					"Prepares unique image payloads in parallel (worker pool).",
+					"Applies optional compression when --compress-images is enabled.",
+				},
+				"progress":  "Watch stderr for [image-prep] progress lines before command execution starts.",
+				"reporting": "Inspect batch output.imagePrep and timing.imagePrepMs to understand image overhead.",
+			},
 			"compression": []string{
 				"For large images (>1MB), add --compress-images flag to batch or command.",
-				"This uses ImageMagick to compress imageData before sending (opt-in).",
+				"This uses ImageMagick to compress prepared imageData before sending (opt-in).",
 				"Example: ai-happy-design batch ops.json --compress-images",
 				"ImageMagick must be installed (brew install imagemagick or apt install imagemagick).",
 			},
@@ -902,11 +941,14 @@ Write: {"flexDirection":"column","gap":16,"padding":"24","justifyContent":"cente
 		},
 		"quickPrompts": []string{
 			"BATCH AUTO-NORMALIZES: 'ai-happy-design batch ops.json' auto-fixes fences, type→command, JSON comments, top-level params before running. Use --no-fix for strict mode. Use validate --fix to inspect corrections without running.",
+			"DISCOVERABILITY FIRST: Run 'ai-happy-design tools --llm --json' then 'ai-happy-design actions [domain]' before generating commands.",
 			"For CREATING designs: use auto-layout frames. Create frames with layoutMode, itemSpacing, padding in one call. Batch for multiple elements.",
 			"For EDITING existing nodes: use single commands like paint.set_solid or node.resize.",
 			"DEFAULT: Use auto-layout (flexbox) for ALL layout. Absolute positioning only for decorative overlays.",
 			"CRITICAL: Always pass lineHeightUnit:'PERCENT' when setting line height. Default is PIXELS which causes overflow.",
 			"VERIFY: After creating, call layout.check_overlaps to confirm no elements overlap.",
+			"QUALITY GATE: Use 'ai-happy-design batch ops.json --strict-quality' so lint issues fail fast.",
+			"TELEMETRY LOOP: Read output.summary + output.timing + output.imagePrep after every batch and reprompt with those metrics.",
 			"PRINT: Pass dpi:300 to design.compute_tokens for print-ready designs.",
 			"FONTS: Call text.list_fonts {fontFamily:'Inter'} to discover available fonts and styles.",
 			"BATCH EXPORT: export.batch {nodeIds:'id1,id2', format:'PNG', scale:2} to export multiple frames.",
@@ -914,32 +956,32 @@ Write: {"flexDirection":"column","gap":16,"padding":"24","justifyContent":"cente
 		"commonMistakes": map[string]interface{}{
 			"_overview": "Silent failures and wrong parameter names that cause designs to look wrong without any error. Read this section before debugging.",
 			"parameterNames": map[string]interface{}{
-				"textColor":         "Use 'color' NOT 'fillColor' on text.create. fillColor is a frame parameter. text.create {text:'...', color:'#FF0000'} ✓  text.create {text:'...', fillColor:'#FF0000'} ✗ (silently ignored)",
-				"frameColor":        "Use 'color' (NOT 'backgroundColor') on node.create_frame. Aliases 'bg' and 'fillColor' are auto-normalized to 'color' in batch and composite commands.",
-				"compositeAliases":  "In slide/banner composite params: 'bg'→'color', 'fillColor'→'color', 'pid'→'parentId' are all auto-normalized. Use whichever is natural.",
-				"fontWeight":        "fontStyle is a STRING like 'Bold', 'SemiBold', 'Regular' — NOT a number. text.create {fontStyle:'Bold'} ✓  text.create {fontWeight:700} ✗ (wrong param name).",
-				"strokeVsFill":      "stroke/strokeColor is for BORDERS. color/fillColor is for BACKGROUND FILL. Never use color to set a stroke or stroke to set a fill.",
-				"lineHeightUnit":    "MUST pass lineHeightUnit:'PERCENT'. Without it, lineHeight value is treated as PIXELS (e.g., 150px not 150%). In batch mode this is auto-fixed. In direct text.create calls, always include it.",
-				"removeFill":        "Command is paint.remove_fill (singular). paint.remove_fills (plural) is also supported as an alias but the index param is required: {nodeId, index:0}.",
+				"textColor":        "Use 'color' NOT 'fillColor' on text.create. fillColor is a frame parameter. text.create {text:'...', color:'#FF0000'} ✓  text.create {text:'...', fillColor:'#FF0000'} ✗ (silently ignored)",
+				"frameColor":       "Use 'color' (NOT 'backgroundColor') on node.create_frame. Aliases 'bg' and 'fillColor' are auto-normalized to 'color' in batch and composite commands.",
+				"compositeAliases": "In slide/banner composite params: 'bg'→'color', 'fillColor'→'color', 'pid'→'parentId' are all auto-normalized. Use whichever is natural.",
+				"fontWeight":       "fontStyle is a STRING like 'Bold', 'SemiBold', 'Regular' — NOT a number. text.create {fontStyle:'Bold'} ✓  text.create {fontWeight:700} ✗ (wrong param name).",
+				"strokeVsFill":     "stroke/strokeColor is for BORDERS. color/fillColor is for BACKGROUND FILL. Never use color to set a stroke or stroke to set a fill.",
+				"lineHeightUnit":   "MUST pass lineHeightUnit:'PERCENT'. Without it, lineHeight value is treated as PIXELS (e.g., 150px not 150%). In batch mode this is auto-fixed. In direct text.create calls, always include it.",
+				"removeFill":       "Command is paint.remove_fill (singular). paint.remove_fills (plural) is also supported as an alias but the index param is required: {nodeId, index:0}.",
 			},
 			"pageSwitching": map[string]interface{}{
-				"correct":    "page.set_current {pageId} to switch the active page. Aliases: page.switch, page.navigate, page.go_to all work.",
-				"wrong":      "page.switch used to fail with 'Unknown page action'. Now aliased to set_current.",
-				"tip":        "After creating a page with page.create, use the returned id in page.set_current to activate it.",
+				"correct": "page.set_current {pageId} to switch the active page. Aliases: page.switch, page.navigate, page.go_to all work.",
+				"wrong":   "page.switch used to fail with 'Unknown page action'. Now aliased to set_current.",
+				"tip":     "After creating a page with page.create, use the returned id in page.set_current to activate it.",
 			},
 			"layoutPositioning": map[string]interface{}{
-				"rule":   "layoutPositioning:ABSOLUTE is ONLY valid on children of AUTO-LAYOUT frames (layoutMode:VERTICAL or HORIZONTAL). On non-auto-layout frames, children use x/y by default — no special property needed.",
-				"wrong":  "Setting layoutPositioning:ABSOLUTE on a child of a non-auto-layout frame is silently skipped (no error).",
-				"use":    "Decorative overlays that should float on top of auto-layout content. E.g., a badge in the corner of a card.",
+				"rule":  "layoutPositioning:ABSOLUTE is ONLY valid on children of AUTO-LAYOUT frames (layoutMode:VERTICAL or HORIZONTAL). On non-auto-layout frames, children use x/y by default — no special property needed.",
+				"wrong": "Setting layoutPositioning:ABSOLUTE on a child of a non-auto-layout frame is silently skipped (no error).",
+				"use":   "Decorative overlays that should float on top of auto-layout content. E.g., a badge in the corner of a card.",
 			},
 			"scanScope": map[string]interface{}{
 				"scanByType": "document.scan_by_type scans ALL pages, not just the current page. Use node.get_tree {nodeId:currentPageId, compact:true} to scan only the current page.",
 				"getTree":    "node.get_tree {compact:true} returns a FLAT array (not nested). Includes parentId and depth for rebuilding hierarchy client-side.",
 			},
 			"colorParsing": map[string]interface{}{
-				"formats":  "Accepted: '#RRGGBB', '#RGB', '#RRGGBBAA' (hex with alpha), or {r,g,b} or {r,g,b,a} object (0-1 range). Invalid formats fall back to black #000000 silently.",
-				"alpha":    "For semi-transparent colors, use object form: {r:1, g:1, b:1, a:0.5}. Or 8-digit hex: '#FFFFFF80'.",
-				"opacity":  "Prefer color alpha over node opacity for text. Node opacity affects the whole node including effects.",
+				"formats": "Accepted: '#RRGGBB', '#RGB', '#RRGGBBAA' (hex with alpha), or {r,g,b} or {r,g,b,a} object (0-1 range). Invalid formats fall back to black #000000 silently.",
+				"alpha":   "For semi-transparent colors, use object form: {r:1, g:1, b:1, a:0.5}. Or 8-digit hex: '#FFFFFF80'.",
+				"opacity": "Prefer color alpha over node opacity for text. Node opacity affects the whole node including effects.",
 			},
 			"textHeight": map[string]interface{}{
 				"widthEnablesWrap": "Setting 'width' on text.create auto-enables HEIGHT resize (text wraps within width). The returned height will be taller than fontSize.",
@@ -951,15 +993,15 @@ Write: {"flexDirection":"column","gap":16,"padding":"24","justifyContent":"cente
 				"visualFrames":     "Slide backgrounds, cards, and CTA buttons should keep their fill — only wrapper frames need noFill:true.",
 			},
 			"multiFrameDesigns": map[string]interface{}{
-				"rule":     "CRITICAL: Anything exported independently = its own top-level frame. NEVER wrap multiple exportable designs in a parent frame.",
-				"carousels": "Instagram/LinkedIn/Twitter carousels: one slide composite per panel. Each creates its own root frame. Batch auto-places side by side.",
-				"stories":   "Instagram/Facebook stories: one slide per story — separate top-level frames.",
+				"rule":       "CRITICAL: Anything exported independently = its own top-level frame. NEVER wrap multiple exportable designs in a parent frame.",
+				"carousels":  "Instagram/LinkedIn/Twitter carousels: one slide composite per panel. Each creates its own root frame. Batch auto-places side by side.",
+				"stories":    "Instagram/Facebook stories: one slide per story — separate top-level frames.",
 				"responsive": "Mobile/tablet/desktop: one frame per breakpoint at different sizes.",
-				"variants":  "A/B variants: one frame per variant — separate frames for comparison.",
-				"campaigns": "Multi-format (post + story + banner): one composite per format — slide for post, slide for story, banner for banner.",
-				"print":     "Multi-page documents: one frame per page.",
-				"wrong":     "WRONG: Creating a wrapper frame and nesting slides as children. This makes them un-exportable individually.",
-				"correct":   "CORRECT: Three slide composites in one batch array. Each auto-creates its own root frame.",
+				"variants":   "A/B variants: one frame per variant — separate frames for comparison.",
+				"campaigns":  "Multi-format (post + story + banner): one composite per format — slide for post, slide for story, banner for banner.",
+				"print":      "Multi-page documents: one frame per page.",
+				"wrong":      "WRONG: Creating a wrapper frame and nesting slides as children. This makes them un-exportable individually.",
+				"correct":    "CORRECT: Three slide composites in one batch array. Each auto-creates its own root frame.",
 			},
 		},
 		"cliOnlyCommands": map[string]interface{}{
@@ -968,8 +1010,8 @@ Write: {"flexDirection":"column","gap":16,"padding":"24","justifyContent":"cente
 				"description": "Parse HTML/CSS into composite batch JSON (slide/banner ops). Output goes through the normal batch pipeline.",
 				"usage":       "ai-happy-design extract file.html --width 1080 --height 1350",
 				"flags": map[string]interface{}{
-					"--width":    "Canvas width (default 1080)",
-					"--height":   "Canvas height (default 1080)",
+					"--width":       "Canvas width (default 1080)",
+					"--height":      "Canvas height (default 1080)",
 					"-o / --output": "Output file path (default: stdout)",
 				},
 				"workflow": "extract file.html > ops.json && ai-happy-design batch ops.json",
@@ -1049,7 +1091,12 @@ If document.get_info returns document data, the connection is working.
 - Plugin won't load: Rebuild with cd plugin && npm run build
 
 ## Once Connected
-Call describe(action="catalog") to discover all available tools and start designing!`
+Call describe(action="catalog") to discover all available tools and start designing!
+
+CLI discovery sequence:
+  ai-happy-design tools --llm --json
+  ai-happy-design actions paint
+  ai-happy-design batch --help`
 }
 
 // DesignGuide returns focused design guidance for LLM agents — design thinking,
@@ -1268,7 +1315,7 @@ func sampleValue(param string) interface{} {
 	case strings.EqualFold(param, "url"):
 		return "https://picsum.photos/800/600"
 	case strings.EqualFold(param, "imageData"):
-		return "<base64-or-data-url>"
+		return "<base64-or-data-url-or-file-path-or-http-url>"
 	case strings.EqualFold(param, "format"):
 		return "PNG"
 	case strings.EqualFold(param, "gradientType"):

@@ -35,20 +35,20 @@ var toolDescriptions = map[string]map[string]string{
 		"create_image":     "Place an image on canvas. Params: imageData (base64 PNG/JPG), x, y, width, height, parentId, scaleMode (FILL/FIT/CROP/TILE), name, cornerRadius",
 	},
 	"text": {
-		"create":         "Create a text node. Params: text, x, y, fontFamily, fontStyle, fontSize, parentId, name, color, width, textAlign, lineHeight, lineHeightUnit, layoutSizingHorizontal, layoutSizingVertical, layoutGrow, layoutAlign",
-		"set_content":    "Set text content. Params: nodeId, text",
-		"set_font":       "Set font family and style. Params: nodeId, fontFamily, fontStyle",
-		"set_size":       "Set font size. Params: nodeId, fontSize",
-		"set_weight":     "Set font weight. Params: nodeId, fontWeight",
-		"set_color":      "Set text color. Params: nodeId, color",
-		"set_align":      "Set text alignment. Params: nodeId, textAlign",
-		"set_spacing":    "Set letter/line/paragraph spacing. Params: nodeId, letterSpacing, lineHeight, paragraphSpacing",
-		"set_case":       "Set text case. Params: nodeId, textCase",
-		"set_decoration": "Set text decoration. Params: nodeId, textDecoration",
-		"get_segments":   "Get styled text segments. Params: nodeId",
-		"load_font":      "Load a font for use. Params: fontFamily, fontStyle",
-		"set_style_id":   "Apply a text style. Params: nodeId, styleId",
-		"list_fonts":       "List available fonts. Params: fontFamily (optional filter substring)",
+		"create":          "Create a text node. Params: text, x, y, fontFamily, fontStyle, fontSize, parentId, name, color, width, textAlign, lineHeight, lineHeightUnit, layoutSizingHorizontal, layoutSizingVertical, layoutGrow, layoutAlign",
+		"set_content":     "Set text content. Params: nodeId, text",
+		"set_font":        "Set font family and style. Params: nodeId, fontFamily, fontStyle",
+		"set_size":        "Set font size. Params: nodeId, fontSize",
+		"set_weight":      "Set font weight. Params: nodeId, fontWeight",
+		"set_color":       "Set text color. Params: nodeId, color",
+		"set_align":       "Set text alignment. Params: nodeId, textAlign",
+		"set_spacing":     "Set letter/line/paragraph spacing. Params: nodeId, letterSpacing, lineHeight, paragraphSpacing",
+		"set_case":        "Set text case. Params: nodeId, textCase",
+		"set_decoration":  "Set text decoration. Params: nodeId, textDecoration",
+		"get_segments":    "Get styled text segments. Params: nodeId",
+		"load_font":       "Load a font for use. Params: fontFamily, fontStyle",
+		"set_style_id":    "Apply a text style. Params: nodeId, styleId",
+		"list_fonts":      "List available fonts. Params: fontFamily (optional filter substring)",
 		"set_range_style": "Apply multiple styles to character ranges. Params: nodeId, ranges[{match|start+end, bold, italic, color, fontSize, fontFamily, fontStyle, letterSpacing, lineHeight, textDecoration, textCase}]",
 	},
 	"layout": {
@@ -240,6 +240,9 @@ func RegisterDescribeTool(s *server.MCPServer, _ *figma.Commander) {
 				sb.WriteString("\n")
 			}
 			sb.WriteString("CLI-only commands (not MCP tools — run via ai-happy-design <command>):\n")
+			sb.WriteString("  tools --llm --json — Full LLM catalog with playbook, image handling rules, and quality guidance\n")
+			sb.WriteString("  actions [domain] — Discover exact domain.action names before generating command chains\n")
+			sb.WriteString("  batch --help — Input modes, image prep flags, lint/strict quality gate, and telemetry output fields\n")
 			sb.WriteString("  extract [file.html] --width W --height H — Parse HTML/CSS into composite batch JSON (slide/banner ops)\n")
 			sb.WriteString("  benchmark exec [file.json] --runs N — Time batch execution against Figma over N runs\n")
 			sb.WriteString("  benchmark pipe --phase-a-ms N — Accept piped batch JSON with external LLM generation timing\n")

@@ -248,7 +248,7 @@ func parseColorStop(part string) (GradientStop, error) {
 	}
 
 	// The rest is the color
-	hex := cssColorToHex(part)
+	hex := cssColorToHexAlpha(part)
 	if hex == "" {
 		return stop, fmt.Errorf("cannot parse color %q", part)
 	}
@@ -289,9 +289,9 @@ func distributeStopPositions(stops []GradientStop) {
 	}
 }
 
-// cssColorToHex converts various CSS color formats to hex (#RRGGBB).
-// Handles: hex (#RGB, #RRGGBB, #RRGGBBAA), rgb(), rgba(), named colors.
-func cssColorToHex(value string) string {
+// cssColorToHexAlpha converts CSS colors to hex and preserves alpha when present.
+// Returns #RRGGBB (opaque) or #RRGGBBAA (alpha).
+func cssColorToHexAlpha(value string) string {
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return ""
@@ -305,24 +305,42 @@ func cssColorToHex(value string) string {
 			// #RGB -> #RRGGBB
 			return "#" + strings.ToUpper(string(hex[0])+string(hex[0])+string(hex[1])+string(hex[1])+string(hex[2])+string(hex[2]))
 		case 4:
-			// #RGBA -> #RRGGBB (drop alpha)
-			return "#" + strings.ToUpper(string(hex[0])+string(hex[0])+string(hex[1])+string(hex[1])+string(hex[2])+string(hex[2]))
+			// #RGBA -> #RRGGBBAA
+			return "#" + strings.ToUpper(
+				string(hex[0])+string(hex[0])+
+					string(hex[1])+string(hex[1])+
+					string(hex[2])+string(hex[2])+
+					string(hex[3])+string(hex[3]),
+			)
 		case 6:
 			return "#" + strings.ToUpper(hex)
 		case 8:
-			// #RRGGBBAA -> #RRGGBB (drop alpha)
-			return "#" + strings.ToUpper(hex[:6])
+			return "#" + strings.ToUpper(hex)
 		}
 		return "#" + strings.ToUpper(hex)
 	}
 
 	// rgb() and rgba()
-	rgbRe := regexp.MustCompile(`(?i)rgba?\s*\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)`)
+	rgbRe := regexp.MustCompile(`(?i)rgba?\s*\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)`)
 	if m := rgbRe.FindStringSubmatch(value); m != nil {
 		r := clampInt(parseFloatDef(m[1], 0), 0, 255)
 		g := clampInt(parseFloatDef(m[2], 0), 0, 255)
 		b := clampInt(parseFloatDef(m[3], 0), 0, 255)
-		return fmt.Sprintf("#%02X%02X%02X", r, g, b)
+		a := 1.0
+		if len(m) > 4 && strings.TrimSpace(m[4]) != "" {
+			a = parseFloatDef(m[4], 1)
+		}
+		if a < 0 {
+			a = 0
+		}
+		if a > 1 {
+			a = 1
+		}
+		if a >= 0.999 {
+			return fmt.Sprintf("#%02X%02X%02X", r, g, b)
+		}
+		alpha := clampInt(a*255, 0, 255)
+		return fmt.Sprintf("#%02X%02X%02X%02X", r, g, b, alpha)
 	}
 
 	// Named colors (common subset)
@@ -343,13 +361,29 @@ func cssColorToHex(value string) string {
 		"silver":      "#C0C0C0",
 		"navy":        "#000080",
 		"teal":        "#008080",
-		"transparent": "",
+		"transparent": "#00000000",
 	}
 	if hex, ok := named[strings.ToLower(value)]; ok {
 		return hex
 	}
 
 	return ""
+}
+
+// cssColorToHex converts various CSS color formats to opaque hex (#RRGGBB).
+// Handles: hex (#RGB, #RRGGBB, #RRGGBBAA), rgb(), rgba(), named colors.
+func cssColorToHex(value string) string {
+	hex := cssColorToHexAlpha(value)
+	if hex == "" {
+		return ""
+	}
+	if len(hex) == 9 {
+		if strings.HasSuffix(hex, "00") {
+			return ""
+		}
+		return hex[:7]
+	}
+	return hex
 }
 
 // remToPx converts a CSS rem value string to pixels.
@@ -375,6 +409,13 @@ func remToPx(value string, baseFontSize float64) float64 {
 		v, err := strconv.ParseFloat(strings.TrimSpace(num), 64)
 		if err == nil {
 			return v
+		}
+	}
+	if strings.HasSuffix(value, "%") {
+		num := strings.TrimSuffix(value, "%")
+		v, err := strconv.ParseFloat(strings.TrimSpace(num), 64)
+		if err == nil {
+			return baseFontSize * (v / 100.0)
 		}
 	}
 	// Try plain number

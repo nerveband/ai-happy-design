@@ -161,18 +161,22 @@ func getBool(params map[string]interface{}, key string, def bool) bool {
 	return def
 }
 
-// estimateWrappedLines approximates wrapped line count for a text box.
-func estimateWrappedLines(text string, width, fontSize float64) float64 {
+func estimateWrappedLinesWithConfig(text string, width, fontSize, widthFactor float64, minCharsPerLine int) float64 {
 	if strings.TrimSpace(text) == "" {
 		return 1
 	}
 	if width <= 0 || fontSize <= 0 {
 		return 1
 	}
-	// Use a conservative width factor so placement avoids overlap for bold display text.
-	charsPerLine := int(math.Floor(width / (fontSize * 0.68)))
-	if charsPerLine < 6 {
-		charsPerLine = 6
+	if widthFactor <= 0 {
+		widthFactor = 0.68
+	}
+	charsPerLine := int(math.Floor(width / (fontSize * widthFactor)))
+	if minCharsPerLine < 1 {
+		minCharsPerLine = 1
+	}
+	if charsPerLine < minCharsPerLine {
+		charsPerLine = minCharsPerLine
 	}
 
 	totalLines := 0
@@ -220,23 +224,130 @@ func estimateWrappedLines(text string, width, fontSize float64) float64 {
 	return float64(totalLines)
 }
 
+// estimateWrappedLines approximates wrapped line count for larger display/body copy.
+func estimateWrappedLines(text string, width, fontSize float64) float64 {
+	// Keep a conservative floor for large headline/body text so layout stays safe by default.
+	return estimateWrappedLinesWithConfig(text, width, fontSize, 0.68, 6)
+}
+
+func estimateWrappedLinesTight(text string, width, fontSize float64) float64 {
+	// Tight estimate for narrow stat columns where single-token values should still shrink.
+	return estimateWrappedLinesWithConfig(text, width, fontSize, 0.62, 1)
+}
+
 func estimateTextHeight(text string, width, fontSize, lineHeightPercent float64) float64 {
 	lines := estimateWrappedLines(text, width, fontSize)
 	return lines * fontSize * (lineHeightPercent / 100.0)
 }
 
 func fitHeadlineFontSize(text string, width, canvasH, wantedSize, lineHeightPercent float64) float64 {
+	return fitHeadlineFontSizeWithBudget(text, width, canvasH, wantedSize, lineHeightPercent, 0.34, 5)
+}
+
+func fitHeadlineFontSizeWithBudget(text string, width, canvasH, wantedSize, lineHeightPercent, maxHeadlineRatio, maxHeadlineLines float64) float64 {
+	if maxHeadlineRatio <= 0 || maxHeadlineRatio > 0.9 {
+		maxHeadlineRatio = 0.34
+	}
+	if maxHeadlineLines < 1 {
+		maxHeadlineLines = 5
+	}
 	// Reserve room for other slide elements; headline should not consume most of the canvas.
-	maxHeadlineHeight := canvasH * 0.34
+	maxHeadlineHeight := canvasH * maxHeadlineRatio
 	size := wantedSize
 	for size > 28 {
-		h := estimateTextHeight(text, width, size, lineHeightPercent)
-		if h <= maxHeadlineHeight {
+		lines := estimateWrappedLines(text, width, size)
+		h := lines * size * (lineHeightPercent / 100.0)
+		if h <= maxHeadlineHeight && lines <= maxHeadlineLines {
 			return size
 		}
 		size = snap4(size-4, 28)
 	}
 	return size
+}
+
+var headlineTierOrder = []string{"display", "hero", "title", "heading", "subheading", "body", "caption"}
+
+func adaptHeadlineTier(
+	text string,
+	width, canvasH float64,
+	requestedTier string,
+	sizes map[string]float64,
+	lineHeightPercent, maxHeadlineRatio, maxHeadlineLines float64,
+) (string, float64) {
+	startTier := strings.ToLower(strings.TrimSpace(requestedTier))
+	startIdx := -1
+	for i, t := range headlineTierOrder {
+		if t == startTier {
+			startIdx = i
+			break
+		}
+	}
+	if startIdx < 0 {
+		startIdx = 2 // title
+	}
+	if maxHeadlineRatio <= 0 || maxHeadlineRatio > 0.9 {
+		maxHeadlineRatio = 0.34
+	}
+	if maxHeadlineLines < 1 {
+		maxHeadlineLines = 5
+	}
+	maxHeadlineHeight := canvasH * maxHeadlineRatio
+
+	fallbackTier := "title"
+	fallbackSize, ok := sizes[fallbackTier]
+	if !ok {
+		fallbackSize = 64
+	}
+
+	for i := startIdx; i < len(headlineTierOrder); i++ {
+		tier := headlineTierOrder[i]
+		size, hasSize := sizes[tier]
+		if !hasSize {
+			continue
+		}
+		lines := estimateWrappedLines(text, width, size)
+		height := lines * size * (lineHeightPercent / 100.0)
+		if height <= maxHeadlineHeight && lines <= maxHeadlineLines {
+			return tier, size
+		}
+		fallbackTier = tier
+		fallbackSize = size
+	}
+	return fallbackTier, fallbackSize
+}
+
+func fitTextToMaxLines(text string, width, wantedSize, lineHeightPercent, maxLines, minSize float64) float64 {
+	if maxLines < 1 {
+		maxLines = 1
+	}
+	if minSize <= 0 || minSize > wantedSize {
+		minSize = 20
+	}
+	size := wantedSize
+	for size > minSize {
+		lines := estimateWrappedLinesTight(text, width, size)
+		height := lines * size * (lineHeightPercent / 100.0)
+		if lines <= maxLines && height > 0 {
+			return size
+		}
+		size = snap4(size-4, minSize)
+	}
+	return size
+}
+
+func gradientFillType(raw string) string {
+	switch strings.ToUpper(strings.TrimSpace(raw)) {
+	case "GRADIENT_LINEAR", "LINEAR":
+		return "GRADIENT_LINEAR"
+	case "GRADIENT_RADIAL", "RADIAL":
+		return "GRADIENT_RADIAL"
+	case "GRADIENT_ANGULAR", "ANGULAR":
+		return "GRADIENT_ANGULAR"
+	case "GRADIENT_DIAMOND", "DIAMOND":
+		return "GRADIENT_DIAMOND"
+	default:
+		return "GRADIENT_LINEAR"
+	}
 }
 
 // makeOp creates a batch operation map.
@@ -315,12 +426,45 @@ func expandSlide(baseName string, params map[string]interface{}) ([]map[string]i
 	}
 	ops = append(ops, makeOp(frameName, "node.create_frame", frameParams))
 
+	// Optional background image (local path/URL/base64 supported by resolver).
+	if bgImage := getString(params, "bgImage", ""); bgImage != "" {
+		imgName := baseName + "_bgimg"
+		imgParams := map[string]interface{}{
+			"nodeId":    ref(frameName),
+			"imageData": bgImage,
+		}
+		if scaleMode := strings.TrimSpace(getString(params, "bgImageScaleMode", "FILL")); scaleMode != "" {
+			imgParams["scaleMode"] = strings.ToUpper(scaleMode)
+		}
+		ops = append(ops, makeOp(imgName, "paint.set_image", imgParams))
+	}
+
 	// Optional gradient
 	if grad, ok := params["gradient"].(map[string]interface{}); ok {
 		gradName := baseName + "_grad"
 		gradParams := cloneParams(grad)
 		gradParams["nodeId"] = ref(frameName)
 		ops = append(ops, makeOp(gradName, "paint.set_gradient", gradParams))
+	}
+
+	// Optional photo overlay fill. This avoids creating overlap-prone child layers.
+	if overlayGrad, ok := params["overlayGradient"].(map[string]interface{}); ok {
+		overlayFill := map[string]interface{}{
+			"nodeId": ref(frameName),
+			"type":   gradientFillType(getString(overlayGrad, "type", "LINEAR")),
+			"stops":  overlayGrad["stops"],
+		}
+		ops = append(ops, makeOp(baseName+"_overlay_fill", "paint.add_fill", overlayFill))
+	} else if overlayColor := getString(params, "overlayColor", ""); overlayColor != "" {
+		overlayFill := map[string]interface{}{
+			"nodeId": ref(frameName),
+			"type":   "SOLID",
+			"color":  overlayColor,
+		}
+		if opacity := getFloat(params, "overlayOpacity", -1); opacity >= 0 {
+			overlayFill["opacity"] = opacity
+		}
+		ops = append(ops, makeOp(baseName+"_overlay_fill", "paint.add_fill", overlayFill))
 	}
 	yPos := snap8(h*0.10, 16) // start with top padding
 
@@ -380,28 +524,32 @@ func expandSlideElement(
 
 func expandEyebrow(name, frameName string, params map[string]interface{}, margin, contentWidth, yPos float64, sizes map[string]float64) ([]map[string]interface{}, float64, error) {
 	fontSize := sizes["caption"]
+	if explicit := getFloat(params, "fontSize", 0); explicit > 0 {
+		fontSize = explicit
+	}
 	text := getString(params, "text", "")
 	color := getString(params, "color", "#999999")
 	spacing := getFloat(params, "spacing", 16)
+	lineHeight := getFloat(params, "lineHeight", 130)
 
 	op := makeOp(name, "text.create", map[string]interface{}{
-		"parentId":      ref(frameName),
-		"content":       text,
-		"name":          "Eyebrow — " + truncate(text, 25),
-		"x":             margin,
-		"y":             yPos,
-		"width":         contentWidth,
-		"fontSize":      fontSize,
-		"fontFamily":    getString(params, "fontFamily", "Inter"),
-		"fontStyle":     getString(params, "fontStyle", "Medium"),
-		"color":         color,
-		"letterSpacing": getFloat(params, "letterSpacing", 4),
-		"textCase":      "UPPER",
-		"lineHeight":    130.0,
+		"parentId":       ref(frameName),
+		"content":        text,
+		"name":           "Eyebrow — " + truncate(text, 25),
+		"x":              margin,
+		"y":              yPos,
+		"width":          contentWidth,
+		"fontSize":       fontSize,
+		"fontFamily":     getString(params, "fontFamily", "Inter"),
+		"fontStyle":      getString(params, "fontStyle", "Medium"),
+		"color":          color,
+		"letterSpacing":  getFloat(params, "letterSpacing", 4),
+		"textCase":       "UPPER",
+		"lineHeight":     lineHeight,
 		"lineHeightUnit": "PERCENT",
 	})
 
-	newY := yPos + fontSize*1.3 + spacing
+	newY := yPos + fontSize*(lineHeight/100.0) + spacing
 	return []map[string]interface{}{op}, newY, nil
 }
 
@@ -409,6 +557,7 @@ func expandHeadline(name, frameName string, params map[string]interface{}, canva
 	tier := getString(params, "tier", "title")
 	fontSize, ok := sizes[tier]
 	if !ok {
+		tier = "title"
 		fontSize = sizes["title"]
 	}
 	text := getString(params, "text", "")
@@ -416,9 +565,24 @@ func expandHeadline(name, frameName string, params map[string]interface{}, canva
 	spacing := getFloat(params, "spacing", 24)
 
 	lineHeight := getFloat(params, "lineHeight", 118)
+	maxHeadlineRatio := getFloat(params, "maxHeadlineRatio", 0.34)
+	maxHeadlineLines := getFloat(params, "maxHeadlineLines", 5)
+	explicitFontSize := getFloat(params, "fontSize", 0)
+	if explicitFontSize > 0 {
+		fontSize = explicitFontSize
+	}
+	adaptiveTier := getBool(params, "adaptiveTier", true)
+	if explicitFontSize > 0 {
+		if _, ok := params["adaptiveTier"]; !ok {
+			adaptiveTier = false
+		}
+	}
+	if adaptiveTier {
+		tier, fontSize = adaptHeadlineTier(text, contentWidth, canvasH, tier, sizes, lineHeight, maxHeadlineRatio, maxHeadlineLines)
+	}
 	autoFit := getBool(params, "autoFit", true)
 	if autoFit {
-		fontSize = fitHeadlineFontSize(text, contentWidth, canvasH, fontSize, lineHeight)
+		fontSize = fitHeadlineFontSizeWithBudget(text, contentWidth, canvasH, fontSize, lineHeight, maxHeadlineRatio, maxHeadlineLines)
 	}
 
 	op := makeOp(name, "text.create", map[string]interface{}{
@@ -443,6 +607,9 @@ func expandHeadline(name, frameName string, params map[string]interface{}, canva
 
 func expandBody(name, frameName string, params map[string]interface{}, margin, contentWidth, yPos float64, sizes map[string]float64) ([]map[string]interface{}, float64, error) {
 	fontSize := sizes["body"]
+	if explicit := getFloat(params, "fontSize", 0); explicit > 0 {
+		fontSize = explicit
+	}
 	text := getString(params, "text", "")
 	color := getString(params, "color", "#333333")
 	spacing := getFloat(params, "spacing", 24)
@@ -493,26 +660,33 @@ func expandCounter(name, frameName string, params map[string]interface{}, canvas
 	total := getString(params, "total", "5")
 	text := current + " / " + total
 	fontSize := sizes["caption"]
+	if explicit := getFloat(params, "fontSize", 0); explicit > 0 {
+		fontSize = explicit
+	}
+	if fontSize > sizes["caption"] {
+		fontSize = sizes["caption"]
+	}
 	color := getString(params, "color", "#999999")
 	counterWidth := getFloat(params, "width", math.Max(140, fontSize*4))
+	lineHeight := getFloat(params, "lineHeight", 130)
 
 	// Counter is positioned top-right, not in the flow
 	counterY := margin
 
 	op := makeOp(name, "text.create", map[string]interface{}{
-		"parentId":       ref(frameName),
-		"content":        text,
-		"name":           "Counter",
-		"x":              canvasW - margin - counterWidth,
-		"y":              counterY,
-		"width":          counterWidth,
-		"fontSize":       fontSize,
-		"fontFamily":     getString(params, "fontFamily", "Inter"),
-		"fontStyle":      getString(params, "fontStyle", "Regular"),
-		"color":          color,
+		"parentId":            ref(frameName),
+		"content":             text,
+		"name":                "Counter",
+		"x":                   canvasW - margin - counterWidth,
+		"y":                   counterY,
+		"width":               counterWidth,
+		"fontSize":            fontSize,
+		"fontFamily":          getString(params, "fontFamily", "Inter"),
+		"fontStyle":           getString(params, "fontStyle", "Regular"),
+		"color":               color,
 		"textAlignHorizontal": "RIGHT",
-		"lineHeight":     130.0,
-		"lineHeightUnit": "PERCENT",
+		"lineHeight":          lineHeight,
+		"lineHeightUnit":      "PERCENT",
 	})
 
 	// Counter doesn't advance yPos — it's absolutely positioned
@@ -522,6 +696,9 @@ func expandCounter(name, frameName string, params map[string]interface{}, canvas
 func expandCTA(name, frameName string, params map[string]interface{}, margin, contentWidth, yPos float64, sizes map[string]float64) ([]map[string]interface{}, float64, error) {
 	text := getString(params, "text", "Learn More")
 	fontSize := sizes["body"]
+	if explicit := getFloat(params, "fontSize", 0); explicit > 0 {
+		fontSize = explicit
+	}
 	bgColor := getString(params, "bgColor", "#000000")
 	textColor := getString(params, "textColor", "#FFFFFF")
 	style := getString(params, "style", "pill")
@@ -529,6 +706,8 @@ func expandCTA(name, frameName string, params map[string]interface{}, margin, co
 
 	btnHeight := snap8(fontSize*2.5, 40)
 	btnPadH := snap8(fontSize*1.25, 16)
+	estimatedTextWidth := float64(utf8.RuneCountInString(text)) * (fontSize * 0.58)
+	btnWidth := snap8(estimatedTextWidth+btnPadH*2, btnHeight*2)
 	var cornerRadius float64
 	if style == "pill" {
 		cornerRadius = btnHeight / 2
@@ -541,21 +720,23 @@ func expandCTA(name, frameName string, params map[string]interface{}, margin, co
 
 	// Button frame with auto-layout
 	btnFrame := makeOp(btnFrameName, "node.create_frame", map[string]interface{}{
-		"parentId":     ref(frameName),
-		"name":         "CTA Button",
-		"x":            margin,
-		"y":            yPos,
-		"color":        bgColor,
-		"cornerRadius": cornerRadius,
-		"layoutMode":   "HORIZONTAL",
-		"paddingLeft":  btnPadH,
-		"paddingRight": btnPadH,
-		"paddingTop":   snap8(fontSize*0.625, 8),
-		"paddingBottom": snap8(fontSize*0.625, 8),
-		"primaryAxisAlignItems":   "CENTER",
-		"counterAxisAlignItems":   "CENTER",
-		"primaryAxisSizingMode":   "AUTO",
-		"counterAxisSizingMode":   "AUTO",
+		"parentId":              ref(frameName),
+		"name":                  "CTA Button",
+		"x":                     margin,
+		"y":                     yPos,
+		"width":                 btnWidth,
+		"height":                btnHeight,
+		"color":                 bgColor,
+		"cornerRadius":          cornerRadius,
+		"layoutMode":            "HORIZONTAL",
+		"paddingLeft":           btnPadH,
+		"paddingRight":          btnPadH,
+		"paddingTop":            snap8(fontSize*0.625, 8),
+		"paddingBottom":         snap8(fontSize*0.625, 8),
+		"primaryAxisAlignItems": "CENTER",
+		"counterAxisAlignItems": "CENTER",
+		"primaryAxisSizingMode": "FIXED",
+		"counterAxisSizingMode": "FIXED",
 	})
 
 	// Button text
@@ -578,26 +759,30 @@ func expandCTA(name, frameName string, params map[string]interface{}, margin, co
 func expandURL(name, frameName string, params map[string]interface{}, canvasW, canvasH, contentWidth float64, sizes map[string]float64) ([]map[string]interface{}, float64, error) {
 	text := getString(params, "text", "")
 	fontSize := sizes["caption"]
+	if explicit := getFloat(params, "fontSize", 0); explicit > 0 {
+		fontSize = explicit
+	}
 	color := getString(params, "color", "#999999")
 	margin := snap8(canvasW*0.08, 16)
+	lineHeight := getFloat(params, "lineHeight", 130)
 
 	// URL is pinned near bottom
 	urlY := canvasH - margin - fontSize*1.5
 
 	op := makeOp(name, "text.create", map[string]interface{}{
-		"parentId":              ref(frameName),
-		"content":               text,
-		"name":                  "URL — " + truncate(text, 25),
-		"x":                     margin,
-		"y":                     urlY,
-		"width":                 contentWidth,
-		"fontSize":              fontSize,
-		"fontFamily":            getString(params, "fontFamily", "Inter"),
-		"fontStyle":             getString(params, "fontStyle", "Regular"),
-		"color":                 color,
-		"textAlignHorizontal":   "CENTER",
-		"lineHeight":            130.0,
-		"lineHeightUnit":        "PERCENT",
+		"parentId":            ref(frameName),
+		"content":             text,
+		"name":                "URL — " + truncate(text, 25),
+		"x":                   margin,
+		"y":                   urlY,
+		"width":               contentWidth,
+		"fontSize":            fontSize,
+		"fontFamily":          getString(params, "fontFamily", "Inter"),
+		"fontStyle":           getString(params, "fontStyle", "Regular"),
+		"color":               color,
+		"textAlignHorizontal": "CENTER",
+		"lineHeight":          lineHeight,
+		"lineHeightUnit":      "PERCENT",
 	})
 
 	// URL doesn't advance yPos — it's bottom-pinned
@@ -613,12 +798,57 @@ func expandStats(name, frameName string, params map[string]interface{}, margin, 
 	spacing := getFloat(params, "spacing", 32)
 	valueFontSize := sizes["display"]
 	labelFontSize := sizes["caption"]
+	valueLineHeight := getFloat(params, "valueLineHeight", 118)
+	labelLineHeight := getFloat(params, "labelLineHeight", 130)
+	valueMaxLines := getFloat(params, "valueMaxLines", 1)
+	labelMaxLines := getFloat(params, "labelMaxLines", 2)
+	valueMinSize := getFloat(params, "valueMinSize", 20)
+	labelMinSize := getFloat(params, "labelMinSize", 12)
 	valueColor := getString(params, "valueColor", "#000000")
 	labelColor := getString(params, "labelColor", "#666666")
 
 	colCount := len(items)
 	gap := snap8(contentWidth*0.03, 8)
 	colWidth := (contentWidth - float64(colCount-1)*gap) / float64(colCount)
+	if colWidth < 32 {
+		colWidth = 32
+	}
+
+	sharedValueSize := valueFontSize
+	sharedLabelSize := labelFontSize
+	maxValueHeight := 0.0
+	maxLabelHeight := 0.0
+	for _, item := range items {
+		itemMap, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		value := getString(itemMap, "value", "0")
+		label := getString(itemMap, "label", "")
+		valueFit := fitTextToMaxLines(value, colWidth, valueFontSize, valueLineHeight, valueMaxLines, valueMinSize)
+		labelFit := fitTextToMaxLines(label, colWidth, labelFontSize, labelLineHeight, labelMaxLines, labelMinSize)
+		if valueFit < sharedValueSize {
+			sharedValueSize = valueFit
+		}
+		if labelFit < sharedLabelSize {
+			sharedLabelSize = labelFit
+		}
+		valueHeight := estimateWrappedLinesTight(value, colWidth, valueFit) * valueFit * (valueLineHeight / 100.0)
+		labelHeight := estimateWrappedLinesTight(label, colWidth, labelFit) * labelFit * (labelLineHeight / 100.0)
+		if valueHeight > maxValueHeight {
+			maxValueHeight = valueHeight
+		}
+		if labelHeight > maxLabelHeight {
+			maxLabelHeight = labelHeight
+		}
+	}
+	if maxValueHeight == 0 {
+		maxValueHeight = sharedValueSize * (valueLineHeight / 100.0)
+	}
+	if maxLabelHeight == 0 {
+		maxLabelHeight = sharedLabelSize * (labelLineHeight / 100.0)
+	}
+	labelY := yPos + maxValueHeight + 8
 
 	var ops []map[string]interface{}
 	for j, item := range items {
@@ -640,17 +870,16 @@ func expandStats(name, frameName string, params map[string]interface{}, margin, 
 			"x":              colX,
 			"y":              yPos,
 			"width":          colWidth,
-			"fontSize":       valueFontSize,
+			"fontSize":       sharedValueSize,
 			"fontFamily":     getString(params, "fontFamily", "Inter"),
 			"fontStyle":      getString(params, "fontStyle", "Bold"),
 			"color":          valueColor,
-			"lineHeight":     118.0,
+			"lineHeight":     valueLineHeight,
 			"lineHeightUnit": "PERCENT",
 		}))
 
 		// Label text
 		lblName := fmt.Sprintf("%s_l%d", name, j)
-		labelY := yPos + valueFontSize*1.18 + 8
 		ops = append(ops, makeOp(lblName, "text.create", map[string]interface{}{
 			"parentId":       ref(frameName),
 			"content":        label,
@@ -658,16 +887,16 @@ func expandStats(name, frameName string, params map[string]interface{}, margin, 
 			"x":              colX,
 			"y":              labelY,
 			"width":          colWidth,
-			"fontSize":       labelFontSize,
+			"fontSize":       sharedLabelSize,
 			"fontFamily":     getString(params, "fontFamily", "Inter"),
 			"fontStyle":      getString(params, "fontStyle", "Regular"),
 			"color":          labelColor,
-			"lineHeight":     130.0,
+			"lineHeight":     labelLineHeight,
 			"lineHeightUnit": "PERCENT",
 		}))
 	}
 
-	newY := yPos + valueFontSize*1.18 + 8 + labelFontSize*1.3 + spacing
+	newY := yPos + maxValueHeight + 8 + maxLabelHeight + spacing
 	return ops, newY, nil
 }
 
@@ -705,19 +934,19 @@ func expandProgress(name, frameName string, params map[string]interface{}, margi
 	goalName := name + "_goal"
 	goalText := getString(params, "goalText", fmt.Sprintf("Goal: %.0f", goal))
 	ops = append(ops, makeOp(goalName, "text.create", map[string]interface{}{
-		"parentId":              ref(frameName),
-		"content":               goalText,
-		"name":                  "Progress Goal",
-		"x":                     margin,
-		"y":                     yPos,
-		"width":                 contentWidth,
-		"fontSize":              labelFontSize,
-		"fontFamily":            getString(params, "fontFamily", "Inter"),
-		"fontStyle":             "Regular",
-		"color":                 labelColor,
-		"textAlignHorizontal":   "RIGHT",
-		"lineHeight":            130.0,
-		"lineHeightUnit":        "PERCENT",
+		"parentId":            ref(frameName),
+		"content":             goalText,
+		"name":                "Progress Goal",
+		"x":                   margin,
+		"y":                   yPos,
+		"width":               contentWidth,
+		"fontSize":            labelFontSize,
+		"fontFamily":          getString(params, "fontFamily", "Inter"),
+		"fontStyle":           "Regular",
+		"color":               labelColor,
+		"textAlignHorizontal": "RIGHT",
+		"lineHeight":          130.0,
+		"lineHeightUnit":      "PERCENT",
 	}))
 
 	labelRowHeight := sizes["subheading"]*1.3 + 8

@@ -43,6 +43,23 @@ function parseStops(rawStops: any): ColorStop[] {
   return [];
 }
 
+function gradientTransformFromAngle(rawAngle: any): Transform {
+  const angle = typeof rawAngle === 'number' ? rawAngle : Number(rawAngle);
+  // CSS linear-gradient: 90deg points right. Align transform to that convention.
+  const rad = ((Number.isFinite(angle) ? angle : 90) - 90) * Math.PI / 180;
+  const dx = Math.cos(rad);
+  const dy = Math.sin(rad);
+
+  const start = { x: 0.5 - dx * 0.5, y: 0.5 - dy * 0.5 };
+  const end = { x: 0.5 + dx * 0.5, y: 0.5 + dy * 0.5 };
+  const perp = { x: 0.5 - dy * 0.5, y: 0.5 + dx * 0.5 };
+
+  return [
+    [end.x - start.x, perp.x - start.x, start.x],
+    [end.y - start.y, perp.y - start.y, start.y],
+  ];
+}
+
 export async function handlePaint(action: string, params: any): Promise<any> {
   switch (action) {
     case 'set_color':
@@ -148,9 +165,7 @@ async function setGradient(params: any) {
         color: { r: c.r, g: c.g, b: c.b, a: c.a },
       };
     }),
-    gradientTransform: params.handlePositions
-      ? [[1, 0, 0], [0, 1, 0]]
-      : [[1, 0, 0], [0, 1, 0]],
+    gradientTransform: gradientTransformFromAngle(params.angle ?? params.rotation ?? 90),
   };
 
   node.fills = [paint];
@@ -210,7 +225,7 @@ async function addFill(params: any) {
           color: { r: c.r, g: c.g, b: c.b, a: c.a },
         };
       }),
-      gradientTransform: [[1, 0, 0], [0, 1, 0]],
+      gradientTransform: gradientTransformFromAngle(params.angle ?? params.rotation ?? 90),
     };
   } else if (fillType === 'IMAGE' && params.imageData) {
     const bytes = figma.base64Decode(params.imageData);

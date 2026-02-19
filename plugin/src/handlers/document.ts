@@ -443,19 +443,39 @@ async function walkNode(
 
     var children = frameNode.children;
 
-    if (!isAutoLayout && 'width' in frameNode) {
+    if ('width' in frameNode) {
       var pw = (frameNode as any).width as number;
       var ph = (frameNode as any).height as number;
 
-      // Filter children that are not absolutely positioned
+      // Track absolute children explicitly. In non-auto-layout parents, ABSOLUTE is suspicious
+      // and should still be linted as normal content.
       var checkableChildren: SceneNode[] = [];
+      var autoLayoutAbsoluteChildren: SceneNode[] = [];
       for (var i = 0; i < children.length; i++) {
         var child = children[i];
-        if ((child as any).layoutPositioning === 'ABSOLUTE') continue;
+        var isAbsolute = (child as any).layoutPositioning === 'ABSOLUTE';
+
+        if (isAbsolute && !isAutoLayout) {
+          warnings.push({
+            severity: 'info',
+            type: 'absolute_child_non_autolayout',
+            nodeId: child.id,
+            nodeName: child.name,
+            message: 'Child uses layoutPositioning:ABSOLUTE under non-auto-layout parent "' + frameNode.name + '". This is likely unintended and can hide overlap issues.',
+          });
+          checkableChildren.push(child);
+          continue;
+        }
+
+        if (isAbsolute && isAutoLayout) {
+          autoLayoutAbsoluteChildren.push(child);
+          continue;
+        }
+
         checkableChildren.push(child);
       }
 
-      // Overflow check
+      // Overflow check for normal/manual-positioned children.
       for (var i = 0; i < checkableChildren.length; i++) {
         var c = checkableChildren[i];
         var cx = c.x;
@@ -497,7 +517,7 @@ async function walkNode(
         }
       }
 
-      // Overlap check — compare all sibling pairs
+      // Overlap check — compare all sibling pairs.
       for (var i = 0; i < checkableChildren.length; i++) {
         for (var j = i + 1; j < checkableChildren.length; j++) {
           var a = checkableChildren[i];
@@ -512,6 +532,26 @@ async function walkNode(
               nodeId: a.id,
               nodeName: a.name,
               message: 'Overlaps with sibling "' + b.name + '" (' + b.id + ') in parent "' + frameNode.name + '".',
+            });
+          }
+        }
+      }
+
+      // Auto-layout parents: absolute children are intentional, but still ensure they stay in-bounds.
+      if (isAutoLayout) {
+        for (var i = 0; i < autoLayoutAbsoluteChildren.length; i++) {
+          var ac = autoLayoutAbsoluteChildren[i];
+          var acx = ac.x;
+          var acy = ac.y;
+          var acw = ac.width;
+          var ach = ac.height;
+          if (acx < 0 || acy < 0 || acx + acw > pw || acy + ach > ph) {
+            warnings.push({
+              severity: 'warning',
+              type: 'absolute_overflow',
+              nodeId: ac.id,
+              nodeName: ac.name,
+              message: 'Absolute child extends beyond auto-layout parent "' + frameNode.name + '" bounds (' + pw + 'x' + ph + ').',
             });
           }
         }

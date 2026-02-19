@@ -9,6 +9,8 @@ package extract
 import (
 	"fmt"
 	"io"
+	"math"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -19,6 +21,7 @@ import (
 type Options struct {
 	CanvasWidth  int // target Figma canvas width (e.g. 1080 for slides)
 	CanvasHeight int // target Figma canvas height (e.g. 1350 for slides)
+	BaseDir      string
 }
 
 // FromHTML parses HTML+CSS and returns batch operations (composite commands).
@@ -180,6 +183,22 @@ func extractSlide(node *html.Node, styles map[string]map[string]string, opts Opt
 		params["gradient"] = gradient
 	}
 
+	// Optional photo background (.s-img with background-image:url(...)).
+	if bgImage, ok := extractSlideBackgroundImage(node, styles, opts.BaseDir); ok {
+		params["bgImage"] = bgImage
+	}
+
+	// Optional overlay layer (.s-ov). Keep this separate from root gradient so
+	// photo slides can preserve image + overlay + text stacking.
+	if overlayColor, overlayGradient, ok := extractSlideOverlay(node, styles); ok {
+		if overlayColor != "" {
+			params["overlayColor"] = overlayColor
+		}
+		if overlayGradient != nil {
+			params["overlayGradient"] = overlayGradient
+		}
+	}
+
 	// Extract child elements
 	elements := extractSlideElements(node, styles, scaleFactor)
 	if len(elements) > 0 {
@@ -331,15 +350,13 @@ func extractSlideElements(node *html.Node, styles map[string]map[string]string, 
 				"type": "url",
 				"text": textContent(n),
 			}
-			if c := resolveTextColor(merged); c != "" {
-				elem["color"] = c
-			}
+			applyTextStyle(elem, merged, scale)
 			elements = append(elements, elem)
 			return false
 		}
 
 		// Body text (.s-body or .body class or generic paragraph)
-		if hasClass(classes, "s-body") || hasClass(classes, "body") || hasClass(classes, "s-p") {
+		if hasClass(classes, "s-body") || hasClass(classes, "body") || hasClass(classes, "s-p") || hasClass(classes, "b") || hasClass(classes, "b-lg") {
 			elem := map[string]interface{}{
 				"type": "body",
 				"text": textContentWithBreaks(n),
@@ -350,11 +367,12 @@ func extractSlideElements(node *html.Node, styles map[string]map[string]string, 
 		}
 
 		// CTA / button (.s-cta or .cta class)
-		if hasClass(classes, "s-cta") || hasClass(classes, "cta") || hasClass(classes, "btn") {
+		if hasClass(classes, "s-cta") || hasClass(classes, "cta") || hasClass(classes, "btn") || hasClass(classes, "cta-w") || hasClass(classes, "cta-g") {
 			elem := map[string]interface{}{
 				"type": "cta",
 				"text": textContent(n),
 			}
+			applyTextStyle(elem, merged, scale)
 			if bg := merged["background-color"]; bg != "" {
 				hex := cssColorToHex(bg)
 				if hex != "" {
@@ -374,7 +392,7 @@ func extractSlideElements(node *html.Node, styles map[string]map[string]string, 
 		}
 
 		// Stats container (.stats)
-		if hasClass(classes, "stats") || hasClass(classes, "s-stats") {
+		if hasClass(classes, "stats") || hasClass(classes, "s-stats") || hasClass(classes, "stat-g2") || hasClass(classes, "stat-g3") {
 			items := extractStatsItems(n, styles, scale)
 			if len(items) > 0 {
 				elements = append(elements, map[string]interface{}{
@@ -446,6 +464,115 @@ func extractBannerElements(node *html.Node, styles map[string]map[string]string,
 	return elements
 }
 
+func extractSlideBackgroundImage(node *html.Node, styles map[string]map[string]string, baseDir string) (string, bool) {
+	var imagePath string
+	walkDOM(node, func(n *html.Node) bool {
+		if n == node || n.Type != html.ElementNode {
+			return true
+		}
+		classes := getAttr(n, "class")
+		if !hasClass(classes, "s-img") {
+			return true
+		}
+		inlineStyle := parseInlineStyle(getAttr(n, "style"))
+		merged := mergeClassStyles(classes, styles)
+		for k, v := range inlineStyle {
+			merged[k] = v
+		}
+		raw := extractImageURLFromProps(merged)
+		if strings.TrimSpace(raw) == "" {
+			return false
+		}
+		imagePath = normalizeAssetPath(raw, baseDir)
+		return false
+	})
+	if strings.TrimSpace(imagePath) == "" {
+		return "", false
+	}
+	return imagePath, true
+}
+
+func extractSlideOverlay(node *html.Node, styles map[string]map[string]string) (string, map[string]interface{}, bool) {
+	var overlayColor string
+	var overlayGradient map[string]interface{}
+	found := false
+
+	walkDOM(node, func(n *html.Node) bool {
+		if n == node || n.Type != html.ElementNode {
+			return true
+		}
+		classes := getAttr(n, "class")
+		if !hasClass(classes, "s-ov") {
+			return true
+		}
+		inlineStyle := parseInlineStyle(getAttr(n, "style"))
+		merged := mergeClassStyles(classes, styles)
+		for k, v := range inlineStyle {
+			merged[k] = v
+		}
+		bgColor, grad := resolveBackground(merged)
+		if grad != nil {
+			overlayGradient = grad
+		}
+		if grad == nil {
+			if bc := strings.TrimSpace(merged["background-color"]); bc != "" {
+				overlayColor = cssColorToHexAlpha(bc)
+			} else if bg := strings.TrimSpace(merged["background"]); bg != "" && !strings.Contains(strings.ToLower(bg), "gradient") {
+				overlayColor = cssColorToHexAlpha(bg)
+			}
+		}
+		if overlayColor == "" && bgColor != "" && bgColor != "#FFFFFF" {
+			overlayColor = bgColor
+		}
+		if grad != nil || overlayColor != "" {
+			found = true
+		}
+		return false
+	})
+	return overlayColor, overlayGradient, found
+}
+
+func extractImageURLFromProps(props map[string]string) string {
+	if bgImage := strings.TrimSpace(props["background-image"]); bgImage != "" {
+		if u := extractURL(bgImage); u != "" {
+			return u
+		}
+	}
+	if bg := strings.TrimSpace(props["background"]); bg != "" {
+		if u := extractURL(bg); u != "" {
+			return u
+		}
+	}
+	return ""
+}
+
+func extractURL(value string) string {
+	re := regexp.MustCompile(`(?i)url\(\s*['"]?([^'")]+)['"]?\s*\)`)
+	m := re.FindStringSubmatch(value)
+	if m == nil {
+		return ""
+	}
+	return strings.TrimSpace(m[1])
+}
+
+func normalizeAssetPath(assetPath, baseDir string) string {
+	p := strings.TrimSpace(assetPath)
+	if p == "" {
+		return ""
+	}
+	lower := strings.ToLower(p)
+	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") || strings.HasPrefix(lower, "data:") || strings.HasPrefix(lower, "file://") {
+		return p
+	}
+	if strings.HasPrefix(p, "/") || strings.HasPrefix(p, "~/") {
+		return p
+	}
+	if strings.TrimSpace(baseDir) == "" {
+		return p
+	}
+	return filepath.Clean(filepath.Join(baseDir, p))
+}
+
 // --- Helper functions ---
 
 // getAttr returns the value of the named attribute, or "".
@@ -484,16 +611,33 @@ func textContentWithBreaks(n *html.Node) string {
 
 func collectText(n *html.Node, sb *strings.Builder, preserveBreaks bool) {
 	if n.Type == html.TextNode {
-		// Collapse whitespace
-		text := strings.Join(strings.Fields(n.Data), " ")
-		sb.WriteString(text)
+		appendNormalizedText(sb, n.Data)
 	}
 	if n.Type == html.ElementNode && n.Data == "br" && preserveBreaks {
-		sb.WriteString("\n")
+		raw := sb.String()
+		if len(raw) == 0 || raw[len(raw)-1] != '\n' {
+			sb.WriteString("\n")
+		}
 	}
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		collectText(c, sb, preserveBreaks)
 	}
+}
+
+func appendNormalizedText(sb *strings.Builder, raw string) {
+	text := strings.Join(strings.Fields(raw), " ")
+	if text == "" {
+		return
+	}
+	existing := sb.String()
+	if len(existing) > 0 {
+		last := existing[len(existing)-1]
+		first := text[0]
+		if last != '\n' && last != ' ' && first != ',' && first != '.' && first != ';' && first != ':' && first != '!' && first != '?' && first != ')' {
+			sb.WriteString(" ")
+		}
+	}
+	sb.WriteString(text)
 }
 
 // mergeClassStyles merges CSS properties from all classes on an element.
@@ -594,6 +738,7 @@ func resolveBarColor(classes string, props map[string]string) string {
 
 // applyTextStyle populates element map with font properties from CSS.
 func applyTextStyle(elem map[string]interface{}, props map[string]string, scale float64) {
+	sourceFontSize := 16.0
 	if ff := props["font-family"]; ff != "" {
 		// Clean up font family (remove quotes, fallbacks)
 		elem["fontFamily"] = cleanFontFamily(ff)
@@ -607,9 +752,61 @@ func applyTextStyle(elem map[string]interface{}, props map[string]string, scale 
 			elem["color"] = hex
 		}
 	}
-	// Note: font-size is NOT scaled here — the composite expander
-	// uses design tokens to set sizes based on element type + tier.
-	// We only use CSS font-size to infer tier.
+	if fs := props["font-size"]; fs != "" {
+		if px := remToPx(fs, 16); px > 0 {
+			sourceFontSize = px
+			finalSize := px * scale
+			if finalSize < 8 {
+				finalSize = 8
+			}
+			if finalSize > 260 {
+				finalSize = 260
+			}
+			elem["fontSize"] = math.Round(finalSize*10) / 10
+		}
+	}
+	if lh := props["line-height"]; lh != "" {
+		if percent := cssLineHeightPercent(lh, sourceFontSize); percent > 0 {
+			elem["lineHeight"] = math.Round(percent*10) / 10
+			elem["lineHeightUnit"] = "PERCENT"
+		}
+	}
+	if ls := props["letter-spacing"]; ls != "" {
+		lsPx := letterSpacingToFigma(ls, sourceFontSize) * scale
+		if lsPx != 0 {
+			elem["letterSpacing"] = math.Round(lsPx*10) / 10
+		}
+	}
+}
+
+func cssLineHeightPercent(val string, sourceFontSize float64) float64 {
+	v := strings.TrimSpace(strings.ToLower(val))
+	if v == "" || v == "normal" {
+		return 0
+	}
+	if strings.HasSuffix(v, "%") {
+		num := strings.TrimSpace(strings.TrimSuffix(v, "%"))
+		pct := parseFloatDef(num, 0)
+		if pct > 0 {
+			return pct
+		}
+		return 0
+	}
+	if strings.HasSuffix(v, "px") || strings.HasSuffix(v, "rem") || strings.HasSuffix(v, "em") {
+		px := remToPx(v, 16)
+		if px > 0 && sourceFontSize > 0 {
+			return (px / sourceFontSize) * 100.0
+		}
+		return 0
+	}
+	n := parseFloatDef(v, 0)
+	if n <= 0 {
+		return 0
+	}
+	if n <= 4 {
+		return n * 100.0
+	}
+	return n
 }
 
 // inferHeadlineTier guesses the design token tier from CSS classes.
@@ -676,6 +873,8 @@ func extractStatsItems(node *html.Node, styles map[string]map[string]string, sca
 			continue
 		}
 		classes := getAttr(c, "class")
+
+		// Pattern 1: explicit stat wrappers (.stat / .s-stat).
 		if hasClass(classes, "stat") || hasClass(classes, "s-stat") {
 			value := ""
 			label := ""
@@ -697,6 +896,30 @@ func extractStatsItems(node *html.Node, styles map[string]map[string]string, sca
 					"label": label,
 				})
 			}
+			continue
+		}
+
+		// Pattern 2: AMC grid cards using .sv / .sl descendants.
+		value := ""
+		label := ""
+		walkDOM(c, func(n *html.Node) bool {
+			if n.Type != html.ElementNode {
+				return true
+			}
+			nc := getAttr(n, "class")
+			if value == "" && hasClass(nc, "sv") {
+				value = textContent(n)
+			}
+			if label == "" && hasClass(nc, "sl") {
+				label = textContent(n)
+			}
+			return true
+		})
+		if value != "" {
+			items = append(items, map[string]interface{}{
+				"value": value,
+				"label": label,
+			})
 		}
 	}
 	return items

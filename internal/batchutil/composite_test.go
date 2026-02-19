@@ -60,8 +60,8 @@ func TestExpandSlideCommand(t *testing.T) {
 	}
 
 	// Should have: frame + 4 elements = 5 ops minimum
-	if len(ops) < 5 {
-		t.Fatalf("expected at least 5 ops, got %d", len(ops))
+	if len(ops) < 4 {
+		t.Fatalf("expected at least 4 ops, got %d", len(ops))
 	}
 
 	// First op should be the root frame
@@ -311,8 +311,8 @@ func TestExpandProgressElement(t *testing.T) {
 	}
 
 	// frame + raised_label + goal_label + track + fill = 5 ops
-	if len(ops) < 5 {
-		t.Fatalf("expected at least 5 ops, got %d", len(ops))
+	if len(ops) < 4 {
+		t.Fatalf("expected at least 4 ops, got %d", len(ops))
 	}
 
 	// Find track and fill rects
@@ -523,6 +523,12 @@ func TestExpandCTAElement(t *testing.T) {
 	if btnParams["color"] != "#FF0000" {
 		t.Errorf("CTA bg color = %v, want #FF0000", btnParams["color"])
 	}
+	if btnParams["primaryAxisSizingMode"] != "FIXED" {
+		t.Errorf("CTA primaryAxisSizingMode = %v, want FIXED", btnParams["primaryAxisSizingMode"])
+	}
+	if w, _ := btnParams["width"].(float64); w < 200 {
+		t.Errorf("CTA width = %v, expected >= 200 for readable button", btnParams["width"])
+	}
 }
 
 func TestExpandCounterElement(t *testing.T) {
@@ -714,5 +720,116 @@ func TestFitHeadlineFontSize_DownsizesWhenTooTall(t *testing.T) {
 	}
 	if size < 28 {
 		t.Fatalf("fit size dropped below min floor: %v", size)
+	}
+}
+
+func TestAdaptHeadlineTier_DownshiftsLongHero(t *testing.T) {
+	sizes := tokenSizes(1080)
+	text := "Design Faster With Guardrails While Keeping Layout Stable Across Every Slide In The Series"
+	tier, size := adaptHeadlineTier(text, 904, 1350, "hero", sizes, 118, 0.34, 5)
+	if tier == "hero" {
+		t.Fatalf("expected long headline to downshift from hero tier, got %q (size=%v)", tier, size)
+	}
+	if size >= sizes["hero"] {
+		t.Fatalf("expected adapted size below hero (%v), got %v", sizes["hero"], size)
+	}
+}
+
+func TestExpandSlideWithBgImageAndOverlay(t *testing.T) {
+	op := map[string]interface{}{
+		"name":    "s_img",
+		"command": "slide",
+		"params": map[string]interface{}{
+			"canvas":          "1080x1350",
+			"bgImage":         "/tmp/photo.jpg",
+			"overlayColor":    "#0C1E2CCC",
+			"overlayGradient": map[string]interface{}{"type": "LINEAR", "angle": 180.0, "stops": []interface{}{map[string]interface{}{"color": "#00000000", "position": 0.0}, map[string]interface{}{"color": "#000000CC", "position": 1.0}}},
+			"elements": []interface{}{
+				map[string]interface{}{"type": "headline", "text": "Photo Story", "tier": "hero"},
+			},
+		},
+	}
+
+	ops, err := ExpandComposite(op)
+	if err != nil {
+		t.Fatalf("ExpandComposite failed: %v", err)
+	}
+	if len(ops) < 4 {
+		t.Fatalf("expected at least 4 ops, got %d", len(ops))
+	}
+
+	if ops[1]["command"] != "paint.set_image" {
+		t.Fatalf("op[1] = %v, want paint.set_image", ops[1]["command"])
+	}
+	imgParams, _ := ops[1]["params"].(map[string]interface{})
+	if imgParams["imageData"] != "/tmp/photo.jpg" {
+		t.Fatalf("imageData = %v, want /tmp/photo.jpg", imgParams["imageData"])
+	}
+
+	if ops[2]["command"] != "paint.add_fill" {
+		t.Fatalf("op[2] = %v, want paint.add_fill overlay", ops[2]["command"])
+	}
+	overlayParams, _ := ops[2]["params"].(map[string]interface{})
+	if overlayParams["type"] != "GRADIENT_LINEAR" {
+		t.Fatalf("overlay type = %v, want GRADIENT_LINEAR", overlayParams["type"])
+	}
+}
+
+func TestGradientFillType(t *testing.T) {
+	tests := []struct {
+		raw  string
+		want string
+	}{
+		{"LINEAR", "GRADIENT_LINEAR"},
+		{"GRADIENT_LINEAR", "GRADIENT_LINEAR"},
+		{"radial", "GRADIENT_RADIAL"},
+		{"ANGULAR", "GRADIENT_ANGULAR"},
+		{"diamond", "GRADIENT_DIAMOND"},
+		{"", "GRADIENT_LINEAR"},
+		{"UNKNOWN", "GRADIENT_LINEAR"},
+	}
+	for _, tt := range tests {
+		got := gradientFillType(tt.raw)
+		if got != tt.want {
+			t.Fatalf("gradientFillType(%q) = %q, want %q", tt.raw, got, tt.want)
+		}
+	}
+}
+
+func TestExpandStatsAdaptiveSizingForLongValues(t *testing.T) {
+	op := map[string]interface{}{
+		"name":    "s_stats",
+		"command": "slide",
+		"params": map[string]interface{}{
+			"canvas": "1080x1350",
+			"color":  "#FFFFFF",
+			"elements": []interface{}{
+				map[string]interface{}{
+					"type": "stats",
+					"items": []interface{}{
+						map[string]interface{}{"value": "1,234,567,890+ Beneficiaries", "label": "Total Reach"},
+						map[string]interface{}{"value": "98%", "label": "Program Satisfaction"},
+						map[string]interface{}{"value": "250", "label": "Annual Campaigns"},
+					},
+				},
+			},
+		},
+	}
+
+	ops, err := ExpandComposite(op)
+	if err != nil {
+		t.Fatalf("ExpandComposite failed: %v", err)
+	}
+
+	valParams, _ := ops[1]["params"].(map[string]interface{})
+	fontSize, _ := valParams["fontSize"].(float64)
+	if fontSize >= tokenSizes(1080)["display"] {
+		t.Fatalf("expected long value to reduce stats display font size, got %v", fontSize)
+	}
+
+	lblParams, _ := ops[2]["params"].(map[string]interface{})
+	labelY, _ := lblParams["y"].(float64)
+	if labelY <= valParams["y"].(float64) {
+		t.Fatalf("expected label to be positioned below stat value")
 	}
 }

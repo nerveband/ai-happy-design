@@ -693,3 +693,133 @@ func TestDistributeStopPositions(t *testing.T) {
 		t.Errorf("stop[2] = %v, want 1.0", stops[2].Position)
 	}
 }
+
+func TestFromHTMLSlidePhotoAndOverlay(t *testing.T) {
+	baseDir := "/tmp/amc"
+	htmlDoc := `<!DOCTYPE html>
+<html>
+<head>
+<style>
+  .slide { width: 280px; height: 350px; }
+  .s-ov { background: linear-gradient(180deg, rgba(12,26,40,.2) 0%, rgba(12,26,40,.97) 100%); }
+</style>
+</head>
+<body>
+<div class="slides-row">
+  <div class="slide">
+    <div class="s-img" style="background-image:url('assets/photos/hero.jpg');"></div>
+    <div class="s-ov"></div>
+    <div class="s-c"><div class="h h-sm">Headline</div></div>
+  </div>
+</div>
+</body>
+</html>`
+
+	ops, err := FromHTML(strings.NewReader(htmlDoc), Options{
+		CanvasWidth:  1080,
+		CanvasHeight: 1350,
+		BaseDir:      baseDir,
+	})
+	if err != nil {
+		t.Fatalf("FromHTML failed: %v", err)
+	}
+	if len(ops) != 1 {
+		t.Fatalf("expected 1 op, got %d", len(ops))
+	}
+
+	params := ops[0]["params"].(map[string]interface{})
+	if params["bgImage"] != "/tmp/amc/assets/photos/hero.jpg" {
+		t.Fatalf("bgImage = %v, want normalized absolute path", params["bgImage"])
+	}
+	if _, ok := params["overlayGradient"]; !ok {
+		t.Fatalf("overlayGradient missing")
+	}
+}
+
+func TestTextContentPreservesWordSpacingAcrossInlineNodes(t *testing.T) {
+	htmlStr := `<div>In <strong>hospitals</strong> during care.</div>`
+	doc, _ := html.Parse(strings.NewReader(htmlStr))
+	var div *html.Node
+	walkDOM(doc, func(n *html.Node) bool {
+		if n.Type == html.ElementNode && n.Data == "div" {
+			div = n
+			return false
+		}
+		return true
+	})
+	if div == nil {
+		t.Fatal("div not found")
+	}
+	got := textContentWithBreaks(div)
+	want := "In hospitals during care."
+	if got != want {
+		t.Fatalf("textContentWithBreaks = %q, want %q", got, want)
+	}
+}
+
+func TestExtractSlideElements_AMCBodyCtaAndStatsClasses(t *testing.T) {
+	htmlDoc := `<html><head><style>
+  .b-lg { color: rgba(250,252,251,.75); }
+  .cta-g { background: #029056; color: #ffffff; }
+  .sv { color: #B3D9E8; }
+  .sl { color: rgba(250,252,251,.55); }
+</style></head><body>
+<div class="slide">
+  <div class="s-c">
+    <div class="b-lg">Body copy</div>
+    <div class="cta-g">Donate Now</div>
+    <div class="stat-g2">
+      <div><div class="sv">250+</div><div class="sl">Muslim Chaplains</div></div>
+      <div><div class="sv">5</div><div class="sl">Settings</div></div>
+    </div>
+  </div>
+</div>
+</body></html>`
+
+	doc, err := html.Parse(strings.NewReader(htmlDoc))
+	if err != nil {
+		t.Fatalf("parse html: %v", err)
+	}
+	styles := parseStyleBlocks(htmlDoc)
+
+	var slide *html.Node
+	walkDOM(doc, func(n *html.Node) bool {
+		if n.Type == html.ElementNode && hasClass(getAttr(n, "class"), "slide") {
+			slide = n
+			return false
+		}
+		return true
+	})
+	if slide == nil {
+		t.Fatal("slide not found")
+	}
+
+	elements := extractSlideElements(slide, styles, 1)
+	if len(elements) < 3 {
+		t.Fatalf("expected at least 3 extracted elements, got %d", len(elements))
+	}
+
+	foundBody := false
+	foundCTA := false
+	foundStats := false
+	for _, e := range elements {
+		em, _ := e.(map[string]interface{})
+		switch em["type"] {
+		case "body":
+			foundBody = true
+		case "cta":
+			foundCTA = true
+		case "stats":
+			foundStats = true
+		}
+	}
+	if !foundBody {
+		t.Fatal("expected body element from .b-lg")
+	}
+	if !foundCTA {
+		t.Fatal("expected cta element from .cta-g")
+	}
+	if !foundStats {
+		t.Fatal("expected stats element from .stat-g2")
+	}
+}

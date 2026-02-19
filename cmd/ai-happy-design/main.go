@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"os/exec"
@@ -37,7 +38,12 @@ var rootCmd = &cobra.Command{
 	Use:   "ai-happy-design",
 	Short: "AI Happy Design - Figma MCP server and CLI",
 	Long: `A single binary that works as both an MCP server for AI editors
-and a CLI for direct Figma manipulation via a WebSocket relay.`,
+and a CLI for direct Figma manipulation via a WebSocket relay.
+
+Discovery-first flow for LLM agents:
+  1) ai-happy-design tools --llm --json
+  2) ai-happy-design actions [domain]
+  3) ai-happy-design batch --help`,
 	Version: version,
 }
 
@@ -210,6 +216,8 @@ Usage:
 
 Command supports both legacy names (e.g. set_fill_color) and domain.action (e.g. paint.set_solid).
 Params can be passed as a second positional arg (JSON) or via -p/--params flag.
+For image commands, imageData supports base64/data URLs plus file paths and HTTP(S) URLs (auto-resolved).
+Use --compress-images to reduce transfer size for large image payloads.
 Channel resolution: --channel flag, AHD_CHANNEL env, relay preferred/active channel.
 If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 	Args: cobra.RangeArgs(1, 3),
@@ -385,11 +393,17 @@ var batchParallel bool
 var batchCompact bool
 var batchLint bool
 var batchNoLint bool
+var batchStrictQuality bool
 
 var batchCmd = &cobra.Command{
 	Use:   "batch [operations-json | file1.json file2.json ... | directory/]",
 	Short: "Execute a sequence of commands in order",
 	Long: `Runs multiple commands over one connection to support tool chaining workflows.
+
+LLM discovery quickstart:
+  1) ai-happy-design tools --llm --json
+  2) ai-happy-design actions [domain]
+  3) ai-happy-design batch --help
 
 Operations can be provided in multiple ways (in priority order):
   1. Positional arg (JSON):  batch '[{"command":"node.create_frame","params":{...}}]'
@@ -404,17 +418,32 @@ Operations can be provided in multiple ways (in priority order):
 Use --parallel to run multiple batch files concurrently (max 4).
 Each file gets its own connection and auto-placement.
 
-	Supports interpolation placeholders like ${{steps.0.result.id}} or ${{steps.createCard.result.id}}.
-	Short interpolation also works: $createCard (id), $createCard.width, $last.
-	Compact aliases are supported (examples: frame, rect, text, fill, stroke, parent).
-	Command-aware shorthand params are supported in batch/bulk (examples: w/h/pid, sz/ff/lh/ls, sw, bg).
-	Channel resolution: --channel flag, AHD_CHANNEL env, relay preferred/active channel.
-	If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
+Image prep behavior (automatic):
+  - imageData accepts base64/data URLs, file paths, and HTTP(S) URLs.
+  - Batch resolves and preps unique image payloads in parallel before execution.
+  - Repeated sources are de-duplicated to avoid rework.
+  - --compress-images applies optional ImageMagick compression.
+  - Progress is reported to stderr with [image-prep] lines.
+
+Quality + telemetry:
+  - --lint is enabled by default and checks overlaps/overflow/default names/text sizing.
+  - --strict-quality fails the run if lint reports any warning/error issue.
+  - JSON output always includes summary, timing, and imagePrep for agent feedback loops.
+
+Supports interpolation placeholders like ${{steps.0.result.id}} or ${{steps.createCard.result.id}}.
+Short interpolation also works: $createCard (id), $createCard.width, $last.
+Compact aliases are supported (examples: frame, rect, text, fill, stroke, parent).
+Command-aware shorthand params are supported in batch/bulk (examples: w/h/pid, sz/ff/lh/ls, sw, bg).
+Channel resolution: --channel flag, AHD_CHANNEL env, relay preferred/active channel.
+If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 	Args: cobra.ArbitraryArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		log.SetOutput(io.Discard)
 		if err := ensureRelayIfNeeded(); err != nil {
 			return err
+		}
+		if batchStrictQuality && (!batchLint || batchNoLint) {
+			return fmt.Errorf("--strict-quality requires lint checks. Remove --no-lint (or set --lint=true)")
 		}
 
 		// Collect batch files: multiple positional args, directory, inline JSON, or single file
@@ -487,6 +516,7 @@ Each file gets its own connection and auto-placement.
 		if !batchAllowOverlap {
 			autoPlaceRootFrames(client, ops)
 		}
+		ops, imagePrep := preprocessBatchImageData(ops, batchCompressImages, "", true)
 
 		for i, op := range ops {
 			opStart := time.Now()
@@ -523,19 +553,19 @@ Each file gets its own connection and auto-placement.
 				params = interpolatedParams
 			}
 
-			// Resolve file:// and path references in imageData
-			if resolved, changed, resolveErr := imgutil.ResolveParamsImageData(params); resolveErr != nil {
-				fmt.Fprintf(os.Stderr, "[resolve] step %d warning: %v\n", i, resolveErr)
-			} else if changed {
-				params = resolved
-			}
-
-			// Opt-in image compression
-			if batchCompressImages {
-				if compressed, changed, compErr := imgutil.CompressParamsImageData(params, imgutil.DefaultOptions()); compErr != nil {
-					fmt.Fprintf(os.Stderr, "[compress] step %d warning: %v\n", i, compErr)
+			// Runtime fallback for interpolated imageData values that could not be preprocessed.
+			if rawImage, ok := params["imageData"].(string); ok && needsRuntimeImagePrep(rawImage) {
+				if resolved, changed, resolveErr := imgutil.ResolveParamsImageData(params); resolveErr != nil {
+					fmt.Fprintf(os.Stderr, "[resolve] step %d warning: %v\n", i, resolveErr)
 				} else if changed {
-					params = compressed
+					params = resolved
+				}
+				if batchCompressImages {
+					if compressed, changed, compErr := imgutil.CompressParamsImageData(params, imgutil.DefaultOptions()); compErr != nil {
+						fmt.Fprintf(os.Stderr, "[compress] step %d warning: %v\n", i, compErr)
+					} else if changed {
+						params = compressed
+					}
 				}
 			}
 
@@ -617,6 +647,22 @@ Each file gets its own connection and auto-placement.
 			opsPerSec = float64(processed) / totalElapsed.Seconds()
 			avgMs = float64(totalMs) / float64(processed)
 		}
+		summaryMap := map[string]interface{}{
+			"total":         len(ops),
+			"processed":     processed,
+			"succeeded":     succeeded,
+			"failed":        failed,
+			"pending":       pending,
+			"retriesUsed":   retriesUsed,
+			"failFast":      batchFailFast,
+			"interpolation": batchInterpolation,
+		}
+		timingMap := map[string]interface{}{
+			"totalMs":     totalMs,
+			"avgMs":       int(avgMs),
+			"opsPerSec":   roundTo(opsPerSec, 2),
+			"imagePrepMs": imagePrep.TotalMs,
+		}
 		var out map[string]interface{}
 		if batchCompact {
 			// Compact mode: minimal output for LLM token efficiency
@@ -635,36 +681,52 @@ Each file gets its own connection and auto-placement.
 				compactSteps[j] = cs
 			}
 			out = map[string]interface{}{
-				"ok":    failed == 0 && pending == 0,
-				"steps": compactSteps,
+				"ok":        failed == 0 && pending == 0,
+				"summary":   summaryMap,
+				"timing":    timingMap,
+				"imagePrep": imagePrepSummaryMap(imagePrep),
+				"steps":     compactSteps,
 			}
 		} else {
 			out = map[string]interface{}{
-				"ok": failed == 0 && pending == 0,
-				"summary": map[string]interface{}{
-					"total":         len(ops),
-					"processed":     processed,
-					"succeeded":     succeeded,
-					"failed":        failed,
-					"pending":       pending,
-					"retriesUsed":   retriesUsed,
-					"failFast":      batchFailFast,
-					"interpolation": batchInterpolation,
-				},
-				"timing": map[string]interface{}{
-					"totalMs":   totalMs,
-					"avgMs":     int(avgMs),
-					"opsPerSec": int(opsPerSec),
-				},
+				"ok":           failed == 0 && pending == 0,
+				"summary":      summaryMap,
+				"timing":       timingMap,
+				"imagePrep":    imagePrepSummaryMap(imagePrep),
 				"stoppedEarly": stoppedEarly,
 				"steps":        results,
 			}
 		}
 
 		// Post-batch lint: check created root frames for design issues.
+		var lintInfo lintSummary
 		if batchLint && !batchNoLint && failed == 0 {
 			rootNodeIDs := collectCreatedRootFrameIDs(ops, results)
-			runPostBatchLint(client, rootNodeIDs, "")
+			lintInfo = runPostBatchLint(client, rootNodeIDs, "")
+			if !batchCompact {
+				out["lint"] = map[string]interface{}{
+					"issues":   lintInfo.Issues,
+					"warnings": lintInfo.Warnings,
+					"errors":   lintInfo.Errors,
+					"byType":   lintInfo.ByType,
+				}
+			}
+			if batchStrictQuality && lintInfo.Issues > 0 {
+				out["ok"] = false
+				out["qualityGate"] = map[string]interface{}{
+					"mode":   "strict",
+					"status": "failed",
+					"issues": lintInfo.Issues,
+				}
+				if summary, ok := out["summary"].(map[string]interface{}); ok {
+					summary["qualityGate"] = "failed"
+					summary["qualityIssues"] = lintInfo.Issues
+				}
+				if err := printJSON(out); err != nil {
+					return err
+				}
+				return fmt.Errorf("strict quality gate failed: %d lint warning/error issue(s)", lintInfo.Issues)
+			}
 		}
 
 		return printJSON(out)
@@ -784,7 +846,12 @@ var toolsCmd = &cobra.Command{
 	Use:   "tools",
 	Short: "Print discoverable tool and action catalog",
 	Long: `Outputs the tool/action catalog so LLMs and scripts can discover capabilities before planning command chains.
-Use --llm --json for enriched examples and recommended execution playbook.`,
+Use --llm --json for enriched examples and recommended execution playbook.
+
+Suggested discovery flow:
+  1) ai-happy-design tools --llm --json
+  2) ai-happy-design actions [domain]
+  3) ai-happy-design batch --help`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if catalogLLM {
 			return printJSON(tools.LLMCatalog())
@@ -1024,6 +1091,277 @@ func classifyError(msg string) string {
 	}
 }
 
+type imagePrepSummary struct {
+	Candidates  int
+	Unique      int
+	CacheHits   int
+	Prepared    int
+	Changed     int
+	Failed      int
+	Resolved    int
+	Compressed  int
+	InputBytes  int
+	OutputBytes int
+	TotalMs     int
+	AvgMs       int
+	SlowestMs   int
+}
+
+type imagePrepTaskResult struct {
+	Value       string
+	Changed     bool
+	Resolved    bool
+	Compressed  bool
+	Err         error
+	ElapsedMs   int
+	InputBytes  int
+	OutputBytes int
+}
+
+func hasInterpolationToken(raw string) bool {
+	return strings.Contains(raw, "${{") || strings.Contains(raw, "$steps.") || strings.Contains(raw, "$last")
+}
+
+func needsRuntimeImagePrep(raw string) bool {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return false
+	}
+	if hasInterpolationToken(s) {
+		return true
+	}
+	if strings.HasPrefix(s, "/") || strings.HasPrefix(s, "~/") || strings.HasPrefix(s, "file://") || strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://") {
+		return true
+	}
+	return false
+}
+
+func shortImageSource(raw string) string {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return "imageData"
+	}
+	if strings.HasPrefix(s, "data:") {
+		return "data-uri"
+	}
+	if strings.HasPrefix(s, "file://") {
+		s = strings.TrimPrefix(s, "file://")
+	}
+	if strings.HasPrefix(s, "/") || strings.HasPrefix(s, "~/") {
+		return filepath.Base(s)
+	}
+	if len(s) > 96 {
+		return s[:93] + "..."
+	}
+	return s
+}
+
+func imagePrepSummaryMap(summary imagePrepSummary) map[string]interface{} {
+	return map[string]interface{}{
+		"candidates":  summary.Candidates,
+		"unique":      summary.Unique,
+		"cacheHits":   summary.CacheHits,
+		"prepared":    summary.Prepared,
+		"changed":     summary.Changed,
+		"failed":      summary.Failed,
+		"resolved":    summary.Resolved,
+		"compressed":  summary.Compressed,
+		"inputBytes":  summary.InputBytes,
+		"outputBytes": summary.OutputBytes,
+		"totalMs":     summary.TotalMs,
+		"avgMs":       summary.AvgMs,
+		"slowestMs":   summary.SlowestMs,
+	}
+}
+
+// preprocessBatchImageData resolves and optionally compresses imageData fields ahead of execution.
+// It deduplicates repeated payloads and processes unique items in parallel for throughput.
+func preprocessBatchImageData(ops []batchOperation, compress bool, label string, showProgress bool) ([]batchOperation, imagePrepSummary) {
+	summary := imagePrepSummary{}
+	if len(ops) == 0 {
+		return ops, summary
+	}
+
+	unique := make(map[string]struct{})
+	for _, op := range ops {
+		raw, ok := op.Params["imageData"].(string)
+		if !ok {
+			continue
+		}
+		raw = strings.TrimSpace(raw)
+		if raw == "" || hasInterpolationToken(raw) {
+			continue
+		}
+		summary.Candidates++
+		unique[raw] = struct{}{}
+	}
+	summary.Unique = len(unique)
+	summary.CacheHits = summary.Candidates - summary.Unique
+	if summary.Unique == 0 {
+		return ops, summary
+	}
+
+	workers := runtime.NumCPU()
+	if workers < 2 {
+		workers = 2
+	}
+	if workers > 8 {
+		workers = 8
+	}
+	if workers > summary.Unique {
+		workers = summary.Unique
+	}
+
+	prefix := "[image-prep]"
+	if strings.TrimSpace(label) != "" {
+		prefix = fmt.Sprintf("[image-prep %s]", label)
+	}
+	if showProgress {
+		fmt.Fprintf(os.Stderr, "%s preparing %d unique image payload(s) from %d operation(s) using %d worker(s)\n",
+			prefix, summary.Unique, summary.Candidates, workers)
+	}
+
+	start := time.Now()
+	results := make(map[string]imagePrepTaskResult, summary.Unique)
+	tasks := make(chan string)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	completed := 0
+
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for raw := range tasks {
+				taskStart := time.Now()
+				result := imagePrepTaskResult{
+					Value:       raw,
+					InputBytes:  len(raw),
+					OutputBytes: len(raw),
+				}
+
+				resolved, err := imgutil.ResolveImageData(raw)
+				if err != nil {
+					result.Err = err
+				} else {
+					result.Value = resolved
+					result.OutputBytes = len(resolved)
+					if resolved != raw {
+						result.Changed = true
+						result.Resolved = true
+					}
+
+					if compress {
+						compressed, compErr := imgutil.CompressBase64(resolved, imgutil.DefaultOptions())
+						if compErr != nil {
+							result.Err = compErr
+						} else {
+							result.Value = compressed
+							result.OutputBytes = len(compressed)
+							if compressed != resolved {
+								result.Changed = true
+								result.Compressed = true
+							}
+						}
+					}
+				}
+
+				result.ElapsedMs = int(time.Since(taskStart).Milliseconds())
+
+				mu.Lock()
+				results[raw] = result
+				completed++
+				done := completed
+				mu.Unlock()
+
+				if showProgress {
+					status := "ok"
+					if result.Err != nil {
+						status = "error"
+					}
+					fmt.Fprintf(os.Stderr, "%s %d/%d %s %dms %s\n",
+						prefix, done, summary.Unique, status, result.ElapsedMs, shortImageSource(raw))
+				}
+			}
+		}()
+	}
+
+	for raw := range unique {
+		tasks <- raw
+	}
+	close(tasks)
+	wg.Wait()
+
+	elapsedSum := 0
+	for _, result := range results {
+		elapsedSum += result.ElapsedMs
+		summary.InputBytes += result.InputBytes
+		summary.OutputBytes += result.OutputBytes
+		if result.ElapsedMs > summary.SlowestMs {
+			summary.SlowestMs = result.ElapsedMs
+		}
+		if result.Err != nil {
+			summary.Failed++
+			continue
+		}
+		summary.Prepared++
+		if result.Changed {
+			summary.Changed++
+		}
+		if result.Resolved {
+			summary.Resolved++
+		}
+		if result.Compressed {
+			summary.Compressed++
+		}
+	}
+	if summary.Unique > 0 {
+		summary.AvgMs = elapsedSum / summary.Unique
+	}
+	summary.TotalMs = int(time.Since(start).Milliseconds())
+
+	out := make([]batchOperation, len(ops))
+	copy(out, ops)
+	warned := make(map[string]bool)
+	for i, op := range out {
+		raw, ok := op.Params["imageData"].(string)
+		if !ok {
+			continue
+		}
+		raw = strings.TrimSpace(raw)
+		if raw == "" || hasInterpolationToken(raw) {
+			continue
+		}
+		result, ok := results[raw]
+		if !ok {
+			continue
+		}
+		if result.Err != nil {
+			if showProgress && !warned[raw] {
+				fmt.Fprintf(os.Stderr, "%s warning: %v (%s)\n", prefix, result.Err, shortImageSource(raw))
+				warned[raw] = true
+			}
+			continue
+		}
+		if result.Value == op.Params["imageData"] {
+			continue
+		}
+		cloned := make(map[string]interface{}, len(op.Params))
+		for k, v := range op.Params {
+			cloned[k] = v
+		}
+		cloned["imageData"] = result.Value
+		out[i].Params = cloned
+	}
+
+	if showProgress {
+		fmt.Fprintf(os.Stderr, "%s done in %dms (unique=%d, cacheHits=%d, changed=%d, failed=%d)\n",
+			prefix, summary.TotalMs, summary.Unique, summary.CacheHits, summary.Changed, summary.Failed)
+	}
+
+	return out, summary
+}
+
 func collectCreatedRootFrameIDs(ops []batchOperation, results []map[string]interface{}) []string {
 	seen := map[string]bool{}
 	rootNodeIDs := make([]string, 0)
@@ -1081,9 +1419,19 @@ func isRootFrameCreateOp(op batchOperation) bool {
 	return strings.TrimSpace(parentID) == "" && strings.TrimSpace(pid) == ""
 }
 
-func runPostBatchLint(client *ws.Client, rootNodeIDs []string, label string) {
+type lintSummary struct {
+	Issues   int
+	Warnings int
+	Errors   int
+	ByType   map[string]int
+}
+
+func runPostBatchLint(client *ws.Client, rootNodeIDs []string, label string) lintSummary {
+	summary := lintSummary{
+		ByType: make(map[string]int),
+	}
 	if len(rootNodeIDs) == 0 {
-		return
+		return summary
 	}
 
 	prefix := "[lint]"
@@ -1120,15 +1468,22 @@ func runPostBatchLint(client *ws.Client, rootNodeIDs []string, label string) {
 			if sev != "warning" && sev != "error" {
 				continue
 			}
-			total++
-			if shown >= maxShown {
-				continue
+			if sev == "error" {
+				summary.Errors++
+			} else {
+				summary.Warnings++
 			}
+			summary.Issues++
+			total++
 
 			wtype, _ := wm["type"].(string)
 			wtype = strings.TrimSpace(wtype)
 			if wtype == "" {
 				wtype = "lint"
+			}
+			summary.ByType[wtype]++
+			if shown >= maxShown {
+				continue
 			}
 			msg, _ := wm["message"].(string)
 			msg = strings.TrimSpace(msg)
@@ -1159,13 +1514,14 @@ func runPostBatchLint(client *ws.Client, rootNodeIDs []string, label string) {
 
 	if total == 0 {
 		fmt.Fprintf(os.Stderr, "%s no warning/error issues found\n", prefix)
-		return
+		return summary
 	}
 	if total > shown {
 		fmt.Fprintf(os.Stderr, "%s %d warning/error issue(s) total; showing %d\n", prefix, total, shown)
-		return
+		return summary
 	}
 	fmt.Fprintf(os.Stderr, "%s %d warning/error issue(s)\n", prefix, total)
+	return summary
 }
 
 func printJSON(v interface{}) error {
@@ -1175,6 +1531,14 @@ func printJSON(v interface{}) error {
 	}
 	fmt.Println(string(data))
 	return nil
+}
+
+func roundTo(v float64, decimals int) float64 {
+	if decimals < 0 {
+		return v
+	}
+	pow := math.Pow(10, float64(decimals))
+	return math.Round(v*pow) / pow
 }
 
 // autoPlaceRootFrames checks if the batch has root-level frame creation (no parentId)
@@ -1654,6 +2018,7 @@ func runSingleBatchFile(filePath, channelKey string) batchFileResult {
 	if !batchAllowOverlap {
 		autoPlaceRootFrames(client, ops)
 	}
+	ops, imagePrep := preprocessBatchImageData(ops, batchCompressImages, filepath.Base(filePath), true)
 
 	results := make([]map[string]interface{}, 0, len(ops))
 	stepStates := make([]batchutil.StepState, 0, len(ops))
@@ -1687,18 +2052,19 @@ func runSingleBatchFile(filePath, channelKey string) batchFileResult {
 			params = interpolatedParams
 		}
 
-		// Resolve file paths in imageData
-		if resolved, changed, resolveErr := imgutil.ResolveParamsImageData(params); resolveErr != nil {
-			fmt.Fprintf(os.Stderr, "[resolve] %s step %d warning: %v\n", filepath.Base(filePath), i, resolveErr)
-		} else if changed {
-			params = resolved
-		}
-
-		if batchCompressImages {
-			if compressed, changed, compErr := imgutil.CompressParamsImageData(params, imgutil.DefaultOptions()); compErr != nil {
-				fmt.Fprintf(os.Stderr, "[compress] %s step %d warning: %v\n", filepath.Base(filePath), i, compErr)
+		// Runtime fallback for interpolated imageData values that could not be preprocessed.
+		if rawImage, ok := params["imageData"].(string); ok && needsRuntimeImagePrep(rawImage) {
+			if resolved, changed, resolveErr := imgutil.ResolveParamsImageData(params); resolveErr != nil {
+				fmt.Fprintf(os.Stderr, "[resolve] %s step %d warning: %v\n", filepath.Base(filePath), i, resolveErr)
 			} else if changed {
-				params = compressed
+				params = resolved
+			}
+			if batchCompressImages {
+				if compressed, changed, compErr := imgutil.CompressParamsImageData(params, imgutil.DefaultOptions()); compErr != nil {
+					fmt.Fprintf(os.Stderr, "[compress] %s step %d warning: %v\n", filepath.Base(filePath), i, compErr)
+				} else if changed {
+					params = compressed
+				}
 			}
 		}
 
@@ -1760,23 +2126,58 @@ func runSingleBatchFile(filePath, channelKey string) batchFileResult {
 		avgMs = float64(totalMs) / float64(processed)
 	}
 
+	var lintInfo lintSummary
 	if batchLint && !batchNoLint && failed == 0 {
 		rootNodeIDs := collectCreatedRootFrameIDs(ops, results)
-		runPostBatchLint(client, rootNodeIDs, filepath.Base(filePath))
+		lintInfo = runPostBatchLint(client, rootNodeIDs, filepath.Base(filePath))
+		if batchStrictQuality && lintInfo.Issues > 0 {
+			failed++
+		}
 	}
 
 	_ = stoppedEarly
+	summary := map[string]interface{}{
+		"total":         len(ops),
+		"processed":     processed,
+		"succeeded":     succeeded,
+		"failed":        failed,
+		"pending":       pending,
+		"retriesUsed":   retriesUsed,
+		"failFast":      batchFailFast,
+		"interpolation": batchInterpolation,
+		"imagePrep":     imagePrepSummaryMap(imagePrep),
+	}
+	if batchLint && !batchNoLint {
+		summary["lint"] = map[string]interface{}{
+			"issues":   lintInfo.Issues,
+			"warnings": lintInfo.Warnings,
+			"errors":   lintInfo.Errors,
+			"byType":   lintInfo.ByType,
+		}
+		if batchStrictQuality {
+			if lintInfo.Issues > 0 {
+				summary["qualityGate"] = "failed"
+				summary["qualityIssues"] = lintInfo.Issues
+			} else {
+				summary["qualityGate"] = "passed"
+			}
+		}
+	}
+	resultOK := failed == 0 && pending == 0
+	resultErr := ""
+	if batchStrictQuality && lintInfo.Issues > 0 {
+		resultOK = false
+		resultErr = fmt.Sprintf("strict quality gate failed: %d lint warning/error issue(s)", lintInfo.Issues)
+	}
 	return batchFileResult{
-		File:  filePath,
-		OK:    failed == 0 && pending == 0,
-		Steps: results,
-		Summary: map[string]interface{}{
-			"total": len(ops), "processed": processed, "succeeded": succeeded,
-			"failed": failed, "pending": pending, "retriesUsed": retriesUsed,
-		},
+		File:    filePath,
+		OK:      resultOK,
+		Steps:   results,
+		Summary: summary,
 		Timing: map[string]interface{}{
-			"totalMs": totalMs, "avgMs": int(avgMs), "opsPerSec": int(opsPerSec),
+			"totalMs": totalMs, "avgMs": int(avgMs), "opsPerSec": roundTo(opsPerSec, 2), "imagePrepMs": imagePrep.TotalMs,
 		},
+		Error: resultErr,
 	}
 }
 
@@ -1791,10 +2192,17 @@ func runMultiBatchSequential(files []string, channelKey string) error {
 		}
 		fileResults = append(fileResults, result)
 	}
-	return printJSON(map[string]interface{}{
+	out := map[string]interface{}{
 		"ok":    allOK,
 		"files": fileResults,
-	})
+	}
+	if err := printJSON(out); err != nil {
+		return err
+	}
+	if batchStrictQuality && !allOK {
+		return fmt.Errorf("strict quality gate failed for one or more batch files")
+	}
+	return nil
 }
 
 func runMultiBatchParallel(files []string, channelKey string) error {
@@ -1825,11 +2233,18 @@ func runMultiBatchParallel(files []string, channelKey string) error {
 			allOK = false
 		}
 	}
-	return printJSON(map[string]interface{}{
+	out := map[string]interface{}{
 		"ok":       allOK,
 		"parallel": true,
 		"files":    fileResults,
-	})
+	}
+	if err := printJSON(out); err != nil {
+		return err
+	}
+	if batchStrictQuality && !allOK {
+		return fmt.Errorf("strict quality gate failed for one or more batch files")
+	}
+	return nil
 }
 
 // --- Benchmark commands ---
@@ -1856,6 +2271,7 @@ var extractCmd = &cobra.Command{
 		ops, err := extract.FromHTML(f, extract.Options{
 			CanvasWidth:  canvasWidth,
 			CanvasHeight: canvasHeight,
+			BaseDir:      filepath.Dir(inputPath),
 		})
 		if err != nil {
 			return err
@@ -1962,6 +2378,7 @@ func benchExecOnce(filePath, channelKey string) benchmark.RunResult {
 	if !benchmarkAllowOverlap {
 		autoPlaceRootFrames(client, ops)
 	}
+	ops, _ = preprocessBatchImageData(ops, batchCompressImages, "benchmark", false)
 
 	retryDelay := time.Duration(batchRetryDelayMs) * time.Millisecond
 	maxAttempts := batchRetries + 1
@@ -1985,11 +2402,20 @@ func benchExecOnce(filePath, channelKey string) benchmark.RunResult {
 			params = interpolatedParams
 		}
 
-		// Resolve file paths in imageData
-		if resolved, changed, resolveErr := imgutil.ResolveParamsImageData(params); resolveErr != nil {
-			fmt.Fprintf(os.Stderr, "[resolve] step %d warning: %v\n", i, resolveErr)
-		} else if changed {
-			params = resolved
+		// Runtime fallback for interpolated imageData values that could not be preprocessed.
+		if rawImage, ok := params["imageData"].(string); ok && needsRuntimeImagePrep(rawImage) {
+			if resolved, changed, resolveErr := imgutil.ResolveParamsImageData(params); resolveErr != nil {
+				fmt.Fprintf(os.Stderr, "[resolve] step %d warning: %v\n", i, resolveErr)
+			} else if changed {
+				params = resolved
+			}
+			if batchCompressImages {
+				if compressed, changed, compErr := imgutil.CompressParamsImageData(params, imgutil.DefaultOptions()); compErr != nil {
+					fmt.Fprintf(os.Stderr, "[compress] step %d warning: %v\n", i, compErr)
+				} else if changed {
+					params = compressed
+				}
+			}
 		}
 
 		attempts := 0
@@ -2138,23 +2564,24 @@ func main() {
 	commandCmd.Flags().StringVar(&commandChannel, "channel", "", "Channel key override (optional)")
 	commandCmd.Flags().StringVarP(&commandOutput, "output", "o", "", "Save binary data (e.g. exported image) to this file path")
 	commandCmd.Flags().BoolVar(&commandBase64, "base64", false, "Output raw base64 JSON instead of saving to file (for export commands)")
-	commandCmd.Flags().BoolVar(&commandCompressImages, "compress-images", false, "Compress imageData before sending (requires ImageMagick)")
+	commandCmd.Flags().BoolVar(&commandCompressImages, "compress-images", false, "Compress resolved imageData before sending (requires ImageMagick)")
 
 	batchCmd.Flags().StringVarP(&batchOperations, "operations", "o", "", "JSON array of operations")
 	batchCmd.Flags().StringVarP(&batchOperationsFile, "operations-file", "f", "", "Path to JSON file containing operations array")
-	batchCmd.Flags().BoolVar(&batchLive, "live", false, "Print live progress events while batch is running")
+	batchCmd.Flags().BoolVar(&batchLive, "live", false, "Print live command progress while batch runs (image prep progress is always on stderr)")
 	batchCmd.Flags().StringVar(&batchChannel, "channel", "", "Channel key override (optional)")
 	batchCmd.Flags().BoolVar(&batchFailFast, "fail-fast", false, "Stop at first failed operation")
 	batchCmd.Flags().IntVar(&batchRetries, "retries", 1, "Retry count per operation after first attempt")
 	batchCmd.Flags().IntVar(&batchRetryDelayMs, "retry-delay-ms", 250, "Delay between retries in milliseconds")
 	batchCmd.Flags().BoolVar(&batchInterpolation, "interpolate", true, "Enable placeholder interpolation from prior step results")
-	batchCmd.Flags().BoolVar(&batchCompressImages, "compress-images", false, "Compress imageData before sending (requires ImageMagick)")
+	batchCmd.Flags().BoolVar(&batchCompressImages, "compress-images", false, "Compress prepared imageData before sending (requires ImageMagick)")
 	batchCmd.Flags().BoolVar(&batchAllowOverlap, "allow-overlap", false, "Skip auto-placement and place frames at exact coordinates (may overlap existing work)")
 	batchCmd.Flags().BoolVar(&batchParallel, "parallel", false, "Run multiple batch files concurrently (max 4 parallel)")
 	batchCmd.Flags().BoolVar(&batchNoFix, "no-fix", false, "Skip automatic LLM output normalization (use if your JSON is already valid)")
-	batchCmd.Flags().BoolVar(&batchCompact, "compact", false, "Minimal output: only ok, step names, and results (saves tokens for LLM agents)")
+	batchCmd.Flags().BoolVar(&batchCompact, "compact", false, "Minimal output: ok + summary/timing/imagePrep + compact step results (saves tokens for LLM agents)")
 	batchCmd.Flags().BoolVar(&batchLint, "lint", true, "Auto-check created frames for overlaps, overflow, naming, and text sizing issues")
 	batchCmd.Flags().BoolVar(&batchNoLint, "no-lint", false, "Disable post-batch design lint checks")
+	batchCmd.Flags().BoolVar(&batchStrictQuality, "strict-quality", false, "Fail the batch if lint reports any warning/error issue (quality gate)")
 
 	toolsCmd.Flags().BoolVar(&catalogJSON, "json", true, "Output as JSON for machine-readable discovery")
 	toolsCmd.Flags().BoolVar(&catalogLLM, "llm", false, "Output enriched LLM-focused catalog with examples and playbook")
