@@ -19,8 +19,10 @@ import (
 
 // Options configures the HTML-to-Figma extraction.
 type Options struct {
-	CanvasWidth  int // target Figma canvas width (e.g. 1080 for slides)
-	CanvasHeight int // target Figma canvas height (e.g. 1350 for slides)
+	CanvasWidth  int // target slide canvas width (e.g. 1080)
+	CanvasHeight int // target slide canvas height (e.g. 1350)
+	BannerWidth  int // target banner canvas width (default 1200 when 0)
+	BannerHeight int // target banner canvas height (default 400 when 0)
 	BaseDir      string
 }
 
@@ -219,9 +221,11 @@ func extractBanner(node *html.Node, styles map[string]map[string]string, opts Op
 
 	canvasW := 1200
 	canvasH := 400
-	if opts.CanvasWidth > 0 && opts.CanvasHeight > 0 {
-		canvasW = opts.CanvasWidth
-		canvasH = opts.CanvasHeight
+	if opts.BannerWidth > 0 {
+		canvasW = opts.BannerWidth
+	}
+	if opts.BannerHeight > 0 {
+		canvasH = opts.BannerHeight
 	}
 
 	htmlW := getHTMLDimension(classes, styles, "width", 600)

@@ -335,6 +335,28 @@ func fitTextToMaxLines(text string, width, wantedSize, lineHeightPercent, maxLin
 	return size
 }
 
+func fitTextToMaxLinesTight(text string, width, wantedSize, lineHeightPercent, maxLines, minSize float64) float64 {
+	if maxLines < 1 {
+		maxLines = 1
+	}
+	if minSize < 8 {
+		minSize = 8
+	}
+	size := wantedSize
+	for size > minSize {
+		lines := estimateWrappedLinesTight(text, width, size)
+		height := lines * size * (lineHeightPercent / 100.0)
+		if lines <= maxLines && height > 0 {
+			return size
+		}
+		size -= 2
+		if size < minSize {
+			size = minSize
+		}
+	}
+	return size
+}
+
 func gradientFillType(raw string) string {
 	switch strings.ToUpper(strings.TrimSpace(raw)) {
 	case "GRADIENT_LINEAR", "LINEAR":
@@ -825,16 +847,17 @@ func expandStats(name, frameName string, params map[string]interface{}, margin, 
 		}
 		value := getString(itemMap, "value", "0")
 		label := getString(itemMap, "label", "")
-		valueFit := fitTextToMaxLines(value, colWidth, valueFontSize, valueLineHeight, valueMaxLines, valueMinSize)
-		labelFit := fitTextToMaxLines(label, colWidth, labelFontSize, labelLineHeight, labelMaxLines, labelMinSize)
+		fitWidth := colWidth * 0.9
+		valueFit := fitTextToMaxLinesTight(value, fitWidth, valueFontSize, valueLineHeight, valueMaxLines, valueMinSize)
+		labelFit := fitTextToMaxLinesTight(label, fitWidth, labelFontSize, labelLineHeight, labelMaxLines, labelMinSize)
 		if valueFit < sharedValueSize {
 			sharedValueSize = valueFit
 		}
 		if labelFit < sharedLabelSize {
 			sharedLabelSize = labelFit
 		}
-		valueHeight := estimateWrappedLinesTight(value, colWidth, valueFit) * valueFit * (valueLineHeight / 100.0)
-		labelHeight := estimateWrappedLinesTight(label, colWidth, labelFit) * labelFit * (labelLineHeight / 100.0)
+		valueHeight := estimateTextHeight(value, colWidth, valueFit, valueLineHeight)
+		labelHeight := estimateTextHeight(label, colWidth, labelFit, labelLineHeight)
 		if valueHeight > maxValueHeight {
 			maxValueHeight = valueHeight
 		}
@@ -848,7 +871,8 @@ func expandStats(name, frameName string, params map[string]interface{}, margin, 
 	if maxLabelHeight == 0 {
 		maxLabelHeight = sharedLabelSize * (labelLineHeight / 100.0)
 	}
-	labelY := yPos + maxValueHeight + 8
+	valueLabelGap := getFloat(params, "valueLabelGap", math.Max(12, sharedValueSize*0.14))
+	labelY := yPos + maxValueHeight + valueLabelGap
 
 	var ops []map[string]interface{}
 	for j, item := range items {
@@ -896,7 +920,7 @@ func expandStats(name, frameName string, params map[string]interface{}, margin, 
 		}))
 	}
 
-	newY := yPos + maxValueHeight + 8 + maxLabelHeight + spacing
+	newY := yPos + maxValueHeight + valueLabelGap + maxLabelHeight + spacing
 	return ops, newY, nil
 }
 
@@ -1119,7 +1143,7 @@ func expandBanner(baseName string, params map[string]interface{}) ([]map[string]
 		elemType, _ := elemMap["type"].(string)
 		elemName := fmt.Sprintf("%s_e%d", baseName, i)
 
-		expanded, newY, err := expandBannerElement(elemName, frameName, elemType, elemMap, contentStartX, contentWidth, yPos, sizes)
+		expanded, newY, err := expandBannerElement(elemName, frameName, elemType, elemMap, contentStartX, contentWidth, h, yPos, sizes)
 		if err != nil {
 			return nil, fmt.Errorf("element[%d] %q: %w", i, elemType, err)
 		}
@@ -1135,12 +1159,12 @@ func expandBanner(baseName string, params map[string]interface{}) ([]map[string]
 func expandBannerElement(
 	elemName, frameName, elemType string,
 	params map[string]interface{},
-	contentX, contentWidth, yPos float64,
+	contentX, contentWidth, canvasH, yPos float64,
 	sizes map[string]float64,
 ) ([]map[string]interface{}, float64, error) {
 	switch elemType {
 	case "headline":
-		return expandBannerHeadline(elemName, frameName, params, contentX, contentWidth, yPos, sizes)
+		return expandBannerHeadline(elemName, frameName, params, contentX, contentWidth, canvasH, yPos, sizes)
 	case "subtitle":
 		return expandBannerSubtitle(elemName, frameName, params, contentX, contentWidth, yPos, sizes)
 	default:
@@ -1148,16 +1172,35 @@ func expandBannerElement(
 	}
 }
 
-func expandBannerHeadline(name, frameName string, params map[string]interface{}, x, width, yPos float64, sizes map[string]float64) ([]map[string]interface{}, float64, error) {
+func expandBannerHeadline(name, frameName string, params map[string]interface{}, x, width, canvasH, yPos float64, sizes map[string]float64) ([]map[string]interface{}, float64, error) {
 	tier := getString(params, "tier", "heading")
 	fontSize, ok := sizes[tier]
 	if !ok {
+		tier = "heading"
 		fontSize = sizes["heading"]
 	}
 	text := getString(params, "text", "")
 	color := getString(params, "color", "#000000")
 	spacing := getFloat(params, "spacing", 16)
 	lineHeight := getFloat(params, "lineHeight", 118)
+	maxHeadlineRatio := getFloat(params, "maxHeadlineRatio", 0.48)
+	maxHeadlineLines := getFloat(params, "maxHeadlineLines", 3)
+	explicitFontSize := getFloat(params, "fontSize", 0)
+	if explicitFontSize > 0 {
+		fontSize = explicitFontSize
+	}
+	adaptiveTier := getBool(params, "adaptiveTier", true)
+	if explicitFontSize > 0 {
+		if _, ok := params["adaptiveTier"]; !ok {
+			adaptiveTier = false
+		}
+	}
+	if adaptiveTier {
+		_, fontSize = adaptHeadlineTier(text, width, canvasH, tier, sizes, lineHeight, maxHeadlineRatio, maxHeadlineLines)
+	}
+	if getBool(params, "autoFit", true) {
+		fontSize = fitHeadlineFontSizeWithBudget(text, width, canvasH, fontSize, lineHeight, maxHeadlineRatio, maxHeadlineLines)
+	}
 
 	op := makeOp(name, "text.create", map[string]interface{}{
 		"parentId":       ref(frameName),
@@ -1174,16 +1217,23 @@ func expandBannerHeadline(name, frameName string, params map[string]interface{},
 		"lineHeightUnit": "PERCENT",
 	})
 
-	newY := yPos + fontSize*lineHeight/100 + spacing
+	textHeight := estimateTextHeight(text, width, fontSize, lineHeight)
+	newY := yPos + textHeight + spacing
 	return []map[string]interface{}{op}, newY, nil
 }
 
 func expandBannerSubtitle(name, frameName string, params map[string]interface{}, x, width, yPos float64, sizes map[string]float64) ([]map[string]interface{}, float64, error) {
-	fontSize := sizes["subheading"]
+	fontSize := sizes["caption"]
+	if explicit := getFloat(params, "fontSize", 0); explicit > 0 {
+		fontSize = explicit
+	}
 	text := getString(params, "text", "")
 	color := getString(params, "color", "#666666")
 	spacing := getFloat(params, "spacing", 16)
-	lineHeight := getFloat(params, "lineHeight", 140)
+	lineHeight := getFloat(params, "lineHeight", 130)
+	maxLines := getFloat(params, "maxLines", 2)
+	minSize := getFloat(params, "minSize", 12)
+	fontSize = fitTextToMaxLines(text, width, fontSize, lineHeight, maxLines, minSize)
 
 	op := makeOp(name, "text.create", map[string]interface{}{
 		"parentId":       ref(frameName),
@@ -1200,6 +1250,7 @@ func expandBannerSubtitle(name, frameName string, params map[string]interface{},
 		"lineHeightUnit": "PERCENT",
 	})
 
-	newY := yPos + fontSize*lineHeight/100 + spacing
+	textHeight := estimateTextHeight(text, width, fontSize, lineHeight)
+	newY := yPos + textHeight + spacing
 	return []map[string]interface{}{op}, newY, nil
 }

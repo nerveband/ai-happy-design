@@ -149,7 +149,7 @@ func TestCSSColorToHex(t *testing.T) {
 		{"#FF0000", "#FF0000"},
 		{"#ff0000", "#FF0000"},
 		{"#f00", "#FF0000"},
-		{"#FF000080", "#FF0000"},       // 8-digit hex, alpha dropped
+		{"#FF000080", "#FF0000"}, // 8-digit hex, alpha dropped
 		{"rgb(255, 0, 0)", "#FF0000"},
 		{"rgba(255, 0, 0, 0.5)", "#FF0000"},
 		{"rgb(0, 128, 0)", "#008000"},
@@ -503,6 +503,44 @@ func TestFromHTMLEmailBanner(t *testing.T) {
 	}
 	if sub["text"] != "AMC Ramadan 2026" {
 		t.Errorf("subtitle text = %v", sub["text"])
+	}
+}
+
+func TestFromHTMLBannerIgnoresSlideCanvasDefaults(t *testing.T) {
+	htmlDoc := `<html>
+<head><style>
+  .eb { width: 600px; height: 200px; }
+</style></head>
+<body>
+<div class="email-banners">
+  <div class="eb">
+    <div class="eb-text">
+      <div class="eb-h eb-h-xl">Banner Headline</div>
+      <div class="eb-sub">Banner Subtitle</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>`
+
+	ops, err := FromHTML(strings.NewReader(htmlDoc), Options{
+		CanvasWidth:  1080,
+		CanvasHeight: 1350,
+	})
+	if err != nil {
+		t.Fatalf("FromHTML failed: %v", err)
+	}
+
+	if len(ops) != 1 {
+		t.Fatalf("expected 1 banner op, got %d", len(ops))
+	}
+
+	params, ok := ops[0]["params"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("banner params missing")
+	}
+	if params["canvas"] != "1200x400" {
+		t.Fatalf("banner canvas = %v, want 1200x400", params["canvas"])
 	}
 }
 

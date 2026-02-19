@@ -457,11 +457,11 @@ async function walkNode(
 
         if (isAbsolute && !isAutoLayout) {
           warnings.push({
-            severity: 'info',
+            severity: 'warning',
             type: 'absolute_child_non_autolayout',
             nodeId: child.id,
             nodeName: child.name,
-            message: 'Child uses layoutPositioning:ABSOLUTE under non-auto-layout parent "' + frameNode.name + '". This is likely unintended and can hide overlap issues.',
+            message: 'Child uses layoutPositioning:ABSOLUTE under non-auto-layout parent "' + frameNode.name + '". Remove ABSOLUTE or convert parent to auto-layout.',
           });
           checkableChildren.push(child);
           continue;

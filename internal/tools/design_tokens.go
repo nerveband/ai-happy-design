@@ -521,7 +521,9 @@ func buildStarterTemplate(layoutType string, canvasW, canvasH int) []interface{}
 func buildTips(layoutType string, width, height, hero, body, caption, sidePadding, contentWidth int) []string {
 	tips := []string{
 		"Use semantic names for every layer. Avoid defaults like 'Frame 47'.",
-		"Run batch once, read lint warnings, then fix and rerun before export.",
+		"Run the first attempt with --strict-quality so overlap/overflow issues fail before export.",
+		"Keep core content in normal/auto-layout flow. Use layoutPositioning:ABSOLUTE only for decorative overlays.",
+		"For long headlines, keep adaptive headline sizing enabled (adaptiveTier + autoFit) instead of forcing hero size.",
 	}
 	switch layoutType {
 	case "landscape":

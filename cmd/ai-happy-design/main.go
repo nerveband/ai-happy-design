@@ -703,24 +703,40 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 		if batchLint && !batchNoLint && failed == 0 {
 			rootNodeIDs := collectCreatedRootFrameIDs(ops, results)
 			lintInfo = runPostBatchLint(client, rootNodeIDs, "")
+			lintGuides := lintGuidance(lintInfo)
+			lintSamples := lintSamplesForOutput(lintInfo.Samples, 5)
 			if !batchCompact {
-				out["lint"] = map[string]interface{}{
+				lintMap := map[string]interface{}{
 					"issues":   lintInfo.Issues,
 					"warnings": lintInfo.Warnings,
 					"errors":   lintInfo.Errors,
 					"byType":   lintInfo.ByType,
 				}
+				if len(lintGuides) > 0 {
+					lintMap["guidance"] = lintGuides
+				}
+				if len(lintSamples) > 0 {
+					lintMap["samples"] = lintSamples
+				}
+				out["lint"] = lintMap
 			}
 			if batchStrictQuality && lintInfo.Issues > 0 {
 				out["ok"] = false
-				out["qualityGate"] = map[string]interface{}{
+				gate := map[string]interface{}{
 					"mode":   "strict",
 					"status": "failed",
 					"issues": lintInfo.Issues,
 				}
+				if len(lintGuides) > 0 {
+					gate["guidance"] = lintGuides
+				}
+				out["qualityGate"] = gate
 				if summary, ok := out["summary"].(map[string]interface{}); ok {
 					summary["qualityGate"] = "failed"
 					summary["qualityIssues"] = lintInfo.Issues
+					if len(lintGuides) > 0 {
+						summary["qualityGuidance"] = lintGuides
+					}
 				}
 				if err := printJSON(out); err != nil {
 					return err
@@ -1424,6 +1440,13 @@ type lintSummary struct {
 	Warnings int
 	Errors   int
 	ByType   map[string]int
+	Samples  []lintIssueSample
+}
+
+type lintIssueSample struct {
+	Type     string
+	NodeName string
+	Message  string
 }
 
 func runPostBatchLint(client *ws.Client, rootNodeIDs []string, label string) lintSummary {
@@ -1482,13 +1505,21 @@ func runPostBatchLint(client *ws.Client, rootNodeIDs []string, label string) lin
 				wtype = "lint"
 			}
 			summary.ByType[wtype]++
+			msg, _ := wm["message"].(string)
+			msg = strings.TrimSpace(msg)
+			nodeName, _ := wm["nodeName"].(string)
+			nodeName = strings.TrimSpace(nodeName)
+			if len(summary.Samples) < 12 {
+				summary.Samples = append(summary.Samples, lintIssueSample{
+					Type:     wtype,
+					NodeName: nodeName,
+					Message:  msg,
+				})
+			}
 			if shown >= maxShown {
 				continue
 			}
-			msg, _ := wm["message"].(string)
-			msg = strings.TrimSpace(msg)
 			lintNodeID, _ := wm["nodeId"].(string)
-			nodeName, _ := wm["nodeName"].(string)
 
 			icon := "WARN"
 			if sev == "error" {
@@ -1518,10 +1549,104 @@ func runPostBatchLint(client *ws.Client, rootNodeIDs []string, label string) lin
 	}
 	if total > shown {
 		fmt.Fprintf(os.Stderr, "%s %d warning/error issue(s) total; showing %d\n", prefix, total, shown)
+		for _, hint := range lintGuidance(summary) {
+			fmt.Fprintf(os.Stderr, "%s hint: %s\n", prefix, hint)
+		}
 		return summary
 	}
 	fmt.Fprintf(os.Stderr, "%s %d warning/error issue(s)\n", prefix, total)
+	for _, hint := range lintGuidance(summary) {
+		fmt.Fprintf(os.Stderr, "%s hint: %s\n", prefix, hint)
+	}
 	return summary
+}
+
+func lintGuidance(summary lintSummary) []string {
+	out := make([]string, 0, 6)
+	hasOverlap := summary.ByType["overlap"] > 0
+	hasOverflow := summary.ByType["overflow"] > 0
+	hasDefaultNames := summary.ByType["default_name"] > 0
+	hasTextLarge := summary.ByType["text_too_large"] > 0
+	hasTextSmall := summary.ByType["text_too_small"] > 0
+	hasOversizedChild := summary.ByType["oversized_child"] > 0
+	hasAbsoluteBad := summary.ByType["absolute_child_non_autolayout"] > 0
+	hasAbsoluteOverflow := summary.ByType["absolute_overflow"] > 0
+
+	if hasOverlap {
+		out = append(out, "Overlap issues: keep content in auto-layout flow and reserve absolute positioning for decorative elements only.")
+		for _, s := range summary.Samples {
+			if strings.Contains(strings.ToLower(s.NodeName), "stat value") || strings.Contains(strings.ToLower(s.NodeName), "stat label") {
+				out = append(out, "Stats overlap: enforce single-line stat values and increase value-to-label gap before placing labels.")
+				break
+			}
+		}
+		for _, s := range summary.Samples {
+			msgLower := strings.ToLower(s.Message)
+			if strings.Contains(msgLower, "parent \"banner") || (strings.Contains(strings.ToLower(s.NodeName), "headline") && strings.Contains(msgLower, "subtitle")) {
+				out = append(out, "Banner overlap: use adaptive headline sizing and a smaller subtitle tier so subtitle placement is based on wrapped headline height.")
+				break
+			}
+		}
+	}
+	if hasOverflow || hasOversizedChild {
+		out = append(out, "Overflow/oversized issues: increase parent size or reduce child dimensions; prefer FILL/HUG sizing in auto-layout frames.")
+	}
+	if hasAbsoluteBad {
+		out = append(out, "Invalid ABSOLUTE usage: layoutPositioning:ABSOLUTE is only valid on children of auto-layout parents. Remove ABSOLUTE for manual x/y parents.")
+	}
+	if hasAbsoluteOverflow {
+		out = append(out, "Absolute child overflow: keep absolute overlays inside parent bounds or move them into normal auto-layout flow.")
+	}
+	if hasTextLarge {
+		out = append(out, "Text too large: lower headline tier or enable auto-fit/adaptive tiering for long copy.")
+	}
+	if hasTextSmall {
+		out = append(out, "Text too small: raise minimum font sizes and avoid caption tiers for primary body content.")
+	}
+	if hasDefaultNames {
+		out = append(out, "Default naming issues: assign semantic names to every frame/layer so interpolation and debugging stay stable.")
+	}
+	if len(out) == 0 && summary.Issues > 0 {
+		out = append(out, "Lint issues detected. Re-run with --strict-quality, inspect lint.byType, and iterate the batch JSON before final export.")
+	}
+	return uniqueStrings(out)
+}
+
+func lintSamplesForOutput(samples []lintIssueSample, limit int) []map[string]interface{} {
+	if limit <= 0 {
+		limit = 3
+	}
+	out := make([]map[string]interface{}, 0, limit)
+	for _, sample := range samples {
+		if len(out) >= limit {
+			break
+		}
+		entry := map[string]interface{}{
+			"type": sample.Type,
+		}
+		if strings.TrimSpace(sample.NodeName) != "" {
+			entry["nodeName"] = sample.NodeName
+		}
+		if strings.TrimSpace(sample.Message) != "" {
+			entry["message"] = sample.Message
+		}
+		out = append(out, entry)
+	}
+	return out
+}
+
+func uniqueStrings(in []string) []string {
+	seen := make(map[string]bool, len(in))
+	out := make([]string, 0, len(in))
+	for _, item := range in {
+		key := strings.TrimSpace(item)
+		if key == "" || seen[key] {
+			continue
+		}
+		seen[key] = true
+		out = append(out, key)
+	}
+	return out
 }
 
 func printJSON(v interface{}) error {
@@ -2148,16 +2273,28 @@ func runSingleBatchFile(filePath, channelKey string) batchFileResult {
 		"imagePrep":     imagePrepSummaryMap(imagePrep),
 	}
 	if batchLint && !batchNoLint {
-		summary["lint"] = map[string]interface{}{
+		lintMap := map[string]interface{}{
 			"issues":   lintInfo.Issues,
 			"warnings": lintInfo.Warnings,
 			"errors":   lintInfo.Errors,
 			"byType":   lintInfo.ByType,
 		}
+		lintGuides := lintGuidance(lintInfo)
+		if len(lintGuides) > 0 {
+			lintMap["guidance"] = lintGuides
+		}
+		lintSamples := lintSamplesForOutput(lintInfo.Samples, 5)
+		if len(lintSamples) > 0 {
+			lintMap["samples"] = lintSamples
+		}
+		summary["lint"] = lintMap
 		if batchStrictQuality {
 			if lintInfo.Issues > 0 {
 				summary["qualityGate"] = "failed"
 				summary["qualityIssues"] = lintInfo.Issues
+				if len(lintGuides) > 0 {
+					summary["qualityGuidance"] = lintGuides
+				}
 			} else {
 				summary["qualityGate"] = "passed"
 			}
@@ -2260,6 +2397,8 @@ var extractCmd = &cobra.Command{
 		inputPath := args[0]
 		canvasWidth, _ := cmd.Flags().GetInt("width")
 		canvasHeight, _ := cmd.Flags().GetInt("height")
+		bannerWidth, _ := cmd.Flags().GetInt("banner-width")
+		bannerHeight, _ := cmd.Flags().GetInt("banner-height")
 		outputPath, _ := cmd.Flags().GetString("output")
 
 		f, ferr := os.Open(inputPath)
@@ -2271,6 +2410,8 @@ var extractCmd = &cobra.Command{
 		ops, err := extract.FromHTML(f, extract.Options{
 			CanvasWidth:  canvasWidth,
 			CanvasHeight: canvasHeight,
+			BannerWidth:  bannerWidth,
+			BannerHeight: bannerHeight,
 			BaseDir:      filepath.Dir(inputPath),
 		})
 		if err != nil {
@@ -2624,6 +2765,8 @@ func main() {
 
 	extractCmd.Flags().Int("width", 1080, "Canvas width")
 	extractCmd.Flags().Int("height", 1080, "Canvas height")
+	extractCmd.Flags().Int("banner-width", 1200, "Banner canvas width")
+	extractCmd.Flags().Int("banner-height", 400, "Banner canvas height")
 	extractCmd.Flags().StringP("output", "o", "", "Output file path (default: stdout)")
 	rootCmd.AddCommand(extractCmd)
 

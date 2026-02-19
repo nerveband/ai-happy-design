@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -379,6 +380,26 @@ func TestComputeDesignTokens_PrintSpacingRound8(t *testing.T) {
 		if val%8 != 0 {
 			t.Errorf("print spacing.%s = %d, expected multiple of 8", key, val)
 		}
+	}
+}
+
+func TestComputeDesignTokens_TipsIncludeFirstPassQualityGuidance(t *testing.T) {
+	tokens := ComputeDesignTokens(1080, 1350, 0)
+	tips, ok := tokens["tips"].([]string)
+	if !ok {
+		t.Fatalf("expected tips []string, got %T", tokens["tips"])
+	}
+
+	joined := ""
+	for _, tip := range tips {
+		joined += tip + " "
+	}
+	lower := strings.ToLower(joined)
+	if !strings.Contains(lower, "--strict-quality") {
+		t.Fatalf("expected tips to mention --strict-quality, got %v", tips)
+	}
+	if !strings.Contains(lower, "layoutpositioning:absolute") {
+		t.Fatalf("expected tips to mention ABSOLUTE layout rule, got %v", tips)
 	}
 }
 

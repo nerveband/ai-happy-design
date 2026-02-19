@@ -240,3 +240,36 @@ Validation evidence:
 
 1. Before fix: `layout.check_overlaps` reported multiple overlaps per slide.
 2. After deploy and rerun of 10-slide batch: overlap counts are `0` on all generated slide frames.
+
+## 2026-02-19 Addendum: Guidance-First Quality (implemented next)
+
+This iteration prioritizes preventing bad first-generation output over relying on post-run fixes.
+
+### Added
+
+1. Catalog-level first-pass guardrails in `internal/tools/catalog_llm.go`:
+- strict-quality on first run
+- adaptive headline sizing defaults
+- stats spacing/line-budget guidance
+- absolute-child usage rule (decorative only, auto-layout only)
+
+2. `describe(action="design_guide")` now includes:
+- `firstPassGuardrails`
+- `lintChecks`
+
+3. Lint contract clarity:
+- `absolute_child_non_autolayout` and `absolute_overflow` documented in catalog lint checks.
+- guidance output now includes explicit fixes for these issue types.
+
+4. `design.compute_tokens` tips shifted from “lint then rerun” to first-pass-safe constraints.
+
+### Removed/De-emphasized
+
+1. “Generate then fix” framing as the default guidance path.
+2. Reliance on overlap checks as the first line of defense.
+
+### Why this is better
+
+1. LLMs receive prevention-oriented constraints before generating JSON.
+2. `--strict-quality` becomes a first-run habit, not an afterthought.
+3. Fewer avoidable retries and less layout drift between attempts.

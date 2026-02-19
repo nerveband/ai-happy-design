@@ -37,7 +37,7 @@ func LLMCatalog() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"version": "3.3",
+		"version": "3.4",
 		"discovery": map[string]interface{}{
 			"cliCatalog":       "ai-happy-design tools --json",
 			"llmCatalog":       "ai-happy-design tools --llm --json",
@@ -52,7 +52,7 @@ func LLMCatalog() map[string]interface{} {
 				"ai-happy-design actions paint",
 				"ai-happy-design batch --help",
 			},
-			"batchOutputFields": "After every batch run, inspect output.summary, output.timing, and output.imagePrep. With --strict-quality, also inspect summary.qualityGate and summary.qualityIssues.",
+			"batchOutputFields": "After every batch run, inspect output.summary, output.timing, and output.imagePrep. With --strict-quality, also inspect summary.qualityGate, summary.qualityIssues, and summary.qualityGuidance (or lint.guidance).",
 		},
 		"executionRules": map[string]interface{}{
 			"_overview":           "Follow these rules for every design task. They prevent the most common LLM efficiency mistakes.",
@@ -66,6 +66,7 @@ func LLMCatalog() map[string]interface{} {
 			"8_nameEverything":    "Name every frame and element descriptively. Never leave Figma defaults like 'Frame 47'. Use: 'Hero Section', 'CTA Button', 'Card — Feature Name'.",
 			"9_lintAfterCreate":   "Use --lint flag on batch to auto-check for overlaps, overflow, text sizing, and naming issues after creation.",
 			"10_captureTelemetry": "Always read batch summary/timing/imagePrep fields and feed them into the next iteration prompt.",
+			"11_firstPassStrict":  "Run the first attempt with --strict-quality so warning/error lint issues fail before export.",
 		},
 		"cssPropertySupport": map[string]interface{}{
 			"_overview":       "Batch params accept CSS property names — write what you know, the CLI translates to Figma. These are ADDITIVE: native Figma params still work and take priority.",
@@ -85,14 +86,25 @@ func LLMCatalog() map[string]interface{} {
 Write: {"flexDirection":"column","gap":16,"padding":"24","justifyContent":"center"}`,
 		},
 		"lintChecks": map[string]interface{}{
-			"_overview":       "Use --lint on batch to auto-validate designs after creation. Also available as: document.lint {nodeId}",
-			"overflow":        "Children extending beyond parent frame bounds",
-			"overlap":         "Sibling elements overlapping each other (in non-auto-layout frames)",
-			"text_too_large":  "Text fontSize exceeds 50% of parent frame height",
-			"text_too_small":  "Text fontSize below 12px (unreadable)",
-			"default_name":    "Nodes with Figma default names (Frame 47, Rectangle 12, etc.)",
-			"oversized_child": "Child width/height exceeds parent by more than 10%",
-			"qualityGate":     "Use --strict-quality to fail the run on any lint warning/error and expose summary.qualityGate in output.",
+			"_overview":                     "Use --lint on batch to auto-validate designs after creation. Also available as: document.lint {nodeId}",
+			"overflow":                      "Children extending beyond parent frame bounds",
+			"overlap":                       "Sibling elements overlapping each other (in non-auto-layout frames)",
+			"absolute_child_non_autolayout": "Child uses layoutPositioning:ABSOLUTE under a non-auto-layout parent. This is likely unintended and should be fixed.",
+			"absolute_overflow":             "Absolute-positioned child exceeds its auto-layout parent bounds.",
+			"text_too_large":                "Text fontSize exceeds 50% of parent frame height",
+			"text_too_small":                "Text fontSize below 12px (unreadable)",
+			"default_name":                  "Nodes with Figma default names (Frame 47, Rectangle 12, etc.)",
+			"oversized_child":               "Child width/height exceeds parent by more than 10%",
+			"qualityGate":                   "Use --strict-quality to fail the run on any lint warning/error and expose summary.qualityGate in output.",
+		},
+		"firstPassGuardrails": map[string]interface{}{
+			"_overview":         "Apply these constraints BEFORE generating batch JSON. They prevent the most common first-pass overlap/overflow failures.",
+			"1_useComposites":   "Prefer slide/banner composites for social formats. They already include wrapped-text flow placement and adaptive headline sizing.",
+			"2_headlineBudget":  "Keep adaptiveTier:true and autoFit:true for long headlines. Headline blocks should stay within ~34% of slide height (or ~48% for banners).",
+			"3_statsBudget":     "Keep stat values short (single-line target), labels concise (<=2 lines), and preserve value-to-label spacing.",
+			"4_absoluteRule":    "layoutPositioning:ABSOLUTE is decoration-only and valid only under auto-layout parents. Never use ABSOLUTE for core text/content blocks.",
+			"5_firstRunQuality": "Run first attempt as: ai-happy-design batch ops.json --strict-quality",
+			"6_visualParity":    "After strict-quality passes, export.image scale=2 and compare against source HTML/reference before declaring success.",
 		},
 		"batchObservability": map[string]interface{}{
 			"_overview": "Batch is instrumented for feedback loops. Use these fields to understand speed and bottlenecks.",
@@ -940,6 +952,7 @@ Write: {"flexDirection":"column","gap":16,"padding":"24","justifyContent":"cente
 			},
 		},
 		"quickPrompts": []string{
+			"FIRST PASS GUARDRAILS: Use slide/banner composites, keep adaptiveTier/autoFit on headlines, and run the first attempt with --strict-quality.",
 			"BATCH AUTO-NORMALIZES: 'ai-happy-design batch ops.json' auto-fixes fences, type→command, JSON comments, top-level params before running. Use --no-fix for strict mode. Use validate --fix to inspect corrections without running.",
 			"DISCOVERABILITY FIRST: Run 'ai-happy-design tools --llm --json' then 'ai-happy-design actions [domain]' before generating commands.",
 			"For CREATING designs: use auto-layout frames. Create frames with layoutMode, itemSpacing, padding in one call. Batch for multiple elements.",
@@ -1105,12 +1118,14 @@ CLI discovery sequence:
 func DesignGuide() map[string]interface{} {
 	catalog := LLMCatalog()
 	return map[string]interface{}{
-		"version":        catalog["version"],
-		"designThinking": catalog["designThinking"],
-		"designPatterns": catalog["designPatterns"],
-		"playbook":       catalog["playbook"],
-		"workflow":       catalog["workflow"],
-		"hint":           "For full tool catalog with command examples, call describe(action='catalog').",
+		"version":             catalog["version"],
+		"designThinking":      catalog["designThinking"],
+		"designPatterns":      catalog["designPatterns"],
+		"playbook":            catalog["playbook"],
+		"workflow":            catalog["workflow"],
+		"lintChecks":          catalog["lintChecks"],
+		"firstPassGuardrails": catalog["firstPassGuardrails"],
+		"hint":                "For full tool catalog with command examples, call describe(action='catalog').",
 	}
 }
 

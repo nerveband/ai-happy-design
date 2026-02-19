@@ -80,6 +80,39 @@ func TestSetupInstructionsIncludeCLIDiscoverySequence(t *testing.T) {
 	}
 }
 
+func TestLLMCatalogFirstPassGuardrailsAndAbsoluteLintRules(t *testing.T) {
+	catalog := LLMCatalog()
+
+	lintChecks, ok := catalog["lintChecks"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected lintChecks map")
+	}
+	for _, key := range []string{"absolute_child_non_autolayout", "absolute_overflow"} {
+		if _, exists := lintChecks[key]; !exists {
+			t.Fatalf("expected lintChecks[%q]", key)
+		}
+	}
+
+	guardrails, ok := catalog["firstPassGuardrails"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected firstPassGuardrails map")
+	}
+	firstRun := fmt.Sprint(guardrails["5_firstRunQuality"])
+	if !strings.Contains(firstRun, "--strict-quality") {
+		t.Fatalf("expected strict-quality guidance in firstPassGuardrails, got %q", firstRun)
+	}
+}
+
+func TestDesignGuideIncludesFirstPassGuardrailsAndLintChecks(t *testing.T) {
+	guide := DesignGuide()
+	if _, ok := guide["firstPassGuardrails"].(map[string]interface{}); !ok {
+		t.Fatalf("expected design guide to include firstPassGuardrails")
+	}
+	if _, ok := guide["lintChecks"].(map[string]interface{}); !ok {
+		t.Fatalf("expected design guide to include lintChecks")
+	}
+}
+
 func containsString(values []string, target string) bool {
 	for _, value := range values {
 		if value == target {
