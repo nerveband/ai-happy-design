@@ -905,6 +905,17 @@ func LLMCatalog() map[string]interface{} {
 				"defaultWhiteFill": "Figma adds a white fill to all new frames by default. Structural/wrapper frames should use noFill:true in node.create_frame, or call paint.remove_fill {nodeId, index:0} after creation.",
 				"visualFrames":     "Slide backgrounds, cards, and CTA buttons should keep their fill — only wrapper frames need noFill:true.",
 			},
+			"multiFrameDesigns": map[string]interface{}{
+				"rule":     "CRITICAL: Anything exported independently = its own top-level frame. NEVER wrap multiple exportable designs in a parent frame.",
+				"carousels": "Instagram/LinkedIn/Twitter carousels: one slide composite per panel. Each creates its own root frame. Batch auto-places side by side.",
+				"stories":   "Instagram/Facebook stories: one slide per story — separate top-level frames.",
+				"responsive": "Mobile/tablet/desktop: one frame per breakpoint at different sizes.",
+				"variants":  "A/B variants: one frame per variant — separate frames for comparison.",
+				"campaigns": "Multi-format (post + story + banner): one composite per format — slide for post, slide for story, banner for banner.",
+				"print":     "Multi-page documents: one frame per page.",
+				"wrong":     "WRONG: Creating a wrapper frame and nesting slides as children. This makes them un-exportable individually.",
+				"correct":   "CORRECT: Three slide composites in one batch array. Each auto-creates its own root frame.",
+			},
 		},
 		"cliOnlyCommands": map[string]interface{}{
 			"_overview": "These commands are CLI-only (not available as MCP tools). Run via ai-happy-design <command>.",
