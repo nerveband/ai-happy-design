@@ -41,6 +41,7 @@ func LLMCatalog() map[string]interface{} {
 		"discovery": map[string]interface{}{
 			"cliCatalog":       "ai-happy-design tools --json",
 			"llmCatalog":       "ai-happy-design tools --llm --json",
+			"examples":         "ai-happy-design examples [category] — ready-to-use batch JSON payloads. Categories: slide, carousel, banner, effects, batch, newsletter. Output is valid JSON, pipeable to batch.",
 			"mcpDescribe":      "describe(action='catalog')",
 			"cliActions":       "ai-happy-design actions [domain]",
 			"domainActionHint": "Prefer domain.action names like paint.set_solid over legacy command aliases.",
