@@ -65,11 +65,11 @@ func showExample(category string) error {
 }
 
 var exampleDescriptions = map[string]string{
-	"slide":    "Single slide composite with eyebrow, headline, body, bar, CTA",
-	"carousel": "3-slide Instagram carousel (separate top-level frames)",
-	"banner":   "Banner composite with divider and headline/subtitle",
-	"effects":  "Shadows, glass, gradient overlay, noise, masking",
-	"batch":    "Raw batch with primitive commands (frame, text, rect)",
+	"slide":      "Single slide composite with eyebrow, headline, body, bar, CTA",
+	"carousel":   "3-slide Instagram carousel with strong hierarchy and semantic naming",
+	"banner":     "Banner composite with divider and headline/subtitle",
+	"effects":    "Shadows, glass, gradient overlay, noise, masking",
+	"batch":      "Raw batch starter using token aliases (sz/padding/w/r)",
 	"newsletter": "Email newsletter layout with sections",
 }
 
@@ -108,11 +108,18 @@ var examplePayloads = map[string]interface{}{
 			"params": map[string]interface{}{
 				"canvas": "1080x1350",
 				"bg":     "#111827",
+				"gradient": map[string]interface{}{
+					"type": "LINEAR",
+					"stops": []interface{}{
+						map[string]interface{}{"color": "#0B1220", "position": 0},
+						map[string]interface{}{"color": "#1F2A44", "position": 1},
+					},
+				},
 				"elements": []interface{}{
 					map[string]interface{}{"type": "eyebrow", "text": "SLIDE 1 OF 3", "color": "#9CA3AF"},
 					map[string]interface{}{"type": "headline", "text": "The Hook", "tier": "hero", "color": "#FFFFFF"},
 					map[string]interface{}{"type": "bar", "color": "#3B82F6"},
-					map[string]interface{}{"type": "body", "text": "Open with a bold statement that grabs attention.", "color": "#D1D5DB"},
+					map[string]interface{}{"type": "body", "text": "Open with a bold statement that grabs attention immediately.", "color": "#D1D5DB"},
 				},
 			},
 		},
@@ -125,6 +132,7 @@ var examplePayloads = map[string]interface{}{
 				"elements": []interface{}{
 					map[string]interface{}{"type": "eyebrow", "text": "SLIDE 2 OF 3", "color": "#9CA3AF"},
 					map[string]interface{}{"type": "headline", "text": "The Details", "tier": "title", "color": "#FFFFFF"},
+					map[string]interface{}{"type": "body", "text": "Support your claim with crisp proof points.", "color": "#D1D5DB"},
 					map[string]interface{}{"type": "stats", "items": []interface{}{
 						map[string]interface{}{"value": "10x", "label": "Faster"},
 						map[string]interface{}{"value": "99%", "label": "Accuracy"},
@@ -218,11 +226,11 @@ var examplePayloads = map[string]interface{}{
 
 	"batch": []interface{}{
 		map[string]interface{}{
-			"_comment": "Raw batch with primitive commands — frame, text, rect, gradient",
+			"_comment": "Raw batch starter with token aliases and semantic names",
 			"name":     "root",
 			"command":  "frame",
 			"params": map[string]interface{}{
-				"name": "Social Post", "w": 1080, "h": 1080, "bg": "#1a1a1a",
+				"name": "Social Post", "w": 1080, "h": 1080, "bg": "#111827", "clipsContent": true,
 			},
 		},
 		map[string]interface{}{
@@ -230,29 +238,40 @@ var examplePayloads = map[string]interface{}{
 			"command": "frame",
 			"params": map[string]interface{}{
 				"name": "Content", "pid": "$root", "w": 1080, "h": 1080,
-				"noFill": true, "layoutMode": "VERTICAL", "itemSpacing": 24, "padding": 64,
+				"noFill": true, "layoutMode": "VERTICAL", "itemSpacing": "section", "padding": "side",
 				"primaryAxisAlign": "CENTER", "counterAxisAlign": "CENTER",
 			},
 		},
 		map[string]interface{}{
 			"command": "text",
 			"params": map[string]interface{}{
-				"text": "Hello World", "pid": "$content", "sz": 80, "fontStyle": "Bold",
-				"color": "#ffffff", "textAlign": "CENTER", "w": 952,
+				"name": "Hero Title", "text": "Hello World", "pid": "$content", "sz": "hero", "fontStyle": "Bold",
+				"color": "#ffffff", "textAlign": "CENTER", "w": "content", "lh": 110,
 			},
 		},
 		map[string]interface{}{
 			"command": "text",
 			"params": map[string]interface{}{
-				"text": "Built with AI Happy Design", "pid": "$content", "sz": 32,
-				"color": "#999999", "textAlign": "CENTER", "w": 952,
+				"name": "Body Copy", "text": "Built with AI Happy Design", "pid": "$content", "sz": "body",
+				"color": "#9CA3AF", "textAlign": "CENTER", "w": "content", "lh": 150,
 			},
 		},
 		map[string]interface{}{
-			"name":    "accent",
-			"command": "rect",
+			"name":    "cta",
+			"command": "frame",
 			"params": map[string]interface{}{
-				"pid": "$root", "x": 440, "y": 900, "w": 200, "h": 4, "bg": "#FFD600", "r": 2,
+				"name": "CTA Button", "pid": "$content", "bg": "#3B82F6", "r": "button",
+				"layoutMode": "HORIZONTAL", "paddingLeft": "card", "paddingRight": "card",
+				"paddingTop": "item", "paddingBottom": "item",
+				"primaryAxisSizing": "AUTO", "counterAxisSizing": "AUTO",
+				"primaryAxisAlign": "CENTER", "counterAxisAlign": "CENTER",
+			},
+		},
+		map[string]interface{}{
+			"command": "text",
+			"params": map[string]interface{}{
+				"name": "CTA Text", "text": "Get Started", "pid": "$cta", "sz": "cta",
+				"fontStyle": "Bold", "color": "#FFFFFF",
 			},
 		},
 	},

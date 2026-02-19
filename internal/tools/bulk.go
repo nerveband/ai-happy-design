@@ -49,6 +49,19 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 				return mcp.NewToolResultError(fmt.Sprintf("cannot parse operations JSON: %v", fixErr)), nil
 			}
 
+			var tokenAliasesResolved int
+			var tokenRootWidth int
+			var tokenOps []map[string]interface{}
+			if err := json.Unmarshal(opsBytes, &tokenOps); err == nil {
+				tokenAliasesResolved, tokenRootWidth = batchutil.ResolveTokenAliases(tokenOps)
+				if tokenAliasesResolved > 0 {
+					remarshaled, mErr := json.Marshal(tokenOps)
+					if mErr == nil {
+						opsBytes = remarshaled
+					}
+				}
+			}
+
 			var ops []BulkOperation
 			if err := json.Unmarshal(opsBytes, &ops); err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("invalid operations JSON: %v", err)), nil
@@ -209,6 +222,12 @@ func RegisterBulkTool(s *server.MCPServer, commander *figma.Commander) {
 
 			if len(fixes) > 0 {
 				out["autoNormalized"] = fixes
+			}
+			if tokenAliasesResolved > 0 {
+				out["tokenAliases"] = map[string]interface{}{
+					"resolved":  tokenAliasesResolved,
+					"rootWidth": tokenRootWidth,
+				}
 			}
 
 			text, err := formatResult(out)

@@ -39,6 +39,7 @@ ai-happy-design batch f1.json f2.json --parallel  # run concurrently (max 4)
 - `--allow-overlap` — skip auto-placement (batch only)
 - `--parallel` — run multi-file batches concurrently (max 4)
 - `--compress-images` — compress imageData before sending (requires ImageMagick)
+- `--no-lint` — disable post-batch lint (lint runs by default)
 
 ## Critical: Think in HTML/CSS First
 
@@ -62,11 +63,13 @@ Full CSS-to-Figma mapping: See [references/css-to-figma.md](references/css-to-fi
 ## Workflow
 
 1. **Get design tokens**: `ai-happy-design command design.compute_tokens '{"width": 1080, "height": 1080}'`
+   - Output includes `template`, `tips`, and `aliases` to copy into your next batch.
 2. **Find free space**: `ai-happy-design command document.find_free_space '{"width": 1080, "height": 1080}'`
 3. **Think in CSS**: Picture the design as a webpage. What HTML elements? What CSS?
 4. **Create in one step**: Use `node.create_frame` with all params — no need for separate commands
 5. **Batch create**: Build a JSON array of operations. Write to a file.
-6. **Send batch**: `ai-happy-design batch ops.json` — auto-normalizes LLM output before sending (fences, `type`→`command`, top-level props, JSON comments). Use `--no-fix` for strict mode.
+6. **Send batch**: `ai-happy-design batch ops.json` — auto-normalizes LLM output before sending (fences, `type`→`command`, top-level props, JSON comments), resolves semantic token aliases (`sz:"hero"`, `padding:"side"`, `w:"content"`), and runs lint warnings by default.
+   - Use `--no-fix` for strict mode and `--no-lint` to disable lint.
 7. **Balance check**: All siblings MUST match — same height, padding, spacing, radius, text sizes
 8. **Export & verify**: `ai-happy-design command export.image '{"nodeId": "...", "scale": 2}' -o output.png`
 
@@ -106,6 +109,8 @@ Always call `design.compute_tokens` first to get sizes proportional to the canva
 ```bash
 ai-happy-design command design.compute_tokens '{"width": 1080, "height": 1080}'
 ```
+
+This output is now execution-ready: use `template` as the starter batch and follow `tips`/`aliases` directly.
 
 Returns a modular type scale (perfect fourth = 1.333 ratio):
 - **display** (200px at 1080w) — statement text
@@ -197,6 +202,7 @@ The `batch` command auto-normalizes input. Use `ai-happy-design validate --fix` 
 **Parameter aliases**: `w`=width, `h`=height, `sz`=fontSize, `ff`=fontFamily, `bg`=color, `r`=cornerRadius, `sw`=strokeWidth, `lh`=lineHeight, `pid`=parentId, `fs`=fontStyle, `ls`=letterSpacing. Also: `fillColor`=`color` (for cross-tool compatibility).
 
 **Auto-fix**: `lineHeight` in batch auto-gets `lineHeightUnit: PERCENT`.
+**Semantic token aliases** (batch): `sz: "display|hero|title|heading|subheading|body|caption|numbers|cta"`, `padding: "side|frame|card"`, `itemSpacing/gap: "section|card|item|tight"`, `r: "card|button|pill"`, `w: "content"`.
 
 ## Image Data: Files, URLs, and Base64
 

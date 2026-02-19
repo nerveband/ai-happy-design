@@ -21,8 +21,8 @@ import (
 
 	"github.com/nerveband/ai-happy-design/internal/batchutil"
 	"github.com/nerveband/ai-happy-design/internal/benchmark"
-	"github.com/nerveband/ai-happy-design/internal/extract"
 	"github.com/nerveband/ai-happy-design/internal/config"
+	"github.com/nerveband/ai-happy-design/internal/extract"
 	"github.com/nerveband/ai-happy-design/internal/imgutil"
 	"github.com/nerveband/ai-happy-design/internal/mcp"
 	pluginpkg "github.com/nerveband/ai-happy-design/internal/plugin"
@@ -384,6 +384,7 @@ type batchOperation struct {
 var batchParallel bool
 var batchCompact bool
 var batchLint bool
+var batchNoLint bool
 
 var batchCmd = &cobra.Command{
 	Use:   "batch [operations-json | file1.json file2.json ... | directory/]",
@@ -660,62 +661,10 @@ Each file gets its own connection and auto-placement.
 			}
 		}
 
-		// Post-batch lint: check created root frames for issues
-		if batchLint && failed == 0 {
-			var rootNodeIds []string
-			for _, r := range results {
-				if r["ok"] != true {
-					continue
-				}
-				result, _ := r["result"].(map[string]interface{})
-				if result == nil {
-					continue
-				}
-				nodeId, _ := result["id"].(string)
-				if nodeId == "" {
-					continue
-				}
-				nodeType, _ := result["type"].(string)
-				if nodeType == "FRAME" {
-					// Only lint root frames (no parentId in result)
-					if _, hasParent := result["parentId"]; !hasParent {
-						rootNodeIds = append(rootNodeIds, nodeId)
-					}
-				}
-			}
-			if len(rootNodeIds) > 0 {
-				fmt.Fprintf(os.Stderr, "🔍 Linting %d root frame(s)...\n", len(rootNodeIds))
-				for _, nid := range rootNodeIds {
-					lintResult, lintErr := client.SendCommand("document.lint", map[string]interface{}{"nodeId": nid})
-					if lintErr != nil {
-						fmt.Fprintf(os.Stderr, "  ⚠ Lint failed for %s: %s\n", nid, lintErr.Error())
-						continue
-					}
-					var lintData map[string]interface{}
-					if json.Unmarshal(lintResult, &lintData) == nil {
-						count, _ := lintData["count"].(float64)
-						if count > 0 {
-							warnings, _ := lintData["warnings"].([]interface{})
-							for _, w := range warnings {
-								wm, _ := w.(map[string]interface{})
-								if wm == nil {
-									continue
-								}
-								sev, _ := wm["severity"].(string)
-								wtype, _ := wm["type"].(string)
-								msg, _ := wm["message"].(string)
-								icon := "ℹ"
-								if sev == "warning" {
-									icon = "⚠"
-								} else if sev == "error" {
-									icon = "✗"
-								}
-								fmt.Fprintf(os.Stderr, "  %s [%s] %s\n", icon, wtype, msg)
-							}
-						}
-					}
-				}
-			}
+		// Post-batch lint: check created root frames for design issues.
+		if batchLint && !batchNoLint && failed == 0 {
+			rootNodeIDs := collectCreatedRootFrameIDs(ops, results)
+			runPostBatchLint(client, rootNodeIDs, "")
 		}
 
 		return printJSON(out)
@@ -734,25 +683,26 @@ func loadConfig() *config.Config {
 	}
 	return cfg
 }
+
 var relayLogsLines int
 var actionsJSON bool
 
 var actionCatalog = map[string][]string{
-	"document":  {"get_info", "get_selection", "set_selection", "scan_text", "scan_by_type", "get_styles", "find_by_name", "find_by_type", "focus", "zoom_to", "find_free_space"},
-	"node":      {"get_info", "create_frame", "move", "resize", "rotate", "set_opacity", "set_blend_mode", "set_visibility", "set_locked", "rename", "delete", "clone", "set_corner_radius", "get_tree"},
-	"layer":     {"set_order", "bring_forward", "send_backward", "bring_to_front", "send_to_back", "group", "ungroup", "move_to_parent", "insert_child"},
-	"layout":    {"set_auto_layout", "set_padding", "set_spacing", "set_alignment", "set_sizing", "set_constraints", "set_layout_wrap", "set_wrap", "remove_auto_layout"},
-	"export":         {"image", "svg", "pdf", "json"},
-	"design_system":  {"analyze"},
-	"variable":  {"create", "get_all", "set_value", "bind", "unbind", "create_collection", "get_collections", "delete"},
-	"style":     {"create_paint", "create_text", "create_effect", "apply", "get_all", "remove"},
-	"component": {"create", "create_instance", "create_set", "get_local", "get_remote", "get_overrides", "set_overrides", "detach_instance", "reset_instance", "swap_instance"},
-	"boolean":   {"union", "subtract", "intersect", "exclude", "flatten"},
-	"paint":     {"set_solid", "set_gradient", "set_image_fill", "set_image", "set_image_fill_from_url", "set_image_url", "add_fill", "remove_fill", "get_fills", "set_stroke"},
-	"effect":    {"set_effects", "add_shadow", "add_blur", "apply_style", "remove", "remove_effect", "get_effects"},
-	"page":      {"create", "delete", "rename", "set_current", "get_all", "get_current", "duplicate"},
-	"shape":     {"create_rectangle", "create_ellipse", "create_polygon", "create_star", "create_line", "create_from_svg", "create_image"},
-	"text":      {"create", "set_content", "set_font", "set_size", "set_weight", "set_color", "set_align", "set_spacing", "set_line_height", "set_letter_spacing", "set_decoration", "set_case", "set_paragraph_spacing", "get_content", "get_segments", "load_font", "set_style_id"},
+	"document":      {"get_info", "get_selection", "set_selection", "scan_text", "scan_by_type", "get_styles", "find_by_name", "find_by_type", "focus", "zoom_to", "find_free_space"},
+	"node":          {"get_info", "create_frame", "move", "resize", "rotate", "set_opacity", "set_blend_mode", "set_visibility", "set_locked", "rename", "delete", "clone", "set_corner_radius", "get_tree"},
+	"layer":         {"set_order", "bring_forward", "send_backward", "bring_to_front", "send_to_back", "group", "ungroup", "move_to_parent", "insert_child"},
+	"layout":        {"set_auto_layout", "set_padding", "set_spacing", "set_alignment", "set_sizing", "set_constraints", "set_layout_wrap", "set_wrap", "remove_auto_layout"},
+	"export":        {"image", "svg", "pdf", "json"},
+	"design_system": {"analyze"},
+	"variable":      {"create", "get_all", "set_value", "bind", "unbind", "create_collection", "get_collections", "delete"},
+	"style":         {"create_paint", "create_text", "create_effect", "apply", "get_all", "remove"},
+	"component":     {"create", "create_instance", "create_set", "get_local", "get_remote", "get_overrides", "set_overrides", "detach_instance", "reset_instance", "swap_instance"},
+	"boolean":       {"union", "subtract", "intersect", "exclude", "flatten"},
+	"paint":         {"set_solid", "set_gradient", "set_image_fill", "set_image", "set_image_fill_from_url", "set_image_url", "add_fill", "remove_fill", "get_fills", "set_stroke"},
+	"effect":        {"set_effects", "add_shadow", "add_blur", "apply_style", "remove", "remove_effect", "get_effects"},
+	"page":          {"create", "delete", "rename", "set_current", "get_all", "get_current", "duplicate"},
+	"shape":         {"create_rectangle", "create_ellipse", "create_polygon", "create_star", "create_line", "create_from_svg", "create_image"},
+	"text":          {"create", "set_content", "set_font", "set_size", "set_weight", "set_color", "set_align", "set_spacing", "set_line_height", "set_letter_spacing", "set_decoration", "set_case", "set_paragraph_spacing", "get_content", "get_segments", "load_font", "set_style_id"},
 }
 
 var actionsCmd = &cobra.Command{
@@ -1074,6 +1024,150 @@ func classifyError(msg string) string {
 	}
 }
 
+func collectCreatedRootFrameIDs(ops []batchOperation, results []map[string]interface{}) []string {
+	seen := map[string]bool{}
+	rootNodeIDs := make([]string, 0)
+	for _, r := range results {
+		ok, _ := r["ok"].(bool)
+		if !ok {
+			continue
+		}
+		idx := resultIndex(r["index"])
+		if idx < 0 || idx >= len(ops) {
+			continue
+		}
+		if !isRootFrameCreateOp(ops[idx]) {
+			continue
+		}
+		resultMap, _ := r["result"].(map[string]interface{})
+		if resultMap == nil {
+			continue
+		}
+		nodeID, _ := resultMap["id"].(string)
+		nodeID = strings.TrimSpace(nodeID)
+		if nodeID == "" || seen[nodeID] {
+			continue
+		}
+		seen[nodeID] = true
+		rootNodeIDs = append(rootNodeIDs, nodeID)
+	}
+	return rootNodeIDs
+}
+
+func resultIndex(raw interface{}) int {
+	switch v := raw.(type) {
+	case int:
+		return v
+	case int32:
+		return int(v)
+	case int64:
+		return int(v)
+	case float64:
+		return int(v)
+	default:
+		return -1
+	}
+}
+
+func isRootFrameCreateOp(op batchOperation) bool {
+	cmd := strings.ToLower(strings.TrimSpace(op.Command))
+	switch cmd {
+	case "frame", "node.create_frame", "create_frame":
+	default:
+		return false
+	}
+	parentID, _ := op.Params["parentId"].(string)
+	pid, _ := op.Params["pid"].(string)
+	return strings.TrimSpace(parentID) == "" && strings.TrimSpace(pid) == ""
+}
+
+func runPostBatchLint(client *ws.Client, rootNodeIDs []string, label string) {
+	if len(rootNodeIDs) == 0 {
+		return
+	}
+
+	prefix := "[lint]"
+	if strings.TrimSpace(label) != "" {
+		prefix = fmt.Sprintf("[lint %s]", label)
+	}
+
+	fmt.Fprintf(os.Stderr, "%s checking %d root frame(s)\n", prefix, len(rootNodeIDs))
+
+	const maxShown = 10
+	total := 0
+	shown := 0
+
+	for _, nodeID := range rootNodeIDs {
+		lintResult, lintErr := client.SendCommand("document.lint", map[string]interface{}{"nodeId": nodeID})
+		if lintErr != nil {
+			fmt.Fprintf(os.Stderr, "%s lint failed for %s: %s\n", prefix, nodeID, lintErr.Error())
+			continue
+		}
+
+		var lintData map[string]interface{}
+		if err := json.Unmarshal(lintResult, &lintData); err != nil {
+			fmt.Fprintf(os.Stderr, "%s invalid lint response for %s\n", prefix, nodeID)
+			continue
+		}
+		warnings, _ := lintData["warnings"].([]interface{})
+		for _, w := range warnings {
+			wm, _ := w.(map[string]interface{})
+			if wm == nil {
+				continue
+			}
+			sev, _ := wm["severity"].(string)
+			sev = strings.ToLower(strings.TrimSpace(sev))
+			if sev != "warning" && sev != "error" {
+				continue
+			}
+			total++
+			if shown >= maxShown {
+				continue
+			}
+
+			wtype, _ := wm["type"].(string)
+			wtype = strings.TrimSpace(wtype)
+			if wtype == "" {
+				wtype = "lint"
+			}
+			msg, _ := wm["message"].(string)
+			msg = strings.TrimSpace(msg)
+			lintNodeID, _ := wm["nodeId"].(string)
+			nodeName, _ := wm["nodeName"].(string)
+
+			icon := "WARN"
+			if sev == "error" {
+				icon = "ERROR"
+			}
+
+			location := strings.TrimSpace(lintNodeID)
+			if strings.TrimSpace(nodeName) != "" && location != "" {
+				location = nodeName + " (" + location + ")"
+			}
+			if location != "" {
+				fmt.Fprintf(os.Stderr, "%s %s [%s] %s - %s\n", prefix, icon, wtype, location, msg)
+			} else {
+				fmt.Fprintf(os.Stderr, "%s %s [%s] %s\n", prefix, icon, wtype, msg)
+			}
+
+			if wtype == "default_name" && strings.TrimSpace(lintNodeID) != "" {
+				fmt.Fprintf(os.Stderr, "%s fix: ai-happy-design command node.modify '{\"nodeId\":\"%s\",\"name\":\"<semantic-name>\"}'\n", prefix, lintNodeID)
+			}
+			shown++
+		}
+	}
+
+	if total == 0 {
+		fmt.Fprintf(os.Stderr, "%s no warning/error issues found\n", prefix)
+		return
+	}
+	if total > shown {
+		fmt.Fprintf(os.Stderr, "%s %d warning/error issue(s) total; showing %d\n", prefix, total, shown)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "%s %d warning/error issue(s)\n", prefix, total)
+}
+
 func printJSON(v interface{}) error {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
@@ -1129,9 +1223,9 @@ func autoPlaceRootFrames(client *ws.Client, ops []batchOperation) {
 	}
 
 	var freeSpace struct {
-		X              float64 `json:"x"`
-		Y              float64 `json:"y"`
-		ExistingCount  int     `json:"existingCount"`
+		X             float64 `json:"x"`
+		Y             float64 `json:"y"`
+		ExistingCount int     `json:"existingCount"`
 	}
 	if err := json.Unmarshal(result, &freeSpace); err != nil {
 		return
@@ -1284,6 +1378,21 @@ func loadBatchOperations(operationsJSON, operationsFile string) ([]batchOperatio
 			remarshaled, mErr := json.Marshal(cssOps)
 			if mErr == nil {
 				raw = remarshaled
+			}
+		}
+	}
+
+	// Resolve semantic token aliases (e.g. sz:"hero", padding:"side", w:"content")
+	// against the detected root frame size. This is additive and backward compatible.
+	{
+		var tokenOps []map[string]interface{}
+		if unmErr := json.Unmarshal(raw, &tokenOps); unmErr == nil {
+			applied, rootWidth := batchutil.ResolveTokenAliases(tokenOps)
+			if applied > 0 {
+				fmt.Fprintf(os.Stderr, "Resolved %d token alias(es) using root width %dpx\n", applied, rootWidth)
+				if remarshaled, mErr := json.Marshal(tokenOps); mErr == nil {
+					raw = remarshaled
+				}
 			}
 		}
 	}
@@ -1651,10 +1760,15 @@ func runSingleBatchFile(filePath, channelKey string) batchFileResult {
 		avgMs = float64(totalMs) / float64(processed)
 	}
 
+	if batchLint && !batchNoLint && failed == 0 {
+		rootNodeIDs := collectCreatedRootFrameIDs(ops, results)
+		runPostBatchLint(client, rootNodeIDs, filepath.Base(filePath))
+	}
+
 	_ = stoppedEarly
 	return batchFileResult{
-		File: filePath,
-		OK:   failed == 0 && pending == 0,
+		File:  filePath,
+		OK:    failed == 0 && pending == 0,
 		Steps: results,
 		Summary: map[string]interface{}{
 			"total": len(ops), "processed": processed, "succeeded": succeeded,
@@ -2039,7 +2153,8 @@ func main() {
 	batchCmd.Flags().BoolVar(&batchParallel, "parallel", false, "Run multiple batch files concurrently (max 4 parallel)")
 	batchCmd.Flags().BoolVar(&batchNoFix, "no-fix", false, "Skip automatic LLM output normalization (use if your JSON is already valid)")
 	batchCmd.Flags().BoolVar(&batchCompact, "compact", false, "Minimal output: only ok, step names, and results (saves tokens for LLM agents)")
-	batchCmd.Flags().BoolVar(&batchLint, "lint", false, "Auto-check created frames for overlaps, overflow, naming, and text sizing issues")
+	batchCmd.Flags().BoolVar(&batchLint, "lint", true, "Auto-check created frames for overlaps, overflow, naming, and text sizing issues")
+	batchCmd.Flags().BoolVar(&batchNoLint, "no-lint", false, "Disable post-batch design lint checks")
 
 	toolsCmd.Flags().BoolVar(&catalogJSON, "json", true, "Output as JSON for machine-readable discovery")
 	toolsCmd.Flags().BoolVar(&catalogLLM, "llm", false, "Output enriched LLM-focused catalog with examples and playbook")

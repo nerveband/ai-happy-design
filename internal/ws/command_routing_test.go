@@ -2,6 +2,7 @@ package ws
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -109,8 +110,19 @@ func TestResolveCommandRoute_UnknownCommand(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for unknown command")
 	}
-	if err.Error() != "unknown command: nonexistent_command_xyz" {
+	if !strings.Contains(err.Error(), "unknown command: nonexistent_command_xyz") {
 		t.Fatalf("unexpected error message: %v", err)
+	}
+}
+
+func TestResolveCommandRoute_UnknownCommandSuggestion(t *testing.T) {
+	_, _, err := resolveCommandRoute("set_fill_colr", map[string]interface{}{})
+	if err == nil {
+		t.Fatal("expected error for unknown command")
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "did you mean: set_fill_color") {
+		t.Fatalf("expected suggestion in error, got: %v", msg)
 	}
 }
 

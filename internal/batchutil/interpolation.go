@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -236,7 +237,19 @@ func resolvePath(root interface{}, path string) (interface{}, error) {
 		case map[string]interface{}:
 			next, ok := typed[part]
 			if !ok {
-				return nil, fmt.Errorf("interpolation path not found: %s", path)
+				// Case-insensitive fallback: step names are lowercased by
+				// SanitizeStepName but LLMs often reference them in camelCase.
+				lp := strings.ToLower(part)
+				for k, v := range typed {
+					if strings.ToLower(k) == lp {
+						next = v
+						ok = true
+						break
+					}
+				}
+			}
+			if !ok {
+				return nil, interpolationMissingPathError(path, parts, part, typed)
 			}
 			current = next
 		case []interface{}:
@@ -253,6 +266,94 @@ func resolvePath(root interface{}, path string) (interface{}, error) {
 		}
 	}
 	return current, nil
+}
+
+func interpolationMissingPathError(path string, parts []string, missingPart string, scope map[string]interface{}) error {
+	scopeNames := mapKeys(scope)
+	if len(scopeNames) == 0 {
+		return fmt.Errorf("interpolation path not found: %s", path)
+	}
+
+	// Special-case missing step references: provide available step names and
+	// a likely fixed placeholder when sanitization differs (e.g. createPage vs create_page).
+	for i, p := range parts {
+		if strings.EqualFold(p, "steps") && i+1 < len(parts) && parts[i+1] == missingPart {
+			available := stepNameKeys(scopeNames)
+			if len(available) == 0 {
+				return fmt.Errorf("interpolation path not found: %s (missing step %q)", path, missingPart)
+			}
+			msg := fmt.Sprintf(
+				"interpolation path not found: %s (missing step %q; available step names: %s)",
+				path,
+				missingPart,
+				strings.Join(limitList(available, 8), ", "),
+			)
+			if suggestion := suggestStepName(missingPart, available); suggestion != "" {
+				msg += fmt.Sprintf("; likely fix: ${{steps.%s.result.id}}", suggestion)
+			}
+			return fmt.Errorf("%s", msg)
+		}
+	}
+
+	return fmt.Errorf(
+		"interpolation path not found: %s (missing %q; available keys: %s)",
+		path,
+		missingPart,
+		strings.Join(limitList(scopeNames, 8), ", "),
+	)
+}
+
+func mapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func stepNameKeys(keys []string) []string {
+	out := make([]string, 0, len(keys))
+	for _, k := range keys {
+		if _, err := strconv.Atoi(k); err == nil {
+			continue
+		}
+		out = append(out, k)
+	}
+	return out
+}
+
+func limitList(items []string, max int) []string {
+	if len(items) <= max {
+		return items
+	}
+	return append(items[:max], "...")
+}
+
+func suggestStepName(missing string, available []string) string {
+	if missing == "" {
+		return ""
+	}
+	missingNorm := normalizeStepToken(missing)
+	if missingNorm == "" {
+		return ""
+	}
+	for _, candidate := range available {
+		if normalizeStepToken(candidate) == missingNorm {
+			return candidate
+		}
+	}
+	return ""
+}
+
+func normalizeStepToken(s string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(strings.TrimSpace(s)) {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 func normalizePath(path string) string {

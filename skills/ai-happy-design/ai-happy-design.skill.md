@@ -29,6 +29,7 @@ cat ops.json | ai-happy-design batch
 - `-o path.png` — save exported image to file
 - `--port <N>` — use a custom relay port (default 3055)
 - `--allow-overlap` — skip auto-placement (batch only)
+- `--no-lint` — disable post-batch lint (lint runs by default)
 
 ## Critical: Think in HTML/CSS First
 
@@ -52,10 +53,11 @@ Full CSS-to-Figma mapping: See [references/css-to-figma.md](references/css-to-fi
 ## Workflow
 
 1. **Get design tokens**: `ai-happy-design command design.compute_tokens '{"width": 1080, "height": 1080}'`
+   - Output includes `template`, `tips`, and `aliases` for the next batch step.
 2. **Find free space**: `ai-happy-design command document.find_free_space '{"width": 1080, "height": 1080}'`
 3. **Think in CSS**: Picture the design as a webpage. What HTML elements? What CSS?
 4. **Create in one step**: Use `node.create_frame` with all params — no need for separate commands
-5. **Batch create**: Build a JSON array of operations. Send via `ai-happy-design batch`
+5. **Batch create**: Build a JSON array of operations. Send via `ai-happy-design batch` (semantic aliases like `sz:"hero"`, `padding:"side"`, `w:"content"` are resolved automatically)
 6. **Balance check**: All siblings MUST match — same height, padding, spacing, radius, text sizes
 7. **Export & verify**: `ai-happy-design command export.image '{"nodeId": "...", "scale": 2}' -o output.png`
 
@@ -96,7 +98,7 @@ Always call `design.compute_tokens` first to get sizes proportional to the canva
 ai-happy-design command design.compute_tokens '{"width": 1080, "height": 1080}'
 ```
 
-Returns a modular type scale (perfect fourth = 1.333 ratio):
+Returns a modular type scale (perfect fourth = 1.333 ratio), plus starter `template`, `tips`, and alias quick reference:
 - **display** (200px at 1080w) — statement text
 - **hero** (152px) — hero headlines
 - **title** (112px) — section titles
@@ -146,6 +148,7 @@ ai-happy-design batch '[
 **Parameter aliases**: `w`=width, `h`=height, `sz`=fontSize, `ff`=fontFamily, `bg`=color, `r`=cornerRadius, `sw`=strokeWidth, `lh`=lineHeight, `pid`=parentId, `fs`=fontStyle, `ls`=letterSpacing. Also: `fillColor`=`color` (for cross-tool compatibility).
 
 **Auto-fix**: `lineHeight` in batch auto-gets `lineHeightUnit: PERCENT`.
+**Semantic token aliases** (batch): `sz`, `padding`, `itemSpacing/gap`, `r`, and `w:"content"` are resolved from root frame width.
 
 ## For large batches, use a file
 

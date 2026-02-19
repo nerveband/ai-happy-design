@@ -283,6 +283,30 @@ func ComputeDesignTokens(w, h, dpi float64) map[string]interface{} {
 				"PHONE READABILITY: A 1080px canvas renders at ~375px on phones (0.35× scale). Text below " + itoa(caption) + "px will be unreadable on mobile.",
 			},
 		},
+		"template": buildStarterTemplate(layoutType, int(w), int(h)),
+		"tips": buildTips(
+			layoutType,
+			int(w),
+			int(h),
+			hero,
+			body,
+			caption,
+			sidePadding,
+			contentWidth,
+		),
+		"aliases": map[string]interface{}{
+			"fontSize": "display|hero|title|heading|subheading|body|caption|numbers|cta",
+			"padding":  "side|frame|card",
+			"spacing":  "section|card|item|tight",
+			"radius":   "card|button|pill",
+			"width":    "content",
+			"examples": []string{
+				`{"sz":"hero"}`,
+				`{"padding":"side","itemSpacing":"section"}`,
+				`{"r":"card"}`,
+				`{"w":"content"}`,
+			},
+		},
 	}
 
 	// Add print metadata if DPI > 72
@@ -304,4 +328,219 @@ func ComputeDesignTokens(w, h, dpi float64) map[string]interface{} {
 
 func itoa(n int) string {
 	return strconv.Itoa(n)
+}
+
+func buildStarterTemplate(layoutType string, canvasW, canvasH int) []interface{} {
+	switch layoutType {
+	case "landscape":
+		return []interface{}{
+			map[string]interface{}{
+				"name":    "root",
+				"command": "frame",
+				"params": map[string]interface{}{
+					"name": "Design",
+					"w":    canvasW,
+					"h":    canvasH,
+					"bg":   "#0F172A",
+				},
+			},
+			map[string]interface{}{
+				"name":    "content",
+				"command": "frame",
+				"params": map[string]interface{}{
+					"name":             "Content",
+					"pid":              "$root",
+					"w":                canvasW,
+					"h":                canvasH,
+					"noFill":           true,
+					"layoutMode":       "HORIZONTAL",
+					"padding":          "side",
+					"itemSpacing":      "card",
+					"counterAxisAlign": "CENTER",
+				},
+			},
+			map[string]interface{}{
+				"name":    "left_column",
+				"command": "frame",
+				"params": map[string]interface{}{
+					"name":             "Left Column",
+					"pid":              "$content",
+					"w":                int(float64(canvasW) * 0.46),
+					"h":                int(float64(canvasH) * 0.72),
+					"noFill":           true,
+					"layoutMode":       "VERTICAL",
+					"itemSpacing":      "card",
+					"primaryAxisAlign": "CENTER",
+				},
+			},
+			map[string]interface{}{
+				"name":    "hero_title",
+				"command": "text",
+				"params": map[string]interface{}{
+					"name":      "Hero Title",
+					"pid":       "$left_column",
+					"text":      "YOUR HEADLINE",
+					"sz":        "title",
+					"fontStyle": "Bold",
+					"color":     "#FFFFFF",
+					"w":         int(float64(canvasW) * 0.42),
+				},
+			},
+			map[string]interface{}{
+				"name":    "body_copy",
+				"command": "text",
+				"params": map[string]interface{}{
+					"name":  "Body Copy",
+					"pid":   "$left_column",
+					"text":  "Add one to two supporting sentences.",
+					"sz":    "body",
+					"color": "#CBD5E1",
+					"w":     int(float64(canvasW) * 0.42),
+					"lh":    150,
+				},
+			},
+			map[string]interface{}{
+				"name":    "right_panel",
+				"command": "frame",
+				"params": map[string]interface{}{
+					"name": "Right Panel",
+					"pid":  "$content",
+					"w":    int(float64(canvasW) * 0.38),
+					"h":    int(float64(canvasH) * 0.72),
+					"bg":   "#1E293B",
+					"r":    "card",
+				},
+			},
+		}
+	default:
+		return []interface{}{
+			map[string]interface{}{
+				"name":    "root",
+				"command": "frame",
+				"params": map[string]interface{}{
+					"name": "Design",
+					"w":    canvasW,
+					"h":    canvasH,
+					"bg":   "#111827",
+				},
+			},
+			map[string]interface{}{
+				"name":    "content",
+				"command": "frame",
+				"params": map[string]interface{}{
+					"name":             "Content",
+					"pid":              "$root",
+					"w":                canvasW,
+					"h":                canvasH,
+					"noFill":           true,
+					"layoutMode":       "VERTICAL",
+					"padding":          "side",
+					"itemSpacing":      "section",
+					"primaryAxisAlign": "CENTER",
+					"counterAxisAlign": "CENTER",
+				},
+			},
+			map[string]interface{}{
+				"name":    "eyebrow",
+				"command": "text",
+				"params": map[string]interface{}{
+					"name":      "Eyebrow",
+					"pid":       "$content",
+					"text":      "CATEGORY",
+					"sz":        "caption",
+					"fontStyle": "Medium",
+					"color":     "#9CA3AF",
+					"w":         "content",
+					"textAlign": "CENTER",
+				},
+			},
+			map[string]interface{}{
+				"name":    "hero_title",
+				"command": "text",
+				"params": map[string]interface{}{
+					"name":      "Hero Title",
+					"pid":       "$content",
+					"text":      "YOUR HEADLINE",
+					"sz":        "hero",
+					"fontStyle": "Bold",
+					"color":     "#FFFFFF",
+					"w":         "content",
+					"textAlign": "CENTER",
+					"lh":        110,
+				},
+			},
+			map[string]interface{}{
+				"name":    "body_copy",
+				"command": "text",
+				"params": map[string]interface{}{
+					"name":      "Body Copy",
+					"pid":       "$content",
+					"text":      "Add one to two supporting sentences.",
+					"sz":        "body",
+					"color":     "#D1D5DB",
+					"w":         "content",
+					"textAlign": "CENTER",
+					"lh":        150,
+				},
+			},
+			map[string]interface{}{
+				"name":    "cta_button",
+				"command": "frame",
+				"params": map[string]interface{}{
+					"name":              "CTA Button",
+					"pid":               "$content",
+					"bg":                "#3B82F6",
+					"r":                 "button",
+					"layoutMode":        "HORIZONTAL",
+					"paddingLeft":       "card",
+					"paddingRight":      "card",
+					"paddingTop":        "item",
+					"paddingBottom":     "item",
+					"primaryAxisSizing": "AUTO",
+					"counterAxisSizing": "AUTO",
+					"primaryAxisAlign":  "CENTER",
+					"counterAxisAlign":  "CENTER",
+				},
+			},
+			map[string]interface{}{
+				"name":    "cta_text",
+				"command": "text",
+				"params": map[string]interface{}{
+					"name":      "CTA Text",
+					"pid":       "$cta_button",
+					"text":      "Get Started",
+					"sz":        "cta",
+					"fontStyle": "Bold",
+					"color":     "#FFFFFF",
+				},
+			},
+		}
+	}
+}
+
+func buildTips(layoutType string, width, height, hero, body, caption, sidePadding, contentWidth int) []string {
+	tips := []string{
+		"Use semantic names for every layer. Avoid defaults like 'Frame 47'.",
+		"Run batch once, read lint warnings, then fix and rerun before export.",
+	}
+	switch layoutType {
+	case "landscape":
+		tips = append([]string{
+			"Landscape: use split layouts and keep vertical stacking shallow.",
+		}, tips...)
+	case "square":
+		tips = append([]string{
+			"Square: keep hierarchy centered and balanced with 2-3 content groups.",
+		}, tips...)
+	default:
+		tips = append([]string{
+			"Portrait: prioritize vertical rhythm and generous spacing between sections.",
+		}, tips...)
+	}
+
+	tips = append(tips,
+		"Token sizes: hero="+itoa(hero)+", body="+itoa(body)+", caption(min)="+itoa(caption)+".",
+		"Spacing aliases resolve to side="+itoa(sidePadding)+" and content width="+itoa(contentWidth)+" on "+itoa(width)+"x"+itoa(height)+".",
+	)
+	return tips
 }

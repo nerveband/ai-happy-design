@@ -255,6 +255,9 @@ func resolveCommandRoute(command string, params map[string]interface{}) (string,
 
 	route, ok := legacyCommandRoutes[command]
 	if !ok {
+		if suggestion := suggestCommand(command); suggestion != "" {
+			return "", "", fmt.Errorf("unknown command: %s. did you mean: %s", command, suggestion)
+		}
 		return "", "", fmt.Errorf("unknown command: %s", command)
 	}
 	return route.Domain, route.Action, nil
@@ -270,4 +273,115 @@ func stringArg(params map[string]interface{}, key string) string {
 		}
 	}
 	return ""
+}
+
+func suggestCommand(command string) string {
+	query := normalizeToken(command)
+	if query == "" {
+		return ""
+	}
+
+	candidates := knownCommands()
+	best := ""
+
+	// First pass: prefix/contains matches on normalized tokens.
+	for _, c := range candidates {
+		n := normalizeToken(c)
+		if n == query {
+			return c
+		}
+		if strings.HasPrefix(n, query) || strings.HasPrefix(query, n) || strings.Contains(n, query) {
+			if best == "" || len(c) < len(best) {
+				best = c
+			}
+		}
+	}
+	if best != "" {
+		return best
+	}
+
+	// Fallback: nearest small edit distance.
+	bestDist := 4
+	for _, c := range candidates {
+		n := normalizeToken(c)
+		d := levenshtein(query, n)
+		if d < bestDist {
+			bestDist = d
+			best = c
+		}
+	}
+	if bestDist <= 3 {
+		return best
+	}
+	return ""
+}
+
+func knownCommands() []string {
+	seen := make(map[string]struct{}, len(legacyCommandRoutes)+len(compoundAliases))
+	out := make([]string, 0, len(legacyCommandRoutes)+len(compoundAliases))
+	for k := range legacyCommandRoutes {
+		if _, ok := seen[k]; ok {
+			continue
+		}
+		seen[k] = struct{}{}
+		out = append(out, k)
+	}
+	for k := range compoundAliases {
+		if _, ok := seen[k]; ok {
+			continue
+		}
+		seen[k] = struct{}{}
+		out = append(out, k)
+	}
+	return out
+}
+
+func normalizeToken(s string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(strings.TrimSpace(s)) {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+func levenshtein(a, b string) int {
+	if a == b {
+		return 0
+	}
+	if len(a) == 0 {
+		return len(b)
+	}
+	if len(b) == 0 {
+		return len(a)
+	}
+
+	prev := make([]int, len(b)+1)
+	for j := 0; j <= len(b); j++ {
+		prev[j] = j
+	}
+	for i := 1; i <= len(a); i++ {
+		curr := make([]int, len(b)+1)
+		curr[0] = i
+		for j := 1; j <= len(b); j++ {
+			cost := 0
+			if a[i-1] != b[j-1] {
+				cost = 1
+			}
+			del := prev[j] + 1
+			ins := curr[j-1] + 1
+			sub := prev[j-1] + cost
+			curr[j] = minInt(del, minInt(ins, sub))
+		}
+		prev = curr
+	}
+	return prev[len(b)]
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

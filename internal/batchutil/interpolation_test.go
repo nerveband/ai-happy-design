@@ -1,6 +1,9 @@
 package batchutil
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestInterpolateParams_ByIndexAndName(t *testing.T) {
 	steps := []StepState{
@@ -376,6 +379,73 @@ func TestInterpolateParams_ShortSyntax_MixedWithLongForm(t *testing.T) {
 	}
 	if out["meta"] != "a=10:20,b=10:20" {
 		t.Fatalf("unexpected meta: %#v", out["meta"])
+	}
+}
+
+func TestInterpolateParams_CaseInsensitiveStepName(t *testing.T) {
+	// Step names are lowercased by SanitizeStepName, but LLMs often reference
+	// them in camelCase. The lookup should be case-insensitive.
+	steps := []StepState{
+		{Index: 0, Name: "createpage", Command: "page.create", OK: true,
+			Result: map[string]interface{}{"id": "1:2"}},
+		{Index: 1, Name: "emailnewsletter_frame", Command: "node.create_frame", OK: true,
+			Result: map[string]interface{}{"id": "3:4"}},
+	}
+
+	params := map[string]interface{}{
+		"pageId":   "${{steps.createPage.result.id}}",
+		"parentId": "${{steps.emailNewsletter_frame.result.id}}",
+	}
+
+	out, err := InterpolateParams(params, steps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := out["pageId"]; got != "1:2" {
+		t.Fatalf("expected pageId=1:2, got %#v", got)
+	}
+	if got := out["parentId"]; got != "3:4" {
+		t.Fatalf("expected parentId=3:4, got %#v", got)
+	}
+}
+
+func TestInterpolateParams_CaseInsensitiveShortSyntax(t *testing.T) {
+	steps := []StepState{
+		{Index: 0, Name: "myframe", Command: "node.create_frame", OK: true,
+			Result: map[string]interface{}{"id": "5:6"}},
+	}
+
+	params := map[string]interface{}{
+		"parentId": "$myFrame",
+	}
+
+	out, err := InterpolateParams(params, steps)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := out["parentId"]; got != "5:6" {
+		t.Fatalf("expected parentId=5:6, got %#v", got)
+	}
+}
+
+func TestInterpolateParams_MissingStepErrorIncludesSuggestion(t *testing.T) {
+	steps := []StepState{
+		{Index: 0, Name: "create_page", Command: "page.create", OK: true, Result: map[string]interface{}{"id": "1:2"}},
+	}
+	params := map[string]interface{}{
+		"pageId": "${{steps.createPage.result.id}}",
+	}
+
+	_, err := InterpolateParams(params, steps)
+	if err == nil {
+		t.Fatal("expected interpolation error")
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "available step names: create_page") {
+		t.Fatalf("expected available step names in error, got: %s", msg)
+	}
+	if !strings.Contains(msg, "${{steps.create_page.result.id}}") {
+		t.Fatalf("expected likely fix in error, got: %s", msg)
 	}
 }
 
