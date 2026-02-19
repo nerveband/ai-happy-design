@@ -157,28 +157,40 @@ Auto-checks for updates daily and notifies you. Upgrade downloads and installs t
 
 ## How It Works
 
-### First Prompt
+### Using with an AI Agent (Recommended)
 
-Tell the AI to discover tools first:
+AI Happy Design ships with a **skill file** that teaches AI agents how to use the CLI. When you invoke the skill, the agent gets the full command reference, batch format, composite commands, design tokens, and best practices.
 
-> "Call describe(action='catalog') to see all available Figma design tools, then design an Instagram post about [topic]."
+**Option A: Call the skill** (if installed via skillshare or `~/.claude/skills/`):
 
-### AI Self-Discovery
+> "Use the ai-happy-design skill to create a 5-slide Instagram carousel about [topic]"
 
-The binary teaches itself to the AI through two endpoints:
+**Option B: Tell the AI to use the CLI directly:**
 
-| Command | What it returns |
-|---------|----------------|
-| `describe(action="catalog")` | Full tool catalog with examples, batch patterns, design playbook |
-| `describe(action="design_guide")` | CSS-to-Figma mappings, visual hierarchy, balance rules, typography scales |
+> "Use the ai-happy-design CLI to design an Instagram post about [topic]. Run `ai-happy-design command design.compute_tokens` first for sizing."
 
-### Design Workflow
+The skill is the preferred approach — it gives the AI everything it needs in one shot, including composite command format, batch aliases, design token workflow, and common pitfalls.
 
-1. **Discover** — AI calls `describe(action="catalog")` to learn all tools
-2. **Compute tokens** — `design.compute_tokens` returns exact font sizes, spacing, padding for the target canvas
-3. **Find space** — `document.find_free_space` returns exact x,y coordinates for new frames (never overlaps existing work)
-4. **Create** — Batch create via `bulk.execute` with named steps and interpolation
-5. **Verify** — `export.image` at scale=2 for crisp output
+### Installing the Skill
+
+The skill file (`SKILL.md`) teaches AI agents how to call the CLI effectively.
+
+```bash
+# If using skillshare (syncs to all AI tools automatically)
+# The skill is already at ~/.claude/skills/ai-happy-design/SKILL.md
+
+# Or copy manually for Claude Code
+mkdir -p ~/.claude/skills/ai-happy-design
+cp path/to/SKILL.md ~/.claude/skills/ai-happy-design/SKILL.md
+```
+
+### What the Skill Teaches the AI
+
+1. **Compute tokens** — get proportional font sizes and spacing for the target canvas
+2. **Find free space** — get exact coordinates so designs never overlap
+3. **Think in CSS** — mentally draft as HTML/CSS, then translate to Figma commands
+4. **Batch create** — write composite `slide`/`banner` commands or primitive ops
+5. **Export & verify** — visually inspect the result
 
 ## CLI Usage
 
@@ -363,16 +375,20 @@ Batch output includes per-operation `elapsedMs` and a `timing` summary with `tot
 
 ### Scenario 1: AI Agent Designs from a Prompt
 
-Tell your AI agent (Claude Code, Cursor, etc.) to design something. It uses the CLI under the hood:
+Invoke the skill, then describe what you want:
 
-> **You:** "Create a 5-slide Instagram carousel about Muslim chaplains"
+> **You:** "Use the ai-happy-design skill to create a 5-slide Instagram carousel about Muslim chaplains"
 
-The AI will:
-1. Run `ai-happy-design command design.compute_tokens '{"width":1080,"height":1350}'` for sizing
-2. Run `ai-happy-design command document.find_free_space '{"width":1080,"height":1350}'` for placement
-3. Write composite `slide` commands to a JSON file
-4. Run `ai-happy-design batch /tmp/slides.json` to create everything in Figma
-5. Run `ai-happy-design command export.image '{"nodeId":"...","scale":2}'` to verify
+Or if the skill is auto-loaded (via skillshare or Claude Code settings):
+
+> **You:** "Design a 5-slide Instagram carousel about Muslim chaplains in Figma"
+
+The AI reads the skill, then uses the CLI:
+1. `ai-happy-design command design.compute_tokens '{"width":1080,"height":1350}'` — sizing
+2. `ai-happy-design command document.find_free_space '{"width":1080,"height":1350}'` — placement
+3. Writes composite `slide` commands to a JSON file
+4. `ai-happy-design batch /tmp/slides.json` — creates everything in Figma
+5. `ai-happy-design command export.image '{"nodeId":"...","scale":2}'` — verifies
 
 ### Scenario 2: CLI Batch from a JSON File
 
