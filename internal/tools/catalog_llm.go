@@ -45,6 +45,15 @@ func LLMCatalog() map[string]interface{} {
 			"cliActions":       "ai-happy-design actions [domain]",
 			"domainActionHint": "Prefer domain.action names like paint.set_solid over legacy command aliases.",
 		},
+		"executionRules": map[string]interface{}{
+			"_overview": "Follow these rules for every design task. They prevent the most common LLM efficiency mistakes.",
+			"1_oneBatchFile":      "All operations in a SINGLE JSON array → one ai-happy-design batch call. Never write separate files per slide.",
+			"2_compositesFirst":   "Use slide/banner commands before building frames manually. One composite = complete design with auto-sized text.",
+			"3_batchPlacement":    "Don't call find_free_space — batch does it automatically.",
+			"4_noExtraFiles":      "No markdown copies, no summaries, no explanation files. Just the batch JSON.",
+			"5_executeLiterally":  "Do exactly what was asked, nothing more. No bonus content.",
+			"6_writeTempDir":      "Always write batch JSON to the OS temp directory to avoid path issues.",
+		},
 		"workflow": map[string]interface{}{
 			"rule":      "CREATING = batch (one payload, many steps). EDITING = single command (precise, targeted).",
 			"IMPORTANT": "ALWAYS call document.find_free_space BEFORE creating root frames. It returns exact x,y coordinates. NEVER hardcode or guess positions — this causes frames to overlap existing work.",
@@ -81,16 +90,15 @@ func LLMCatalog() map[string]interface{} {
 				"why":  "Fast, precise, no batch overhead needed for one operation.",
 			},
 			"multiBatch": map[string]interface{}{
-				"when": "Creating multiple independent designs (e.g., 6 carousel slides, a set of social posts). Each design is its own batch file.",
-				"how": []string{
-					"Write each design as a separate .json batch file.",
+				"when":     "Creating multiple independent designs (e.g., 6 carousel slides, a set of social posts).",
+				"preferred": "Put ALL slides/designs into ONE JSON array in ONE file. Use composite commands (slide/banner) — each composite is a named step. Run: ai-happy-design batch /tmp/all-ops.json",
+				"alternative": []string{
+					"If designs are truly independent and large, split into separate files.",
 					"Run all at once: ai-happy-design batch slide1.json slide2.json slide3.json",
 					"Or use a directory: ai-happy-design batch ./slides/",
-					"Or a glob: ai-happy-design batch slides/*.json",
 					"Add --parallel for concurrent execution (up to 4 at a time).",
 				},
-				"parallel": "ai-happy-design batch slide1.json slide2.json --parallel — each file gets its own WebSocket connection and auto-placement.",
-				"why":      "No need for Python scripts or shell loops. Just write JSON files and batch them.",
+				"why": "One batch file = one WebSocket connection = fastest. Split files only when designs are large and independent.",
 			},
 			"connectionDiagnostics": map[string]interface{}{
 				"_overview": "The CLI auto-checks plugin connectivity before sending commands. If no plugin is connected, it shows a diagnostic message and waits up to 30s for the plugin to connect. This prevents the 300s silent hang.",
@@ -862,7 +870,8 @@ func LLMCatalog() map[string]interface{} {
 			"_overview": "Silent failures and wrong parameter names that cause designs to look wrong without any error. Read this section before debugging.",
 			"parameterNames": map[string]interface{}{
 				"textColor":         "Use 'color' NOT 'fillColor' on text.create. fillColor is a frame parameter. text.create {text:'...', color:'#FF0000'} ✓  text.create {text:'...', fillColor:'#FF0000'} ✗ (silently ignored)",
-				"frameColor":        "Use 'color' (NOT 'bg' or 'backgroundColor') on node.create_frame. The batch alias 'bg' works but canonical is 'color'.",
+				"frameColor":        "Use 'color' (NOT 'backgroundColor') on node.create_frame. Aliases 'bg' and 'fillColor' are auto-normalized to 'color' in batch and composite commands.",
+				"compositeAliases":  "In slide/banner composite params: 'bg'→'color', 'fillColor'→'color', 'pid'→'parentId' are all auto-normalized. Use whichever is natural.",
 				"fontWeight":        "fontStyle is a STRING like 'Bold', 'SemiBold', 'Regular' — NOT a number. text.create {fontStyle:'Bold'} ✓  text.create {fontWeight:700} ✗ (wrong param name).",
 				"strokeVsFill":      "stroke/strokeColor is for BORDERS. color/fillColor is for BACKGROUND FILL. Never use color to set a stroke or stroke to set a fill.",
 				"lineHeightUnit":    "MUST pass lineHeightUnit:'PERCENT'. Without it, lineHeight value is treated as PIXELS (e.g., 150px not 150%). In batch mode this is auto-fixed. In direct text.create calls, always include it.",

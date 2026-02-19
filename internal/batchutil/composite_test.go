@@ -629,6 +629,54 @@ func TestExpandArabicElement(t *testing.T) {
 	}
 }
 
+func TestExpandSlideBgAlias(t *testing.T) {
+	op := map[string]interface{}{
+		"name":    "s1",
+		"command": "slide",
+		"params": map[string]interface{}{
+			"canvas":   "1080x1350",
+			"bg":       "#FF0000",
+			"elements": []interface{}{},
+		},
+	}
+
+	ops, err := ExpandComposite(op)
+	if err != nil {
+		t.Fatalf("ExpandComposite failed: %v", err)
+	}
+
+	frameParams, _ := ops[0]["params"].(map[string]interface{})
+	if frameParams["color"] != "#FF0000" {
+		t.Errorf("frame color = %v, want #FF0000 (bg alias should map to color)", frameParams["color"])
+	}
+}
+
+func TestExpandBannerBgAlias(t *testing.T) {
+	op := map[string]interface{}{
+		"name":    "b1",
+		"command": "banner",
+		"params": map[string]interface{}{
+			"canvas":   "1200x628",
+			"bg":       "#00FF00",
+			"pid":      "99:1",
+			"elements": []interface{}{},
+		},
+	}
+
+	ops, err := ExpandComposite(op)
+	if err != nil {
+		t.Fatalf("ExpandComposite failed: %v", err)
+	}
+
+	frameParams, _ := ops[0]["params"].(map[string]interface{})
+	if frameParams["color"] != "#00FF00" {
+		t.Errorf("frame color = %v, want #00FF00 (bg alias should map to color)", frameParams["color"])
+	}
+	if frameParams["parentId"] != "99:1" {
+		t.Errorf("frame parentId = %v, want 99:1 (pid alias should map to parentId)", frameParams["parentId"])
+	}
+}
+
 func TestDefaultBaseName(t *testing.T) {
 	// When name is missing, should default to "s1"
 	op := map[string]interface{}{

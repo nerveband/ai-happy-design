@@ -161,9 +161,28 @@ func makeOp(name, command string, params map[string]interface{}) map[string]inte
 	}
 }
 
+// normalizeCompositeParams rewrites common aliases to canonical param names.
+// This lets LLMs use "bg", "fillColor", or "pid" in composite params.
+func normalizeCompositeParams(params map[string]interface{}) {
+	aliases := map[string]string{
+		"bg":        "color",
+		"fillColor": "color",
+		"pid":       "parentId",
+	}
+	for alias, canonical := range aliases {
+		if v, ok := params[alias]; ok {
+			if _, exists := params[canonical]; !exists {
+				params[canonical] = v
+			}
+			delete(params, alias)
+		}
+	}
+}
+
 // --- Slide expansion ---
 
 func expandSlide(baseName string, params map[string]interface{}) ([]map[string]interface{}, error) {
+	normalizeCompositeParams(params)
 	canvas := getString(params, "canvas", "1080x1350")
 	w, h, err := parseCanvas(canvas)
 	if err != nil {
@@ -662,6 +681,7 @@ func expandArabic(name, frameName string, params map[string]interface{}, margin,
 // --- Banner expansion ---
 
 func expandBanner(baseName string, params map[string]interface{}) ([]map[string]interface{}, error) {
+	normalizeCompositeParams(params)
 	canvas := getString(params, "canvas", "1200x628")
 	w, h, err := parseCanvas(canvas)
 	if err != nil {
