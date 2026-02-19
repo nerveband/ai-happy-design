@@ -363,16 +363,16 @@ Batch output includes per-operation `elapsedMs` and a `timing` summary with `tot
 
 ### Scenario 1: AI Agent Designs from a Prompt
 
-The AI calls the MCP tools directly. No manual work needed.
+Tell your AI agent (Claude Code, Cursor, etc.) to design something. It uses the CLI under the hood:
 
 > **You:** "Create a 5-slide Instagram carousel about Muslim chaplains"
 
 The AI will:
-1. Call `describe(action="catalog")` to learn the tools
-2. Call `design.compute_tokens` for 1080×1350 sizing
-3. Call `document.find_free_space` for placement
-4. Call `bulk.execute` with composite `slide` commands
-5. Call `export.image` to verify
+1. Run `ai-happy-design command design.compute_tokens '{"width":1080,"height":1350}'` for sizing
+2. Run `ai-happy-design command document.find_free_space '{"width":1080,"height":1350}'` for placement
+3. Write composite `slide` commands to a JSON file
+4. Run `ai-happy-design batch /tmp/slides.json` to create everything in Figma
+5. Run `ai-happy-design command export.image '{"nodeId":"...","scale":2}'` to verify
 
 ### Scenario 2: CLI Batch from a JSON File
 
