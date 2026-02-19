@@ -118,6 +118,14 @@ func ref(stepName string) string {
 	return fmt.Sprintf("${{steps.%s.result.id}}", stepName)
 }
 
+// truncate shortens a string to max chars, appending "..." if truncated.
+func truncate(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max] + "..."
+}
+
 // getString gets a string param with a default.
 func getString(params map[string]interface{}, key, def string) string {
 	if v, ok := params[key].(string); ok && v != "" {
@@ -198,6 +206,20 @@ func expandSlide(baseName string, params map[string]interface{}) ([]map[string]i
 
 	var ops []map[string]interface{}
 
+	// Derive descriptive frame name from first headline element
+	elements, _ := params["elements"].([]interface{})
+	descriptiveName := baseName
+	for _, elem := range elements {
+		if em, ok := elem.(map[string]interface{}); ok {
+			if et, _ := em["type"].(string); et == "headline" {
+				if ht, _ := em["text"].(string); ht != "" {
+					descriptiveName = "Slide — " + truncate(ht, 30)
+					break
+				}
+			}
+		}
+	}
+
 	// Root frame
 	frameName := baseName + "_frame"
 	frameParams := map[string]interface{}{
@@ -207,6 +229,7 @@ func expandSlide(baseName string, params map[string]interface{}) ([]map[string]i
 		"height":       h,
 		"color":        bgColor,
 		"clipsContent": clipsContent,
+		"name":         descriptiveName,
 	}
 	if pid, ok := params["parentId"]; ok {
 		frameParams["parentId"] = pid
@@ -220,9 +243,6 @@ func expandSlide(baseName string, params map[string]interface{}) ([]map[string]i
 		gradParams["nodeId"] = ref(frameName)
 		ops = append(ops, makeOp(gradName, "paint.set_gradient", gradParams))
 	}
-
-	// Process elements
-	elements, _ := params["elements"].([]interface{})
 	yPos := snap8(h*0.10, 16) // start with top padding
 
 	for i, elem := range elements {
@@ -288,6 +308,7 @@ func expandEyebrow(name, frameName string, params map[string]interface{}, margin
 	op := makeOp(name, "text.create", map[string]interface{}{
 		"parentId":      ref(frameName),
 		"content":       text,
+		"name":          "Eyebrow — " + truncate(text, 25),
 		"x":             margin,
 		"y":             yPos,
 		"width":         contentWidth,
@@ -320,6 +341,7 @@ func expandHeadline(name, frameName string, params map[string]interface{}, margi
 	op := makeOp(name, "text.create", map[string]interface{}{
 		"parentId":       ref(frameName),
 		"content":        text,
+		"name":           "Headline — " + truncate(text, 25),
 		"x":              margin,
 		"y":              yPos,
 		"width":          contentWidth,
@@ -347,6 +369,7 @@ func expandBody(name, frameName string, params map[string]interface{}, margin, c
 	op := makeOp(name, "text.create", map[string]interface{}{
 		"parentId":       ref(frameName),
 		"content":        text,
+		"name":           "Body — " + truncate(text, 25),
 		"x":              margin,
 		"y":              yPos,
 		"width":          contentWidth,
@@ -371,6 +394,7 @@ func expandBar(name, frameName string, params map[string]interface{}, margin, yP
 
 	op := makeOp(name, "shape.create_rectangle", map[string]interface{}{
 		"parentId": ref(frameName),
+		"name":     "Accent Bar",
 		"x":        margin,
 		"y":        yPos,
 		"width":    barWidth,
@@ -395,6 +419,7 @@ func expandCounter(name, frameName string, params map[string]interface{}, canvas
 	op := makeOp(name, "text.create", map[string]interface{}{
 		"parentId":       ref(frameName),
 		"content":        text,
+		"name":           "Counter",
 		"x":              canvasW - margin - 100,
 		"y":              counterY,
 		"width":          100.0,
@@ -434,6 +459,7 @@ func expandCTA(name, frameName string, params map[string]interface{}, margin, co
 	// Button frame with auto-layout
 	btnFrame := makeOp(btnFrameName, "node.create_frame", map[string]interface{}{
 		"parentId":     ref(frameName),
+		"name":         "CTA Button",
 		"x":            margin,
 		"y":            yPos,
 		"color":        bgColor,
@@ -453,6 +479,7 @@ func expandCTA(name, frameName string, params map[string]interface{}, margin, co
 	btnText := makeOp(btnTextName, "text.create", map[string]interface{}{
 		"parentId":       ref(btnFrameName),
 		"content":        text,
+		"name":           "CTA Text — " + truncate(text, 25),
 		"fontSize":       fontSize,
 		"fontFamily":     getString(params, "fontFamily", "Inter"),
 		"fontStyle":      getString(params, "fontStyle", "Bold"),
@@ -477,6 +504,7 @@ func expandURL(name, frameName string, params map[string]interface{}, canvasW, c
 	op := makeOp(name, "text.create", map[string]interface{}{
 		"parentId":              ref(frameName),
 		"content":               text,
+		"name":                  "URL — " + truncate(text, 25),
 		"x":                     margin,
 		"y":                     urlY,
 		"width":                 contentWidth,
@@ -525,6 +553,7 @@ func expandStats(name, frameName string, params map[string]interface{}, margin, 
 		ops = append(ops, makeOp(valName, "text.create", map[string]interface{}{
 			"parentId":       ref(frameName),
 			"content":        value,
+			"name":           "Stat Value — " + value,
 			"x":              colX,
 			"y":              yPos,
 			"width":          colWidth,
@@ -542,6 +571,7 @@ func expandStats(name, frameName string, params map[string]interface{}, margin, 
 		ops = append(ops, makeOp(lblName, "text.create", map[string]interface{}{
 			"parentId":       ref(frameName),
 			"content":        label,
+			"name":           "Stat Label — " + label,
 			"x":              colX,
 			"y":              labelY,
 			"width":          colWidth,
@@ -577,6 +607,7 @@ func expandProgress(name, frameName string, params map[string]interface{}, margi
 	ops = append(ops, makeOp(raisedName, "text.create", map[string]interface{}{
 		"parentId":       ref(frameName),
 		"content":        raisedText,
+		"name":           "Progress Value",
 		"x":              margin,
 		"y":              yPos,
 		"fontSize":       sizes["subheading"],
@@ -593,6 +624,7 @@ func expandProgress(name, frameName string, params map[string]interface{}, margi
 	ops = append(ops, makeOp(goalName, "text.create", map[string]interface{}{
 		"parentId":              ref(frameName),
 		"content":               goalText,
+		"name":                  "Progress Goal",
 		"x":                     margin,
 		"y":                     yPos,
 		"width":                 contentWidth,
@@ -612,6 +644,7 @@ func expandProgress(name, frameName string, params map[string]interface{}, margi
 	trackName := name + "_track"
 	ops = append(ops, makeOp(trackName, "shape.create_rectangle", map[string]interface{}{
 		"parentId":     ref(frameName),
+		"name":         "Progress Track",
 		"x":            margin,
 		"y":            trackY,
 		"width":        contentWidth,
@@ -636,6 +669,7 @@ func expandProgress(name, frameName string, params map[string]interface{}, margi
 	fillName := name + "_fill"
 	ops = append(ops, makeOp(fillName, "shape.create_rectangle", map[string]interface{}{
 		"parentId":     ref(frameName),
+		"name":         "Progress Fill",
 		"x":            margin,
 		"y":            trackY,
 		"width":        fillWidth,
@@ -662,6 +696,7 @@ func expandArabic(name, frameName string, params map[string]interface{}, margin,
 	op := makeOp(name, "text.create", map[string]interface{}{
 		"parentId":       ref(frameName),
 		"content":        text,
+		"name":           "Arabic — " + truncate(text, 25),
 		"x":              margin,
 		"y":              yPos,
 		"width":          contentWidth,
@@ -693,6 +728,20 @@ func expandBanner(baseName string, params map[string]interface{}) ([]map[string]
 
 	bgColor := getString(params, "color", "#FFFFFF")
 
+	// Derive descriptive frame name from first headline element
+	bannerElements, _ := params["elements"].([]interface{})
+	bannerDescName := baseName
+	for _, elem := range bannerElements {
+		if em, ok := elem.(map[string]interface{}); ok {
+			if et, _ := em["type"].(string); et == "headline" {
+				if ht, _ := em["text"].(string); ht != "" {
+					bannerDescName = "Banner — " + truncate(ht, 30)
+					break
+				}
+			}
+		}
+	}
+
 	var ops []map[string]interface{}
 
 	// Root frame
@@ -704,6 +753,7 @@ func expandBanner(baseName string, params map[string]interface{}) ([]map[string]
 		"height":       h,
 		"color":        bgColor,
 		"clipsContent": getBool(params, "clipsContent", true),
+		"name":         bannerDescName,
 	}
 	if pid, ok := params["parentId"]; ok {
 		frameParams["parentId"] = pid
@@ -800,6 +850,7 @@ func expandBannerHeadline(name, frameName string, params map[string]interface{},
 	op := makeOp(name, "text.create", map[string]interface{}{
 		"parentId":       ref(frameName),
 		"content":        text,
+		"name":           "Headline — " + truncate(text, 25),
 		"x":              x,
 		"y":              yPos,
 		"width":          width,
@@ -825,6 +876,7 @@ func expandBannerSubtitle(name, frameName string, params map[string]interface{},
 	op := makeOp(name, "text.create", map[string]interface{}{
 		"parentId":       ref(frameName),
 		"content":        text,
+		"name":           "Subtitle — " + truncate(text, 25),
 		"x":              x,
 		"y":              yPos,
 		"width":          width,

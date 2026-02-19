@@ -36,7 +36,10 @@ export async function handleDocument(action: string, params: any): Promise<any> 
     case 'find_free_space':
     case 'free_space': return findFreeSpace(params);
     case 'find_nodes': return findNodes(params);
-    default: throw new Error('Unknown document action: ' + action + '. Available: get_info, get_selection, set_selection, scan_text, scan_by_type, get_styles, find_by_name, find_by_type, focus, zoom_to, find_free_space, find_nodes');
+    case 'lint':
+    case 'check':
+    case 'validate': return lintNode(params);
+    default: throw new Error('Unknown document action: ' + action + '. Available: get_info, get_selection, set_selection, scan_text, scan_by_type, get_styles, find_by_name, find_by_type, focus, zoom_to, find_free_space, find_nodes, lint');
   }
 }
 
@@ -358,4 +361,166 @@ async function findNodes(params: any) {
     count: results.length,
     truncated: results.length > 100,
   };
+}
+
+interface LintWarning {
+  severity: 'error' | 'warning' | 'info';
+  type: string;
+  nodeId: string;
+  nodeName: string;
+  message: string;
+}
+
+const DEFAULT_NAME_RE = /^(Frame|Rectangle|Ellipse|Text|Group|Line|Polygon|Star|Vector|Component|Instance|Section)\s+\d+$/;
+
+async function lintNode(params: any) {
+  var nodeId = params.nodeId;
+  if (!nodeId) throw new Error('nodeId is required');
+
+  var root = await getSceneNodeById(nodeId);
+  var warnings: LintWarning[] = [];
+
+  await walkNode(root, null, warnings, 0);
+
+  return { warnings: warnings, count: warnings.length };
+}
+
+async function walkNode(
+  node: SceneNode,
+  parent: (SceneNode & ChildrenMixin) | null,
+  warnings: LintWarning[],
+  depth: number
+) {
+  if (depth > 10) return;
+
+  // Check default name
+  if (DEFAULT_NAME_RE.test(node.name)) {
+    warnings.push({
+      severity: 'info',
+      type: 'default_name',
+      nodeId: node.id,
+      nodeName: node.name,
+      message: 'Node has a default Figma name. Consider renaming for clarity.',
+    });
+  }
+
+  // Text-specific checks
+  if (node.type === 'TEXT') {
+    var textNode = node as TextNode;
+    var fs = textNode.fontSize;
+    if (fs !== figma.mixed && typeof fs === 'number') {
+      if (fs < 12) {
+        warnings.push({
+          severity: 'info',
+          type: 'text_too_small',
+          nodeId: node.id,
+          nodeName: node.name,
+          message: 'Font size ' + fs + 'px is below 12px and may be unreadable.',
+        });
+      }
+      // Check if text is too large relative to nearest parent frame
+      if (parent && ('layoutMode' in parent)) {
+        var parentHeight = parent.height;
+        if (parentHeight > 0 && fs > parentHeight * 0.5) {
+          warnings.push({
+            severity: 'warning',
+            type: 'text_too_large',
+            nodeId: node.id,
+            nodeName: node.name,
+            message: 'Font size ' + fs + 'px exceeds 50% of parent frame height (' + parentHeight + 'px).',
+          });
+        }
+      }
+    }
+  }
+
+  // Frame-specific checks (overflow, overlap, oversized children)
+  if ('children' in node) {
+    var frameNode = node as SceneNode & ChildrenMixin;
+    var isAutoLayout = ('layoutMode' in frameNode) &&
+      (frameNode as any).layoutMode !== 'NONE' &&
+      (frameNode as any).layoutMode !== undefined;
+
+    var children = frameNode.children;
+
+    if (!isAutoLayout && 'width' in frameNode) {
+      var pw = (frameNode as any).width as number;
+      var ph = (frameNode as any).height as number;
+
+      // Filter children that are not absolutely positioned
+      var checkableChildren: SceneNode[] = [];
+      for (var i = 0; i < children.length; i++) {
+        var child = children[i];
+        if ((child as any).layoutPositioning === 'ABSOLUTE') continue;
+        checkableChildren.push(child);
+      }
+
+      // Overflow check
+      for (var i = 0; i < checkableChildren.length; i++) {
+        var c = checkableChildren[i];
+        var cx = c.x;
+        var cy = c.y;
+        var cw = c.width;
+        var ch = c.height;
+
+        if (cx < 0 || cy < 0 || cx + cw > pw || cy + ch > ph) {
+          warnings.push({
+            severity: 'warning',
+            type: 'overflow',
+            nodeId: c.id,
+            nodeName: c.name,
+            message: 'Child extends beyond parent "' + frameNode.name + '" bounds (' + pw + 'x' + ph + ').',
+          });
+        }
+      }
+
+      // Oversized child check
+      for (var i = 0; i < checkableChildren.length; i++) {
+        var c = checkableChildren[i];
+        if (c.width > pw * 1.1) {
+          warnings.push({
+            severity: 'warning',
+            type: 'oversized_child',
+            nodeId: c.id,
+            nodeName: c.name,
+            message: 'Child width (' + c.width + 'px) exceeds parent width (' + pw + 'px) by more than 10%.',
+          });
+        }
+        if (c.height > ph * 1.1) {
+          warnings.push({
+            severity: 'warning',
+            type: 'oversized_child',
+            nodeId: c.id,
+            nodeName: c.name,
+            message: 'Child height (' + c.height + 'px) exceeds parent height (' + ph + 'px) by more than 10%.',
+          });
+        }
+      }
+
+      // Overlap check — compare all sibling pairs
+      for (var i = 0; i < checkableChildren.length; i++) {
+        for (var j = i + 1; j < checkableChildren.length; j++) {
+          var a = checkableChildren[i];
+          var b = checkableChildren[j];
+          // Bounding box intersection
+          var ax1 = a.x, ay1 = a.y, ax2 = a.x + a.width, ay2 = a.y + a.height;
+          var bx1 = b.x, by1 = b.y, bx2 = b.x + b.width, by2 = b.y + b.height;
+          if (ax1 < bx2 && ax2 > bx1 && ay1 < by2 && ay2 > by1) {
+            warnings.push({
+              severity: 'warning',
+              type: 'overlap',
+              nodeId: a.id,
+              nodeName: a.name,
+              message: 'Overlaps with sibling "' + b.name + '" (' + b.id + ') in parent "' + frameNode.name + '".',
+            });
+          }
+        }
+      }
+    }
+
+    // Recurse into children
+    for (var i = 0; i < children.length; i++) {
+      await walkNode(children[i] as SceneNode, frameNode, warnings, depth + 1);
+    }
+  }
 }

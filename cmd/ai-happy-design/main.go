@@ -383,6 +383,7 @@ type batchOperation struct {
 
 var batchParallel bool
 var batchCompact bool
+var batchLint bool
 
 var batchCmd = &cobra.Command{
 	Use:   "batch [operations-json | file1.json file2.json ... | directory/]",
@@ -658,6 +659,65 @@ Each file gets its own connection and auto-placement.
 				"steps":        results,
 			}
 		}
+
+		// Post-batch lint: check created root frames for issues
+		if batchLint && failed == 0 {
+			var rootNodeIds []string
+			for _, r := range results {
+				if r["ok"] != true {
+					continue
+				}
+				result, _ := r["result"].(map[string]interface{})
+				if result == nil {
+					continue
+				}
+				nodeId, _ := result["id"].(string)
+				if nodeId == "" {
+					continue
+				}
+				nodeType, _ := result["type"].(string)
+				if nodeType == "FRAME" {
+					// Only lint root frames (no parentId in result)
+					if _, hasParent := result["parentId"]; !hasParent {
+						rootNodeIds = append(rootNodeIds, nodeId)
+					}
+				}
+			}
+			if len(rootNodeIds) > 0 {
+				fmt.Fprintf(os.Stderr, "🔍 Linting %d root frame(s)...\n", len(rootNodeIds))
+				for _, nid := range rootNodeIds {
+					lintResult, lintErr := client.SendCommand("document.lint", map[string]interface{}{"nodeId": nid})
+					if lintErr != nil {
+						fmt.Fprintf(os.Stderr, "  ⚠ Lint failed for %s: %s\n", nid, lintErr.Error())
+						continue
+					}
+					var lintData map[string]interface{}
+					if json.Unmarshal(lintResult, &lintData) == nil {
+						count, _ := lintData["count"].(float64)
+						if count > 0 {
+							warnings, _ := lintData["warnings"].([]interface{})
+							for _, w := range warnings {
+								wm, _ := w.(map[string]interface{})
+								if wm == nil {
+									continue
+								}
+								sev, _ := wm["severity"].(string)
+								wtype, _ := wm["type"].(string)
+								msg, _ := wm["message"].(string)
+								icon := "ℹ"
+								if sev == "warning" {
+									icon = "⚠"
+								} else if sev == "error" {
+									icon = "✗"
+								}
+								fmt.Fprintf(os.Stderr, "  %s [%s] %s\n", icon, wtype, msg)
+							}
+						}
+					}
+				}
+			}
+		}
+
 		return printJSON(out)
 	},
 }
@@ -1207,6 +1267,22 @@ func loadBatchOperations(operationsJSON, operationsFile string) ([]batchOperatio
 				if mErr != nil {
 					return nil, fmt.Errorf("failed to re-marshal expanded ops: %w", mErr)
 				}
+				raw = remarshaled
+			}
+		}
+	}
+
+	// Normalize CSS properties to Figma properties in all ops
+	if !batchNoFix {
+		var cssOps []map[string]interface{}
+		if unmErr := json.Unmarshal(raw, &cssOps); unmErr == nil {
+			for _, op := range cssOps {
+				if params, ok := op["params"].(map[string]interface{}); ok {
+					batchutil.NormalizeCSSProps(params)
+				}
+			}
+			remarshaled, mErr := json.Marshal(cssOps)
+			if mErr == nil {
 				raw = remarshaled
 			}
 		}
@@ -1963,6 +2039,7 @@ func main() {
 	batchCmd.Flags().BoolVar(&batchParallel, "parallel", false, "Run multiple batch files concurrently (max 4 parallel)")
 	batchCmd.Flags().BoolVar(&batchNoFix, "no-fix", false, "Skip automatic LLM output normalization (use if your JSON is already valid)")
 	batchCmd.Flags().BoolVar(&batchCompact, "compact", false, "Minimal output: only ok, step names, and results (saves tokens for LLM agents)")
+	batchCmd.Flags().BoolVar(&batchLint, "lint", false, "Auto-check created frames for overlaps, overflow, naming, and text sizing issues")
 
 	toolsCmd.Flags().BoolVar(&catalogJSON, "json", true, "Output as JSON for machine-readable discovery")
 	toolsCmd.Flags().BoolVar(&catalogLLM, "llm", false, "Output enriched LLM-focused catalog with examples and playbook")

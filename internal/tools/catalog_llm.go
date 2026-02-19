@@ -37,7 +37,7 @@ func LLMCatalog() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"version": "3.1",
+		"version": "3.2",
 		"discovery": map[string]interface{}{
 			"cliCatalog":       "ai-happy-design tools --json",
 			"llmCatalog":       "ai-happy-design tools --llm --json",
@@ -54,6 +54,35 @@ func LLMCatalog() map[string]interface{} {
 			"4_noExtraFiles":      "No markdown copies, no summaries, no explanation files. Just the batch JSON.",
 			"5_executeLiterally":  "Do exactly what was asked, nothing more. No bonus content.",
 			"6_writeTempDir":      "Always write batch JSON to the OS temp directory to avoid path issues.",
+			"7_cssPropsWork":      "You can use CSS property names in batch params: flexDirection, gap, padding shorthand, background, borderRadius, border shorthand, justifyContent, alignItems, width:'100%'. The CLI auto-normalizes to Figma properties.",
+			"8_nameEverything":    "Name every frame and element descriptively. Never leave Figma defaults like 'Frame 47'. Use: 'Hero Section', 'CTA Button', 'Card — Feature Name'.",
+			"9_lintAfterCreate":   "Use --lint flag on batch to auto-check for overlaps, overflow, text sizing, and naming issues after creation.",
+		},
+		"cssPropertySupport": map[string]interface{}{
+			"_overview": "Batch params accept CSS property names — write what you know, the CLI translates to Figma. These are ADDITIVE: native Figma params still work and take priority.",
+			"flexDirection":  "'column' → layoutMode:VERTICAL, 'row' → layoutMode:HORIZONTAL",
+			"gap":            "→ itemSpacing",
+			"background":     "→ color (frame fill)",
+			"backgroundColor": "→ color",
+			"borderRadius":   "→ cornerRadius",
+			"border":         "'1px solid #333' → strokeWeight:1, stroke:'#333'",
+			"padding":        "'24' → all sides. '24 32' → TB=24, LR=32. '24 32 16 32' → TRBL individual",
+			"justifyContent": "'flex-start'→MIN, 'center'→CENTER, 'flex-end'→MAX, 'space-between'→SPACE_BETWEEN → primaryAxisAlignItems",
+			"alignItems":     "'flex-start'→MIN, 'center'→CENTER, 'flex-end'→MAX → counterAxisAlignItems",
+			"width_percent":  "'100%' → layoutSizingHorizontal:FILL, 'auto' → HUG",
+			"height_percent": "'100%' → layoutSizingVertical:FILL, 'auto' → HUG",
+			"boxShadow":     "'0 4px 12px rgba(0,0,0,0.1)' → parsed into _shadows array for auto shadow creation",
+			"example": `Instead of: {"layoutMode":"VERTICAL","itemSpacing":16,"paddingTop":24,"paddingBottom":24,"primaryAxisAlignItems":"CENTER"}
+Write: {"flexDirection":"column","gap":16,"padding":"24","justifyContent":"center"}`,
+		},
+		"lintChecks": map[string]interface{}{
+			"_overview": "Use --lint on batch to auto-validate designs after creation. Also available as: document.lint {nodeId}",
+			"overflow":        "Children extending beyond parent frame bounds",
+			"overlap":         "Sibling elements overlapping each other (in non-auto-layout frames)",
+			"text_too_large":  "Text fontSize exceeds 50% of parent frame height",
+			"text_too_small":  "Text fontSize below 12px (unreadable)",
+			"default_name":    "Nodes with Figma default names (Frame 47, Rectangle 12, etc.)",
+			"oversized_child": "Child width/height exceeds parent by more than 10%",
 		},
 		"workflow": map[string]interface{}{
 			"rule":      "CREATING = batch (one payload, many steps). EDITING = single command (precise, targeted).",
@@ -175,6 +204,21 @@ func LLMCatalog() map[string]interface{} {
 					},
 				},
 				"contrastRule": "Primary elements need HIGH contrast against background. Secondary = medium. Tertiary = low. Ambient = almost invisible. If everything is bold, nothing is bold.",
+			},
+			"designQualityChecklist": map[string]interface{}{
+				"_overview": "Run through this mental checklist BEFORE generating batch JSON. Think like a designer reviewing a mockup.",
+				"checks": []string{
+					"HIERARCHY: Is there ONE clear focal point? Can you tell what to read first, second, third?",
+					"BREATHING ROOM: Is there enough whitespace? Padding should be at least 6-8% of canvas width on sides.",
+					"BALANCE: Are all sibling elements the same size? Same padding? Same corner radius?",
+					"ALIGNMENT: Are elements on the 8px grid? Do left edges align? Do baselines align?",
+					"CONTRAST: Can you read all text? Light text on light bg = invisible. Dark text on dark bg = invisible.",
+					"TEXT SIZE: Is the smallest text at least caption tier from compute_tokens? Anything smaller is unreadable.",
+					"TEXT OVERFLOW: Will text fit in its container? Account for lineHeight (150% means 1.5× font size height).",
+					"NAMING: Does every layer have a descriptive name? No 'Frame 47' or 'Rectangle 12'.",
+					"FILL RULES: Are structural frames transparent? Are visual surfaces filled?",
+					"EXPORT: Will each independently-exported piece be its own top-level frame?",
+				},
 			},
 			"designDecisions": map[string]interface{}{
 				"_rule": "Match the visual treatment to the element's role. Think: what CSS would I write for this HTML element?",
