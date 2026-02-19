@@ -5,6 +5,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // compositeCommands lists commands that expand into multiple primitive ops.
@@ -160,6 +161,84 @@ func getBool(params map[string]interface{}, key string, def bool) bool {
 	return def
 }
 
+// estimateWrappedLines approximates wrapped line count for a text box.
+func estimateWrappedLines(text string, width, fontSize float64) float64 {
+	if strings.TrimSpace(text) == "" {
+		return 1
+	}
+	if width <= 0 || fontSize <= 0 {
+		return 1
+	}
+	// Use a conservative width factor so placement avoids overlap for bold display text.
+	charsPerLine := int(math.Floor(width / (fontSize * 0.68)))
+	if charsPerLine < 6 {
+		charsPerLine = 6
+	}
+
+	totalLines := 0
+	for _, paragraph := range strings.Split(text, "\n") {
+		words := strings.Fields(paragraph)
+		if len(words) == 0 {
+			totalLines++
+			continue
+		}
+		lineChars := 0
+		lines := 1
+		for _, word := range words {
+			wlen := utf8.RuneCountInString(word)
+			// Break very long tokens that exceed line width.
+			if wlen > charsPerLine {
+				if lineChars > 0 {
+					lines++
+					lineChars = 0
+				}
+				full := wlen / charsPerLine
+				lines += full
+				lineChars = wlen % charsPerLine
+				if lineChars == 0 {
+					lineChars = charsPerLine
+					lines--
+				}
+				continue
+			}
+			needed := wlen
+			if lineChars > 0 {
+				needed++ // space
+			}
+			if lineChars+needed > charsPerLine {
+				lines++
+				lineChars = wlen
+			} else {
+				lineChars += needed
+			}
+		}
+		totalLines += lines
+	}
+	if totalLines < 1 {
+		totalLines = 1
+	}
+	return float64(totalLines)
+}
+
+func estimateTextHeight(text string, width, fontSize, lineHeightPercent float64) float64 {
+	lines := estimateWrappedLines(text, width, fontSize)
+	return lines * fontSize * (lineHeightPercent / 100.0)
+}
+
+func fitHeadlineFontSize(text string, width, canvasH, wantedSize, lineHeightPercent float64) float64 {
+	// Reserve room for other slide elements; headline should not consume most of the canvas.
+	maxHeadlineHeight := canvasH * 0.34
+	size := wantedSize
+	for size > 28 {
+		h := estimateTextHeight(text, width, size, lineHeightPercent)
+		if h <= maxHeadlineHeight {
+			return size
+		}
+		size = snap4(size-4, 28)
+	}
+	return size
+}
+
 // makeOp creates a batch operation map.
 func makeOp(name, command string, params map[string]interface{}) map[string]interface{} {
 	return map[string]interface{}{
@@ -277,7 +356,7 @@ func expandSlideElement(
 	case "eyebrow":
 		return expandEyebrow(elemName, frameName, params, margin, contentWidth, yPos, sizes)
 	case "headline":
-		return expandHeadline(elemName, frameName, params, margin, contentWidth, yPos, sizes)
+		return expandHeadline(elemName, frameName, params, canvasH, margin, contentWidth, yPos, sizes)
 	case "body":
 		return expandBody(elemName, frameName, params, margin, contentWidth, yPos, sizes)
 	case "bar":
@@ -326,7 +405,7 @@ func expandEyebrow(name, frameName string, params map[string]interface{}, margin
 	return []map[string]interface{}{op}, newY, nil
 }
 
-func expandHeadline(name, frameName string, params map[string]interface{}, margin, contentWidth, yPos float64, sizes map[string]float64) ([]map[string]interface{}, float64, error) {
+func expandHeadline(name, frameName string, params map[string]interface{}, canvasH, margin, contentWidth, yPos float64, sizes map[string]float64) ([]map[string]interface{}, float64, error) {
 	tier := getString(params, "tier", "title")
 	fontSize, ok := sizes[tier]
 	if !ok {
@@ -337,6 +416,10 @@ func expandHeadline(name, frameName string, params map[string]interface{}, margi
 	spacing := getFloat(params, "spacing", 24)
 
 	lineHeight := getFloat(params, "lineHeight", 118)
+	autoFit := getBool(params, "autoFit", true)
+	if autoFit {
+		fontSize = fitHeadlineFontSize(text, contentWidth, canvasH, fontSize, lineHeight)
+	}
 
 	op := makeOp(name, "text.create", map[string]interface{}{
 		"parentId":       ref(frameName),
@@ -353,8 +436,7 @@ func expandHeadline(name, frameName string, params map[string]interface{}, margi
 		"lineHeightUnit": "PERCENT",
 	})
 
-	// Estimate text height: fontSize * lineHeight/100 * approximate lines
-	textHeight := fontSize * lineHeight / 100
+	textHeight := estimateTextHeight(text, contentWidth, fontSize, lineHeight)
 	newY := yPos + textHeight + spacing
 	return []map[string]interface{}{op}, newY, nil
 }
@@ -381,7 +463,7 @@ func expandBody(name, frameName string, params map[string]interface{}, margin, c
 		"lineHeightUnit": "PERCENT",
 	})
 
-	textHeight := fontSize * lineHeight / 100
+	textHeight := estimateTextHeight(text, contentWidth, fontSize, lineHeight)
 	newY := yPos + textHeight + spacing
 	return []map[string]interface{}{op}, newY, nil
 }
@@ -412,6 +494,7 @@ func expandCounter(name, frameName string, params map[string]interface{}, canvas
 	text := current + " / " + total
 	fontSize := sizes["caption"]
 	color := getString(params, "color", "#999999")
+	counterWidth := getFloat(params, "width", math.Max(140, fontSize*4))
 
 	// Counter is positioned top-right, not in the flow
 	counterY := margin
@@ -420,9 +503,9 @@ func expandCounter(name, frameName string, params map[string]interface{}, canvas
 		"parentId":       ref(frameName),
 		"content":        text,
 		"name":           "Counter",
-		"x":              canvasW - margin - 100,
+		"x":              canvasW - margin - counterWidth,
 		"y":              counterY,
-		"width":          100.0,
+		"width":          counterWidth,
 		"fontSize":       fontSize,
 		"fontFamily":     getString(params, "fontFamily", "Inter"),
 		"fontStyle":      getString(params, "fontStyle", "Regular"),
@@ -708,7 +791,7 @@ func expandArabic(name, frameName string, params map[string]interface{}, margin,
 		"lineHeightUnit": "PERCENT",
 	})
 
-	textHeight := fontSize * lineHeight / 100
+	textHeight := estimateTextHeight(text, contentWidth, fontSize, lineHeight)
 	newY := yPos + textHeight + spacing
 	return []map[string]interface{}{op}, newY, nil
 }

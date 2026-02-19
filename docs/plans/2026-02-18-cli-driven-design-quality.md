@@ -224,3 +224,19 @@ Keep current categories; improve quality of existing payloads instead of adding 
 6. Refresh `examples batch` + `examples carousel`.
 7. Run full test/build suite.
 8. Run live Figma validation and document evidence.
+
+## 2026-02-19 Addendum: Layout Stability Fixes (implemented)
+
+Observed failure in live file on `golden-waffle-25`: slide composite text overlaps (headline over body/CTA) due to one-line height assumptions.
+
+Implemented:
+
+1. Wrapped text line estimator in `internal/batchutil/composite.go` for flow placement.
+2. Headline auto-fit (`autoFit=true` default) to downshift font size when headline height would consume too much canvas.
+3. Body/Arabic placement now uses wrapped-text height estimates instead of single-line math.
+4. Counter width is now content-safe by default to avoid right-column wrap collisions.
+
+Validation evidence:
+
+1. Before fix: `layout.check_overlaps` reported multiple overlaps per slide.
+2. After deploy and rerun of 10-slide batch: overlap counts are `0` on all generated slide frames.

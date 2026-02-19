@@ -696,3 +696,23 @@ func TestDefaultBaseName(t *testing.T) {
 		t.Errorf("default frame name = %v, want s1_frame", ops[0]["name"])
 	}
 }
+
+func TestEstimateWrappedLines_MultilineLongHeadline(t *testing.T) {
+	text := "Stop Guessing Design Decisions"
+	lines := estimateWrappedLines(text, 904, 120)
+	if lines < 3 {
+		t.Fatalf("expected wrapped lines >= 3 for long 120px headline, got %v", lines)
+	}
+}
+
+func TestFitHeadlineFontSize_DownsizesWhenTooTall(t *testing.T) {
+	text := "Design Faster With Guardrails While Keeping Layout Stable Across Every Slide In The Series"
+	// Force enough wrapping that max headline height budget is exceeded at 120.
+	size := fitHeadlineFontSize(text, 904, 1350, 120, 118)
+	if size >= 120 {
+		t.Fatalf("expected fit size < 120 for long headline, got %v", size)
+	}
+	if size < 28 {
+		t.Fatalf("fit size dropped below min floor: %v", size)
+	}
+}
