@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # AI Happy Design - Agent Instructions
 
 ## Build & Deploy (REQUIRED)
