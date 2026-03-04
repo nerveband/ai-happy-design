@@ -97,7 +97,10 @@ export async function handleShape(action: string, params: any): Promise<any> {
     case 'image':
     case 'add_image':
     case 'create_image': return createImage(params);
-    default: throw new Error('Unknown shape action: ' + action + '. Available: create_rectangle, create_ellipse, create_polygon, create_star, create_line, create_from_svg, create_image');
+    case 'vector':
+    case 'add_vector':
+    case 'create_vector': return createVector(params);
+    default: throw new Error('Unknown shape action: ' + action + '. Available: create_rectangle, create_ellipse, create_polygon, create_star, create_line, create_from_svg, create_image, create_vector');
   }
 }
 
@@ -294,5 +297,68 @@ async function createImage(params: any) {
     height: rect.height,
     imageHash: image.hash,
     scaleMode: scaleMode,
+  };
+}
+
+async function createVector(params: any) {
+  var vector = figma.createVector();
+  vector.x = params.x || 0;
+  vector.y = params.y || 0;
+  if (params.width && params.height) {
+    vector.resize(params.width, params.height);
+  }
+  vector.name = params.name || 'Vector';
+
+  // Set vector paths from SVG path data
+  if (params.vectorPaths || params.paths) {
+    var paths = params.vectorPaths || params.paths;
+    var vectorPaths: Array<VectorPath> = [];
+    for (var i = 0; i < paths.length; i++) {
+      var p = paths[i];
+      vectorPaths.push({
+        windingRule: (p.windingRule || 'NONZERO') as WindingRule,
+        data: p.data || p.d || '',
+      });
+    }
+    vector.vectorPaths = vectorPaths;
+  }
+
+  // Set vector network (vertices + segments) if provided
+  if (params.vectorNetwork) {
+    var net = params.vectorNetwork;
+    vector.vectorNetwork = {
+      vertices: net.vertices || [],
+      segments: net.segments || [],
+      regions: net.regions || [],
+    };
+  }
+
+  // Apply fill
+  if (params.color || params.fillColor) {
+    var c = parseHexColor(params.color || params.fillColor, { r: 0, g: 0, b: 0, a: 1 });
+    vector.fills = [{ type: 'SOLID', color: { r: c.r, g: c.g, b: c.b }, opacity: c.a }];
+  }
+
+  // Apply stroke
+  if (params.strokeColor) {
+    var sc = parseHexColor(params.strokeColor, { r: 0, g: 0, b: 0, a: 1 });
+    vector.strokes = [{ type: 'SOLID', color: { r: sc.r, g: sc.g, b: sc.b }, opacity: sc.a }];
+    vector.strokeWeight = params.strokeWeight || 1;
+  }
+
+  if (params.opacity !== undefined) {
+    vector.opacity = Math.max(0, Math.min(1, params.opacity));
+  }
+
+  var parent = await getParentNode(params.parentId);
+  parent.appendChild(vector);
+  var stableId = await resolveStableId(vector, parent);
+  return {
+    id: stableId,
+    name: vector.name,
+    type: vector.type,
+    width: vector.width,
+    height: vector.height,
+    pathCount: vector.vectorPaths.length,
   };
 }

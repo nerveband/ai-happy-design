@@ -22,7 +22,15 @@ export async function handleVariable(action: string, params: any): Promise<any> 
     case 'collections':
     case 'get_collections': return getCollections(params);
     case 'delete': return deleteVariable(params);
-    default: throw new Error('Unknown variable action: ' + action + '. Available: create, get_all, set_value, bind, unbind, create_collection, get_collections, delete');
+    case 'resolve':
+    case 'resolve_value':
+    case 'resolve_for_consumer': return resolveForConsumer(params);
+    case 'add_mode':
+    case 'create_mode': return addMode(params);
+    case 'rename_mode': return renameMode(params);
+    case 'delete_mode':
+    case 'remove_mode': return deleteMode(params);
+    default: throw new Error('Unknown variable action: ' + action + '. Available: create, get_all, set_value, bind, unbind, create_collection, get_collections, delete, resolve_for_consumer, add_mode, rename_mode, delete_mode');
   }
 }
 
@@ -198,6 +206,111 @@ async function getCollections(_params: any) {
       variableIds: c.variableIds,
     })),
     count: collections.length,
+  };
+}
+
+async function resolveForConsumer(params: any) {
+  var variableId = params.variableId;
+  var variable = await figma.variables.getVariableByIdAsync(variableId);
+  if (!variable) throw new Error('Variable not found: ' + variableId);
+
+  var nodeId = params.nodeId;
+  var node = nodeId ? await getSceneNodeById(nodeId) : null;
+
+  // Resolve using the node's bound mode or specified mode
+  var modeId = params.modeId;
+  if (!modeId && node) {
+    // Try to get the mode from the node's explicit variable mode settings
+    var collectionId = variable.variableCollectionId;
+    var collection = await figma.variables.getVariableCollectionByIdAsync(collectionId);
+    if (collection) {
+      modeId = collection.defaultModeId || collection.modes[0]?.modeId;
+    }
+  }
+
+  if (!modeId) {
+    // Fall back to first available mode
+    var keys = Object.keys(variable.valuesByMode);
+    modeId = keys.length > 0 ? keys[0] : undefined;
+  }
+
+  if (!modeId) throw new Error('No mode available to resolve variable');
+
+  var rawValue = variable.valuesByMode[modeId];
+
+  // If the raw value is a variable alias, resolve it recursively
+  var resolvedValue = rawValue;
+  var depth = 0;
+  while (resolvedValue && typeof resolvedValue === 'object' && 'type' in resolvedValue && (resolvedValue as any).type === 'VARIABLE_ALIAS' && depth < 10) {
+    var aliasId = (resolvedValue as any).id;
+    var aliasVar = await figma.variables.getVariableByIdAsync(aliasId);
+    if (!aliasVar) break;
+    var aliasKeys = Object.keys(aliasVar.valuesByMode);
+    if (aliasKeys.length === 0) break;
+    resolvedValue = aliasVar.valuesByMode[modeId] || aliasVar.valuesByMode[aliasKeys[0]];
+    depth++;
+  }
+
+  return {
+    id: variable.id,
+    name: variable.name,
+    resolvedType: variable.resolvedType,
+    modeId: modeId,
+    rawValue: rawValue,
+    resolvedValue: resolvedValue,
+  };
+}
+
+async function addMode(params: any) {
+  var collectionId = params.collectionId;
+  var modeName = params.name || params.modeName;
+  if (!collectionId) throw new Error('collectionId is required');
+  if (!modeName) throw new Error('name is required');
+
+  var collection = await figma.variables.getVariableCollectionByIdAsync(collectionId);
+  if (!collection) throw new Error('Collection not found: ' + collectionId);
+
+  collection.addMode(modeName);
+  return {
+    id: collection.id,
+    name: collection.name,
+    modes: collection.modes.map(function(m) { return { modeId: m.modeId, name: m.name }; }),
+  };
+}
+
+async function renameMode(params: any) {
+  var collectionId = params.collectionId;
+  var modeId = params.modeId;
+  var newName = params.name || params.newName;
+  if (!collectionId) throw new Error('collectionId is required');
+  if (!modeId) throw new Error('modeId is required');
+  if (!newName) throw new Error('name is required');
+
+  var collection = await figma.variables.getVariableCollectionByIdAsync(collectionId);
+  if (!collection) throw new Error('Collection not found: ' + collectionId);
+
+  collection.renameMode(modeId, newName);
+  return {
+    id: collection.id,
+    name: collection.name,
+    modes: collection.modes.map(function(m) { return { modeId: m.modeId, name: m.name }; }),
+  };
+}
+
+async function deleteMode(params: any) {
+  var collectionId = params.collectionId;
+  var modeId = params.modeId;
+  if (!collectionId) throw new Error('collectionId is required');
+  if (!modeId) throw new Error('modeId is required');
+
+  var collection = await figma.variables.getVariableCollectionByIdAsync(collectionId);
+  if (!collection) throw new Error('Collection not found: ' + collectionId);
+
+  collection.removeMode(modeId);
+  return {
+    id: collection.id,
+    name: collection.name,
+    modes: collection.modes.map(function(m) { return { modeId: m.modeId, name: m.name }; }),
   };
 }
 

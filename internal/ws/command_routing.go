@@ -31,6 +31,7 @@ var legacyCommandRoutes = map[string]commandRoute{
 	"create_line":      {Domain: "shape", Action: "create_line"},
 	"create_from_svg":  {Domain: "shape", Action: "create_from_svg"},
 	"create_image":     {Domain: "shape", Action: "create_image"},
+	"create_vector":    {Domain: "shape", Action: "create_vector"},
 
 	// Text
 	"create_text":                {Domain: "text", Action: "create"},
@@ -51,6 +52,8 @@ var legacyCommandRoutes = map[string]commandRoute{
 	"list_fonts":                 {Domain: "text", Action: "list_fonts"},
 	"list_available_fonts":       {Domain: "text", Action: "list_fonts"},
 	"set_multiple_text_contents": {Domain: "text", Action: "set_content"},
+	"set_opentype_features":      {Domain: "text", Action: "set_opentype_features"},
+	"get_opentype_features":      {Domain: "text", Action: "get_opentype_features"},
 
 	// Layout
 	"set_auto_layout":   {Domain: "layout", Action: "set_auto_layout"},
@@ -61,11 +64,16 @@ var legacyCommandRoutes = map[string]commandRoute{
 	"set_layout_wrap":   {Domain: "layout", Action: "set_layout_wrap"},
 	"set_constraints":   {Domain: "layout", Action: "set_constraints"},
 	"check_overlaps":    {Domain: "layout", Action: "check_overlaps"},
+	"set_grid":          {Domain: "layout", Action: "set_grid"},
+	"set_layout_grid":   {Domain: "layout", Action: "set_grid"},
+	"get_layout_grids":  {Domain: "layout", Action: "get_grids"},
+	"remove_layout_grids": {Domain: "layout", Action: "remove_grids"},
 
 	// Node
 	"get_node_info":     {Domain: "node", Action: "get_info"},
 	"get_node_tree":     {Domain: "node", Action: "get_tree"},
 	"create_frame":      {Domain: "node", Action: "create_frame"},
+	"create_section":    {Domain: "node", Action: "create_section"},
 	"move_node":         {Domain: "node", Action: "move"},
 	"resize_node":       {Domain: "node", Action: "resize"},
 	"rotate_node":       {Domain: "node", Action: "rotate"},
@@ -97,6 +105,9 @@ var legacyCommandRoutes = map[string]commandRoute{
 	"get_remote_components":      {Domain: "component", Action: "get_remote"},
 	"get_overrides":              {Domain: "component", Action: "get_overrides"},
 	"set_overrides":              {Domain: "component", Action: "set_overrides"},
+	"get_property_definitions":   {Domain: "component", Action: "get_property_definitions"},
+	"add_component_property":     {Domain: "component", Action: "add_property_definition"},
+	"delete_component_property":  {Domain: "component", Action: "delete_property_definition"},
 
 	// Style
 	"create_paint_style":  {Domain: "style", Action: "create_paint"},
@@ -113,6 +124,11 @@ var legacyCommandRoutes = map[string]commandRoute{
 	"bind_variable":              {Domain: "variable", Action: "bind"},
 	"unbind_variable":            {Domain: "variable", Action: "unbind"},
 	"create_variable_collection": {Domain: "variable", Action: "create_collection"},
+	"resolve_variable":           {Domain: "variable", Action: "resolve_for_consumer"},
+	"resolve_for_consumer":       {Domain: "variable", Action: "resolve_for_consumer"},
+	"add_variable_mode":          {Domain: "variable", Action: "add_mode"},
+	"rename_variable_mode":       {Domain: "variable", Action: "rename_mode"},
+	"delete_variable_mode":       {Domain: "variable", Action: "delete_mode"},
 
 	// Effect
 	"set_effects":         {Domain: "effect", Action: "set_effects"},
@@ -160,6 +176,9 @@ var legacyCommandRoutes = map[string]commandRoute{
 	"ellipse":                {Domain: "shape", Action: "create_ellipse"},
 	"line":                   {Domain: "shape", Action: "create_line"},
 	"image":                  {Domain: "shape", Action: "create_image"},
+	"vector":                 {Domain: "shape", Action: "create_vector"},
+	"section":                {Domain: "node", Action: "create_section"},
+	"grid":                   {Domain: "layout", Action: "set_grid"},
 	"text":                   {Domain: "text", Action: "create"},
 	"fill":                   {Domain: "paint", Action: "set_solid"},
 	"stroke":                 {Domain: "paint", Action: "set_stroke"},
@@ -250,6 +269,32 @@ func resolveCommandRoute(command string, params map[string]interface{}) (string,
 			return "export", "pdf", nil
 		default:
 			return "export", "image", nil
+		}
+	}
+
+	// shape.create with type param → route to specific sub-command.
+	// LLMs frequently guess shape.create {type:"RECTANGLE"} instead of shape.create_rectangle.
+	if command == "shape.create" {
+		shapeType := strings.ToUpper(stringArg(params, "type"))
+		switch shapeType {
+		case "RECTANGLE", "RECT":
+			return "shape", "create_rectangle", nil
+		case "ELLIPSE", "CIRCLE", "OVAL":
+			return "shape", "create_ellipse", nil
+		case "POLYGON":
+			return "shape", "create_polygon", nil
+		case "STAR":
+			return "shape", "create_star", nil
+		case "LINE":
+			return "shape", "create_line", nil
+		case "SVG":
+			return "shape", "create_from_svg", nil
+		case "IMAGE":
+			return "shape", "create_image", nil
+		case "VECTOR":
+			return "shape", "create_vector", nil
+		default:
+			return "shape", "create_rectangle", nil // sensible default
 		}
 	}
 

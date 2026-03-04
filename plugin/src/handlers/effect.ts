@@ -84,7 +84,8 @@ async function setEffects(params: any) {
 
 async function addShadow(params: any) {
   const { nodeId, radius, spread, visible = true } = params;
-  const shadowType = params.type ?? params.shadowType ?? 'DROP_SHADOW';
+  var shadowType = params.type ?? params.shadowType ?? 'DROP_SHADOW';
+  if (params.inner === true) shadowType = 'INNER_SHADOW';
   const node = await getEffectNode(nodeId);
   const color = parseHexColor(params.color);
 

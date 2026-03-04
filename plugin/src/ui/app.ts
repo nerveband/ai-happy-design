@@ -392,9 +392,17 @@ function doConnect() {
   var relayUrl = normalizeRelayUrl(relayUrlInput.value);
   relayUrlInput.value = relayUrl;
 
+  // Toggle: if already connected, disconnect and stop.
   if (wsClient && wsClient.isConnected) {
     wsClient.disconnect();
     return;
+  }
+
+  // Tear down any in-progress connection before creating a new one.
+  // This prevents duplicate WebSocket connections to the same channel.
+  if (wsClient) {
+    wsClient.disconnect();
+    wsClient = null;
   }
 
   wsClient = new WSClient({
@@ -433,7 +441,7 @@ function doCopy() {
 }
 
 function doRegenerateChannel() {
-  if (wsClient && wsClient.isConnected) wsClient.disconnect();
+  if (wsClient) { wsClient.disconnect(); wsClient = null; }
   channelKey = generateChannelKey();
   channelKeyEl.textContent = channelKey;
   addLog('New channel: ' + channelKey, 'warn');

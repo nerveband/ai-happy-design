@@ -27,7 +27,18 @@ export async function handleLayout(action: string, params: any): Promise<any> {
     case 'check_overlaps':
     case 'detect_overlaps':
     case 'overlaps': return checkOverlaps(params);
-    default: throw new Error('Unknown layout action: ' + action + '. Available: set_auto_layout, set_padding, set_spacing, set_alignment, set_sizing, set_constraints, set_layout_wrap, set_wrap, remove_auto_layout, check_overlaps');
+    case 'grid':
+    case 'set_grid':
+    case 'set_layout_grid':
+    case 'add_grid': return setGrid(params);
+    case 'get_grid':
+    case 'get_grids':
+    case 'get_layout_grids': return getGrids(params);
+    case 'remove_grid':
+    case 'remove_grids':
+    case 'clear_grids':
+    case 'remove_layout_grids': return removeGrids(params);
+    default: throw new Error('Unknown layout action: ' + action + '. Available: set_auto_layout, set_padding, set_spacing, set_alignment, set_sizing, set_constraints, set_layout_wrap, set_wrap, remove_auto_layout, check_overlaps, set_grid, get_grids, remove_grids');
   }
 }
 
@@ -188,6 +199,104 @@ async function removeAutoLayout(params: any) {
   const node = await getFrameNode(params.nodeId);
   node.layoutMode = 'NONE';
   return { id: node.id, name: node.name, layoutMode: node.layoutMode };
+}
+
+function parseHexColor(color: any, fallback = { r: 0, g: 0, b: 0, a: 1 }) {
+  if (color && typeof color === 'object' && typeof color.r === 'number') {
+    return {
+      r: color.r,
+      g: color.g,
+      b: color.b,
+      a: typeof color.a === 'number' ? color.a : 1,
+    };
+  }
+  if (typeof color !== 'string') return fallback;
+  var raw = color.trim().replace(/^#/, '');
+  if (!(raw.length === 3 || raw.length === 6 || raw.length === 8)) return fallback;
+  var hex = raw.length === 3 ? raw.split('').map(function(ch: string) { return ch + ch; }).join('') : raw;
+  var hasAlpha = hex.length === 8;
+  var n = parseInt(hex, 16);
+  if (Number.isNaN(n)) return fallback;
+  return {
+    r: ((n >> (hasAlpha ? 24 : 16)) & 0xff) / 255,
+    g: ((n >> (hasAlpha ? 16 : 8)) & 0xff) / 255,
+    b: ((n >> (hasAlpha ? 8 : 0)) & 0xff) / 255,
+    a: hasAlpha ? (n & 0xff) / 255 : 1,
+  };
+}
+
+async function setGrid(params: any) {
+  var node = await getFrameNode(params.nodeId);
+  var grids = params.grids;
+
+  if (!Array.isArray(grids)) {
+    // Single grid shorthand
+    grids = [params];
+  }
+
+  var layoutGrids: LayoutGrid[] = [];
+  for (var i = 0; i < grids.length; i++) {
+    var g = grids[i];
+    var pattern = (g.pattern || g.type || 'COLUMNS').toUpperCase();
+
+    if (pattern === 'GRID') {
+      var gridItem: GridLayoutGrid = {
+        pattern: 'GRID',
+        sectionSize: g.sectionSize || g.size || 10,
+        visible: g.visible !== false,
+        color: g.color ? parseHexColor(g.color) : { r: 0.06, g: 0.45, b: 1, a: 0.1 },
+      };
+      layoutGrids.push(gridItem);
+    } else {
+      var colRow: RowsColsLayoutGrid = {
+        pattern: pattern === 'ROWS' ? 'ROWS' : 'COLUMNS',
+        sectionSize: g.sectionSize || g.size || 0,
+        visible: g.visible !== false,
+        color: g.color ? parseHexColor(g.color) : { r: 0.06, g: 0.45, b: 1, a: 0.1 },
+        alignment: g.alignment || 'STRETCH',
+        gutterSize: g.gutterSize || g.gutter || 20,
+        count: g.count || 12,
+        offset: g.offset || 0,
+      };
+      layoutGrids.push(colRow);
+    }
+  }
+
+  if (params.append) {
+    var existing = JSON.parse(JSON.stringify(node.layoutGrids));
+    for (var j = 0; j < layoutGrids.length; j++) {
+      existing.push(layoutGrids[j]);
+    }
+    node.layoutGrids = existing;
+  } else {
+    node.layoutGrids = layoutGrids;
+  }
+
+  return { id: node.id, name: node.name, gridCount: node.layoutGrids.length };
+}
+
+async function getGrids(params: any) {
+  var node = await getFrameNode(params.nodeId);
+  return {
+    id: node.id,
+    name: node.name,
+    layoutGrids: JSON.parse(JSON.stringify(node.layoutGrids)),
+  };
+}
+
+async function removeGrids(params: any) {
+  var node = await getFrameNode(params.nodeId);
+  if (params.index !== undefined) {
+    var grids = JSON.parse(JSON.stringify(node.layoutGrids));
+    if (params.index < 0 || params.index >= grids.length) {
+      throw new Error('Grid index ' + params.index + ' out of range');
+    }
+    grids.splice(params.index, 1);
+    node.layoutGrids = grids;
+  } else {
+    node.layoutGrids = [];
+  }
+  return { id: node.id, name: node.name, gridCount: node.layoutGrids.length };
 }
 
 async function checkOverlaps(params: any) {

@@ -25,6 +25,7 @@ type Message struct {
 	Result  json.RawMessage `json:"result,omitempty"`
 	Error   string          `json:"error,omitempty"`
 	Message json.RawMessage `json:"message,omitempty"`
+	Role    string          `json:"role,omitempty"`
 }
 
 // Conn wraps a WebSocket connection with metadata.
@@ -32,8 +33,27 @@ type Conn struct {
 	ws      *websocket.Conn
 	id      string
 	channel string
+	role    string
 	sendCh  chan []byte
+	closed  bool // true after eviction; prevents send-on-closed-channel panics
 	mu      sync.Mutex
+}
+
+// safeSend sends data to the connection's send channel, returning false if
+// the connection has been evicted or the buffer is full.
+func (c *Conn) safeSend(data []byte) bool {
+	c.mu.Lock()
+	if c.closed {
+		c.mu.Unlock()
+		return false
+	}
+	c.mu.Unlock()
+	select {
+	case c.sendCh <- data:
+		return true
+	default:
+		return false
+	}
 }
 
 // Server is the WebSocket relay server.
@@ -363,7 +383,7 @@ func (s *Server) routeMessage(conn *Conn, msg *Message, raw []byte) {
 	switch msg.Type {
 	case "ping":
 		pong, _ := json.Marshal(Message{Type: "pong"})
-		conn.sendCh <- pong
+		conn.safeSend(pong)
 
 	case "join":
 		s.handleJoin(conn, msg)
@@ -459,18 +479,39 @@ func (s *Server) handleJoin(conn *Conn, msg *Message) {
 	}
 
 	conn.channel = channel
+	conn.role = msg.Role
 
 	s.mu.Lock()
 	if s.channels[channel] == nil {
 		s.channels[channel] = make(map[string]*Conn)
 	}
+
+	// Evict stale connections with the same role (e.g. old plugin instances).
+	// This prevents duplicate command execution when a plugin reconnects.
+	if conn.role != "" {
+		var evict []*Conn
+		for id, existing := range s.channels[channel] {
+			if existing.role == conn.role && id != conn.id {
+				evict = append(evict, existing)
+				delete(s.channels[channel], id)
+			}
+		}
+		for _, old := range evict {
+			log.Printf("[ws] evicting stale %s connection %s from channel %s", old.role, old.id, channel)
+			old.mu.Lock()
+			old.closed = true
+			old.mu.Unlock()
+			close(old.sendCh)
+		}
+	}
+
 	s.channels[channel][conn.id] = conn
 	if s.preferredChannel == "" {
 		s.preferredChannel = channel
 	}
 	s.mu.Unlock()
 
-	log.Printf("[ws] %s joined channel %s", conn.id, channel)
+	log.Printf("[ws] %s joined channel %s (role=%s)", conn.id, channel, conn.role)
 
 	// Send confirmation
 	resp := Message{
@@ -478,7 +519,7 @@ func (s *Server) handleJoin(conn *Conn, msg *Message) {
 		Channel: channel,
 	}
 	data, _ := json.Marshal(resp)
-	conn.sendCh <- data
+	conn.safeSend(data)
 }
 
 // broadcast sends a message to all connections in a channel, optionally
@@ -492,10 +533,8 @@ func (s *Server) broadcast(channel string, data []byte, excludeID string) {
 		if id == excludeID {
 			continue
 		}
-		select {
-		case conn.sendCh <- data:
-		default:
-			log.Printf("[ws] send buffer full for %s, dropping message", id)
+		if !conn.safeSend(data) {
+			log.Printf("[ws] send buffer full or evicted for %s, dropping message", id)
 		}
 	}
 }

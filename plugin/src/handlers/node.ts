@@ -58,7 +58,10 @@ export async function handleNode(action: string, params: any): Promise<any> {
     case 'get_tree_nodes':
     case 'tree':
     case 'get_tree': return getTree(params);
-    default: throw new Error('Unknown node action: ' + action + '. Available: get_info, create_frame, move, resize, rotate, set_opacity, set_blend_mode, set_visibility, set_locked, rename, delete, clone, set_corner_radius, get_tree, modify, set_mask');
+    case 'section':
+    case 'add_section':
+    case 'create_section': return createSection(params);
+    default: throw new Error('Unknown node action: ' + action + '. Available: get_info, create_frame, create_section, move, resize, rotate, set_opacity, set_blend_mode, set_visibility, set_locked, rename, delete, clone, set_corner_radius, get_tree, modify, set_mask');
   }
 }
 
@@ -519,6 +522,37 @@ async function setMask(params: any) {
     maskNodeId: maskNode.id,
     maskedNodeIds: targets.map(function(t) { return t.id; }),
   };
+}
+
+async function createSection(params: any) {
+  var section = figma.createSection();
+  section.x = params.x || 0;
+  section.y = params.y || 0;
+  if (params.width && params.height) {
+    section.resizeWithoutConstraints(params.width, params.height);
+  }
+  if (params.name) section.name = params.name;
+
+  if (params.color) {
+    var c = parseHexColor(params.color);
+    section.fills = [{ type: 'SOLID', color: { r: c.r, g: c.g, b: c.b }, opacity: c.a }];
+  }
+
+  var container: BaseNode & ChildrenMixin;
+  if (params.parentId) {
+    var parent = await getParentById(params.parentId);
+    if (parent) {
+      parent.appendChild(section);
+      container = parent;
+    } else {
+      container = figma.currentPage;
+    }
+  } else {
+    container = figma.currentPage;
+  }
+
+  var stableId = await resolveStableId(section as unknown as SceneNode, container);
+  return { id: stableId, name: section.name, type: section.type, x: section.x, y: section.y, width: section.width, height: section.height };
 }
 
 async function setCornerRadius(params: any) {

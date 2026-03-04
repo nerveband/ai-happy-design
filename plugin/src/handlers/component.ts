@@ -26,7 +26,17 @@ export async function handleComponent(action: string, params: any): Promise<any>
     case 'detach_instance': return detachInstance(params);
     case 'reset_instance': return resetInstance(params);
     case 'swap_instance': return swapInstance(params);
-    default: throw new Error('Unknown component action: ' + action + '. Available: create, create_instance, create_set, get_local, get_remote, get_overrides, set_overrides, detach_instance, reset_instance, swap_instance');
+    case 'get_property_definitions':
+    case 'get_properties':
+    case 'property_definitions': return getPropertyDefinitions(params);
+    case 'set_property_definitions':
+    case 'set_properties':
+    case 'add_property':
+    case 'add_property_definition': return addPropertyDefinition(params);
+    case 'delete_property':
+    case 'remove_property':
+    case 'delete_property_definition': return deletePropertyDefinition(params);
+    default: throw new Error('Unknown component action: ' + action + '. Available: create, create_instance, create_set, get_local, get_remote, get_overrides, set_overrides, detach_instance, reset_instance, swap_instance, get_property_definitions, add_property_definition, delete_property_definition');
   }
 }
 
@@ -181,6 +191,79 @@ async function swapInstance(params: any) {
 
   (node as InstanceNode).swapComponent(newComponent as ComponentNode);
   return { id: node.id, name: node.name, newComponentId };
+}
+
+async function getPropertyDefinitions(params: any) {
+  var nodeId = params.nodeId;
+  var node = await getNodeById(nodeId);
+  if (node.type !== 'COMPONENT' && node.type !== 'COMPONENT_SET') {
+    throw new Error('Node ' + nodeId + ' is not a component or component set');
+  }
+  var comp = node as ComponentNode | ComponentSetNode;
+  return {
+    id: comp.id,
+    name: comp.name,
+    componentPropertyDefinitions: comp.componentPropertyDefinitions,
+  };
+}
+
+async function addPropertyDefinition(params: any) {
+  var nodeId = params.nodeId;
+  var node = await getNodeById(nodeId);
+  if (node.type !== 'COMPONENT' && node.type !== 'COMPONENT_SET') {
+    throw new Error('Node ' + nodeId + ' is not a component or component set');
+  }
+  var comp = node as ComponentNode | ComponentSetNode;
+
+  var propertyName = params.propertyName || params.name;
+  if (!propertyName) throw new Error('propertyName is required');
+
+  var propType = (params.type || 'TEXT').toUpperCase();
+  var definition: any = { type: propType };
+
+  if (propType === 'TEXT') {
+    definition.defaultValue = params.defaultValue || '';
+  } else if (propType === 'BOOLEAN') {
+    definition.defaultValue = params.defaultValue !== false;
+  } else if (propType === 'VARIANT') {
+    definition.defaultValue = params.defaultValue || '';
+    if (params.variantOptions) {
+      definition.variantOptions = params.variantOptions;
+    }
+  } else if (propType === 'INSTANCE_SWAP') {
+    definition.defaultValue = params.defaultValue || '';
+    if (params.preferredValues) {
+      definition.preferredValues = params.preferredValues;
+    }
+  }
+
+  comp.addComponentProperty(propertyName, definition.type, definition.defaultValue);
+  return {
+    id: comp.id,
+    name: comp.name,
+    propertyName: propertyName,
+    componentPropertyDefinitions: comp.componentPropertyDefinitions,
+  };
+}
+
+async function deletePropertyDefinition(params: any) {
+  var nodeId = params.nodeId;
+  var node = await getNodeById(nodeId);
+  if (node.type !== 'COMPONENT' && node.type !== 'COMPONENT_SET') {
+    throw new Error('Node ' + nodeId + ' is not a component or component set');
+  }
+  var comp = node as ComponentNode | ComponentSetNode;
+
+  var propertyName = params.propertyName || params.name;
+  if (!propertyName) throw new Error('propertyName is required');
+
+  comp.deleteComponentProperty(propertyName);
+  return {
+    id: comp.id,
+    name: comp.name,
+    deleted: propertyName,
+    componentPropertyDefinitions: comp.componentPropertyDefinitions,
+  };
 }
 
 async function getOverrides(params: any) {

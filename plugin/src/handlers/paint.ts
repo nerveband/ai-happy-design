@@ -160,9 +160,14 @@ async function setGradient(params: any) {
     type: typeMap[gradientType] || 'GRADIENT_LINEAR',
     gradientStops: stops.map((s: any) => {
       const c = parseHexColor(s?.color, { r: 0, g: 0, b: 0, a: 1 });
+      // Support per-stop opacity: explicit opacity field overrides hex alpha
+      var alpha = c.a;
+      if (typeof s?.opacity === 'number') {
+        alpha = s.opacity;
+      }
       return {
         position: s?.position ?? 0,
-        color: { r: c.r, g: c.g, b: c.b, a: c.a },
+        color: { r: c.r, g: c.g, b: c.b, a: alpha },
       };
     }),
     gradientTransform: gradientTransformFromAngle(params.angle ?? params.rotation ?? 90),

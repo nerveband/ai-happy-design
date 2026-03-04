@@ -81,7 +81,12 @@ export async function handleText(action: string, params: any): Promise<any> {
     case 'set_range_style':
     case 'range_style':
     case 'style_ranges': return setRangeStyle(params);
-    default: throw new Error('Unknown text action: ' + action + '. Available: create, set_content, set_font, set_size, set_weight, set_color, set_align, set_spacing, set_line_height, set_letter_spacing, set_decoration, set_case, set_paragraph_spacing, get_content, get_segments, load_font, set_style_id, list_fonts, set_range_style');
+    case 'set_opentype':
+    case 'set_opentype_features':
+    case 'opentype_features': return setOpentypeFeatures(params);
+    case 'get_opentype':
+    case 'get_opentype_features': return getOpentypeFeatures(params);
+    default: throw new Error('Unknown text action: ' + action + '. Available: create, set_content, set_font, set_size, set_weight, set_color, set_align, set_spacing, set_line_height, set_letter_spacing, set_decoration, set_case, set_paragraph_spacing, get_content, get_segments, load_font, set_style_id, list_fonts, set_range_style, set_opentype_features, get_opentype_features');
   }
 }
 
@@ -470,6 +475,41 @@ export function resolveRange(
   if (start === end) return null;
 
   return { start, end };
+}
+
+async function setOpentypeFeatures(params: any) {
+  var node = await getTextNodeById(params.nodeId);
+  await loadNodeFonts(node);
+
+  var features = params.features;
+  if (typeof features === 'string') {
+    try {
+      features = JSON.parse(features);
+    } catch (e) {
+      throw new Error('Invalid features JSON');
+    }
+  }
+  if (!features || typeof features !== 'object') {
+    throw new Error('features object is required (e.g. {"liga":true,"smcp":true})');
+  }
+
+  if (params.rangeStart !== undefined && params.rangeEnd !== undefined) {
+    (node as any).setRangeOpenTypeFeatures(params.rangeStart, params.rangeEnd, features);
+  } else {
+    (node as any).openTypeFeatures = features;
+  }
+  return { id: node.id, name: node.name, openTypeFeatures: features };
+}
+
+async function getOpentypeFeatures(params: any) {
+  var node = await getTextNodeById(params.nodeId);
+
+  if (params.rangeStart !== undefined && params.rangeEnd !== undefined) {
+    var rangeFeatures = node.getRangeOpenTypeFeatures(params.rangeStart, params.rangeEnd);
+    return { id: node.id, name: node.name, openTypeFeatures: rangeFeatures };
+  }
+
+  return { id: node.id, name: node.name, openTypeFeatures: node.openTypeFeatures };
 }
 
 async function setRangeStyle(params: any) {
