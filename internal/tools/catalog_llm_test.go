@@ -1,69 +1,48 @@
 package tools
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 )
 
-func TestLLMCatalogDiscoveryIncludesImagePrepAndQualityHints(t *testing.T) {
+func TestLLMCatalogDiscoverySection(t *testing.T) {
 	catalog := LLMCatalog()
 	discovery, ok := catalog["discovery"].(map[string]interface{})
 	if !ok {
 		t.Fatalf("expected discovery map in catalog")
 	}
 
-	if got, ok := discovery["batchHelp"].(string); !ok || strings.TrimSpace(got) == "" {
-		t.Fatalf("expected non-empty discovery.batchHelp")
-	}
-
-	quickStart, ok := discovery["quickStart"].([]string)
-	if !ok {
-		t.Fatalf("expected discovery.quickStart as []string")
-	}
-	if !containsString(quickStart, "ai-happy-design batch --help") {
-		t.Fatalf("expected quickStart to include batch help, got: %v", quickStart)
-	}
-
-	hint := fmt.Sprint(discovery["batchOutputFields"])
-	if !strings.Contains(hint, "output.imagePrep") || !strings.Contains(hint, "summary.qualityGate") {
-		t.Fatalf("expected batch output hint to mention imagePrep and qualityGate, got: %q", hint)
-	}
-}
-
-func TestLLMCatalogBatchObservabilityContract(t *testing.T) {
-	catalog := LLMCatalog()
-	obs, ok := catalog["batchObservability"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("expected batchObservability section")
-	}
-
-	fields, ok := obs["fields"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("expected batchObservability.fields map")
-	}
-	for _, key := range []string{"summary", "timing", "imagePrep"} {
-		if _, exists := fields[key]; !exists {
-			t.Fatalf("expected batchObservability.fields[%q]", key)
+	for _, key := range []string{"tools", "actions", "examples", "batch"} {
+		if got, ok := discovery[key].(string); !ok || strings.TrimSpace(got) == "" {
+			t.Fatalf("expected non-empty discovery.%s", key)
 		}
 	}
 }
 
-func TestLLMCatalogImageRulesExposeBatchPrepPipeline(t *testing.T) {
+func TestLLMCatalogLintChecksContract(t *testing.T) {
+	catalog := LLMCatalog()
+	lintChecks, ok := catalog["lintChecks"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected lintChecks map")
+	}
+	for _, key := range []string{"absolute_child_non_autolayout", "absolute_overflow", "overflow", "overlap"} {
+		if _, exists := lintChecks[key]; !exists {
+			t.Fatalf("expected lintChecks[%q]", key)
+		}
+	}
+}
+
+func TestLLMCatalogImageRulesSection(t *testing.T) {
 	catalog := LLMCatalog()
 	imageRules, ok := findNestedMap(catalog, "imageRules")
 	if !ok {
 		t.Fatalf("expected imageRules section in catalog")
 	}
 
-	pipeline, ok := imageRules["batchPrepPipeline"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("expected imageRules.batchPrepPipeline section")
-	}
-
-	reporting := fmt.Sprint(pipeline["reporting"])
-	if !strings.Contains(reporting, "output.imagePrep") {
-		t.Fatalf("expected batch prep reporting hint to mention output.imagePrep, got %q", reporting)
+	for _, key := range []string{"_overview", "methods", "imageData", "scaleModes"} {
+		if _, exists := imageRules[key]; !exists {
+			t.Fatalf("expected imageRules[%q]", key)
+		}
 	}
 }
 
@@ -80,36 +59,52 @@ func TestSetupInstructionsIncludeCLIDiscoverySequence(t *testing.T) {
 	}
 }
 
-func TestLLMCatalogFirstPassGuardrailsAndAbsoluteLintRules(t *testing.T) {
-	catalog := LLMCatalog()
-
-	lintChecks, ok := catalog["lintChecks"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("expected lintChecks map")
+func TestDesignGuideIncludesLintChecks(t *testing.T) {
+	guide := DesignGuide()
+	if _, ok := guide["lintChecks"].(map[string]interface{}); !ok {
+		t.Fatalf("expected design guide to include lintChecks")
 	}
-	for _, key := range []string{"absolute_child_non_autolayout", "absolute_overflow"} {
-		if _, exists := lintChecks[key]; !exists {
-			t.Fatalf("expected lintChecks[%q]", key)
-		}
+	if _, ok := guide["designThinking"].(map[string]interface{}); !ok {
+		t.Fatalf("expected design guide to include designThinking")
 	}
-
-	guardrails, ok := catalog["firstPassGuardrails"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("expected firstPassGuardrails map")
-	}
-	firstRun := fmt.Sprint(guardrails["5_firstRunQuality"])
-	if !strings.Contains(firstRun, "--strict-quality") {
-		t.Fatalf("expected strict-quality guidance in firstPassGuardrails, got %q", firstRun)
+	if _, ok := guide["designPatterns"].(map[string]interface{}); !ok {
+		t.Fatalf("expected design guide to include designPatterns")
 	}
 }
 
-func TestDesignGuideIncludesFirstPassGuardrailsAndLintChecks(t *testing.T) {
-	guide := DesignGuide()
-	if _, ok := guide["firstPassGuardrails"].(map[string]interface{}); !ok {
-		t.Fatalf("expected design guide to include firstPassGuardrails")
+func TestLLMCatalogDesignPatternsPresent(t *testing.T) {
+	catalog := LLMCatalog()
+	dt, ok := catalog["designThinking"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected designThinking map")
 	}
-	if _, ok := guide["lintChecks"].(map[string]interface{}); !ok {
-		t.Fatalf("expected design guide to include lintChecks")
+	for _, key := range []string{"cssToFigma", "visualHierarchy", "designDecisions", "layerOrganization"} {
+		if _, exists := dt[key]; !exists {
+			t.Fatalf("expected designThinking[%q]", key)
+		}
+	}
+
+	dp, ok := catalog["designPatterns"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected designPatterns map")
+	}
+	for _, key := range []string{"coordinateSystem", "autoLayout", "sizingSystem", "balance"} {
+		if _, exists := dp[key]; !exists {
+			t.Fatalf("expected designPatterns[%q]", key)
+		}
+	}
+}
+
+func TestLLMCatalogWorkflowSection(t *testing.T) {
+	catalog := LLMCatalog()
+	wf, ok := catalog["workflow"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected workflow map")
+	}
+	for _, key := range []string{"rule", "create", "edit", "verify"} {
+		if _, exists := wf[key]; !exists {
+			t.Fatalf("expected workflow[%q]", key)
+		}
 	}
 }
 
