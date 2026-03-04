@@ -29,6 +29,7 @@ import (
 	pluginpkg "github.com/nerveband/ai-happy-design/internal/plugin"
 	relaymgr "github.com/nerveband/ai-happy-design/internal/relay"
 	"github.com/nerveband/ai-happy-design/internal/tools"
+	"github.com/nerveband/ai-happy-design/internal/validate"
 	"github.com/nerveband/ai-happy-design/internal/ws"
 )
 
@@ -518,6 +519,49 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 		}
 		ops, imagePrep := preprocessBatchImageData(ops, batchCompressImages, "", true)
 
+		// Schema validation (warn+fix mode)
+		var schemaResult validate.Result
+		if !batchNoFix {
+			validationOps := make([]map[string]interface{}, len(ops))
+			for i, op := range ops {
+				validationOps[i] = map[string]interface{}{
+					"command": op.Command,
+					"params":  op.Params,
+					"name":    op.Name,
+				}
+			}
+			schemaResult = validate.ValidateBatch(validationOps)
+			// Write fixed values back to ops
+			for i, vo := range validationOps {
+				if cmd, ok := vo["command"].(string); ok {
+					ops[i].Command = cmd
+				}
+				if p, ok := vo["params"].(map[string]interface{}); ok {
+					ops[i].Params = p
+				}
+			}
+			if schemaResult.Fixed > 0 || len(schemaResult.Warnings) > 0 {
+				fmt.Fprintf(os.Stderr, "[schema] %d fixed, %d warnings, %d blocked\n",
+					schemaResult.Fixed, len(schemaResult.Warnings), schemaResult.Blocked)
+			}
+			if batchStrictQuality && schemaResult.Blocked > 0 {
+				out := map[string]interface{}{
+					"ok": false,
+					"preValidation": map[string]interface{}{
+						"schema": map[string]interface{}{
+							"warnings": schemaResult.Warnings,
+							"errors":   schemaResult.Errors,
+							"fixed":    schemaResult.Fixed,
+							"blocked":  schemaResult.Blocked,
+						},
+					},
+				}
+				j, _ := json.MarshalIndent(out, "", "  ")
+				fmt.Println(string(j))
+				return fmt.Errorf("schema validation blocked %d issues", schemaResult.Blocked)
+			}
+		}
+
 		for i, op := range ops {
 			opStart := time.Now()
 			op.Name = batchutil.SanitizeStepName(op.Name)
@@ -695,6 +739,17 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 				"imagePrep":    imagePrepSummaryMap(imagePrep),
 				"stoppedEarly": stoppedEarly,
 				"steps":        results,
+			}
+		}
+
+		// Include schema validation results if any
+		if schemaResult.Fixed > 0 || len(schemaResult.Warnings) > 0 {
+			out["preValidation"] = map[string]interface{}{
+				"schema": map[string]interface{}{
+					"warnings": schemaResult.Warnings,
+					"fixed":    schemaResult.Fixed,
+					"blocked":  schemaResult.Blocked,
+				},
 			}
 		}
 
