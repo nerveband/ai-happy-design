@@ -26,7 +26,6 @@ import (
 	"github.com/nerveband/ai-happy-design/internal/designlint"
 	"github.com/nerveband/ai-happy-design/internal/extract"
 	"github.com/nerveband/ai-happy-design/internal/imgutil"
-	"github.com/nerveband/ai-happy-design/internal/mcp"
 	pluginpkg "github.com/nerveband/ai-happy-design/internal/plugin"
 	relaymgr "github.com/nerveband/ai-happy-design/internal/relay"
 	"github.com/nerveband/ai-happy-design/internal/tools"
@@ -47,43 +46,6 @@ Discovery-first flow for LLM agents:
   2) ai-happy-design actions [domain]
   3) ai-happy-design batch --help`,
 	Version: version,
-}
-
-var mcpCmd = &cobra.Command{
-	Use:   "mcp",
-	Short: "Start MCP server (stdio transport)",
-	Long: `Starts the MCP server on stdio for use with AI editors (Claude Code,
-Cursor, Windsurf, etc). Also starts a WebSocket relay server in the
-background for communicating with the Figma plugin. If a relay is already
-running on the configured port, it connects as a client instead.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg := loadConfig()
-
-		if !cfg.MCPEnabled {
-			fmt.Fprintln(os.Stderr, "MCP server is disabled by default. To enable it:")
-			fmt.Fprintln(os.Stderr, "  ai-happy-design config set mcp.enabled true")
-			fmt.Fprintln(os.Stderr, "")
-			fmt.Fprintln(os.Stderr, "Or register with an editor (auto-enables MCP):")
-			fmt.Fprintln(os.Stderr, "  ai-happy-design register")
-			return fmt.Errorf("MCP server is disabled")
-		}
-
-		// Try to start embedded relay, but if port is in use, connect as client
-		wsServer := ws.NewServer(cfg.Port)
-		go func() {
-			err := wsServer.Start()
-			if err != nil {
-				// Port likely in use by an existing relay — connect as client instead
-				url := fmt.Sprintf("ws://%s:%d/ws", cfg.ServerHost, cfg.Port)
-				log.Printf("[mcp] relay port %d in use, connecting as client to %s", cfg.Port, url)
-				if clientErr := wsServer.ConnectAsClient(url); clientErr != nil {
-					log.Printf("[mcp] client connect failed: %v", clientErr)
-				}
-			}
-		}()
-
-		return mcp.StartServer(wsServer)
-	},
 }
 
 var connectCmd = &cobra.Command{
@@ -2845,7 +2807,7 @@ func main() {
 	registerCmd.Flags().StringVar(&registerEditor, "editor", "", "Register with a specific editor only (e.g. 'Claude Code', 'Cursor')")
 	registerCmd.Flags().BoolVar(&registerForce, "force", false, "Force re-registration even if already configured")
 
-	rootCmd.AddCommand(mcpCmd)
+
 	rootCmd.AddCommand(connectCmd)
 	rootCmd.AddCommand(wsCmd)
 	rootCmd.AddCommand(commandCmd)

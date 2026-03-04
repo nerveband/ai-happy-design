@@ -1,42 +1,9 @@
 package tools
 
 import (
-	"context"
-	"encoding/json"
 	"math"
 	"strconv"
-
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
 )
-
-// RegisterDesignTool registers the "design" tool for computing design tokens.
-// This is a pure computation tool — no Figma connection required.
-func RegisterDesignTool(s *server.MCPServer) {
-	tool := mcp.NewTool("design",
-		mcp.WithDescription("Design helper: compute design tokens (font sizes, spacing, padding, layout) for any canvas dimensions. Call this FIRST before creating any design. No Figma connection required."),
-		mcp.WithString("action", mcp.Required(), mcp.Description("Action to perform"),
-			mcp.Enum("compute_tokens")),
-		mcp.WithNumber("width", mcp.Required(), mcp.Description("Canvas width in pixels (e.g., 1080)")),
-		mcp.WithNumber("height", mcp.Required(), mcp.Description("Canvas height in pixels (e.g., 1920)")),
-		mcp.WithNumber("dpi", mcp.Description("DPI for print designs. Default 72 for screen. Use 300 for print-ready output.")),
-	)
-
-	s.AddTool(tool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		args := req.GetArguments()
-		width := getFloat64Arg(args, "width", 0)
-		height := getFloat64Arg(args, "height", 0)
-
-		if width <= 0 || height <= 0 {
-			return mcp.NewToolResultError("width and height must be positive numbers"), nil
-		}
-
-		dpi := getFloat64Arg(args, "dpi", 0)
-		tokens := ComputeDesignTokens(width, height, dpi)
-		out, _ := json.MarshalIndent(tokens, "", "  ")
-		return mcp.NewToolResultText(string(out)), nil
-	})
-}
 
 // round8 rounds a value to the nearest multiple of 8 (used for spacing).
 func round8(v float64) int {

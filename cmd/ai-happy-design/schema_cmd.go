@@ -110,7 +110,7 @@ func printLLMSTxt() error {
 		if len(s.Aliases) > 0 {
 			fmt.Printf("Aliases: `%s`\n\n", strings.Join(s.Aliases, "`, `"))
 		}
-		fmt.Println("### Parameters\n")
+		fmt.Print("### Parameters\n\n")
 		fmt.Println("| Param | Type | Required | Default | Constraints | Description |")
 		fmt.Println("|-------|------|----------|---------|-------------|-------------|")
 		for _, p := range s.Params {

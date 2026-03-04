@@ -1,58 +1,10 @@
 package tools
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
-
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
-	"github.com/nerveband/ai-happy-design/internal/figma"
 )
-
-func RegisterDesignSystemTool(s *server.MCPServer, commander *figma.Commander) {
-	tool := mcp.NewTool("design_system",
-		mcp.WithDescription("Analyze the current Figma file's styles, variables, and components to generate design consistency rules. Use before creating designs in existing files."),
-		mcp.WithString("action", mcp.Required(), mcp.Description("Action to perform"),
-			mcp.Enum("analyze")),
-	)
-
-	s.AddTool(tool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		action := getStringArg(req.GetArguments(), "action", "")
-		switch action {
-		case "analyze":
-			return analyzeDesignSystem(commander)
-		default:
-			return mcp.NewToolResultError(fmt.Sprintf("unknown design_system action: %s", action)), nil
-		}
-	})
-}
-
-func analyzeDesignSystem(commander *figma.Commander) (*mcp.CallToolResult, error) {
-	stylesRaw, err := commander.SendCommand("get_all_styles", map[string]interface{}{})
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("failed to get styles: %s", err)), nil
-	}
-
-	varsRaw, err := commander.SendCommand("get_all_variables", map[string]interface{}{})
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("failed to get variables: %s", err)), nil
-	}
-
-	compsRaw, err := commander.SendCommand("get_local_components", map[string]interface{}{})
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("failed to get components: %s", err)), nil
-	}
-
-	styles := dsToMap(stylesRaw)
-	vars := dsToMap(varsRaw)
-	comps := dsToMap(compsRaw)
-
-	result := buildDesignRules(styles, vars, comps)
-	out, _ := json.MarshalIndent(result, "", "  ")
-	return mcp.NewToolResultText(string(out)), nil
-}
 
 func buildDesignRules(styles, vars, comps map[string]interface{}) map[string]interface{} {
 	rules := map[string]interface{}{}
