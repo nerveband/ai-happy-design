@@ -23,6 +23,7 @@ import (
 	"github.com/nerveband/ai-happy-design/internal/batchutil"
 	"github.com/nerveband/ai-happy-design/internal/benchmark"
 	"github.com/nerveband/ai-happy-design/internal/config"
+	"github.com/nerveband/ai-happy-design/internal/designlint"
 	"github.com/nerveband/ai-happy-design/internal/extract"
 	"github.com/nerveband/ai-happy-design/internal/imgutil"
 	"github.com/nerveband/ai-happy-design/internal/mcp"
@@ -562,6 +563,46 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 			}
 		}
 
+		// Design lint (pre-execution quality checks)
+		var lintResult designlint.Result
+		if batchLint && !batchNoLint {
+			lintOps := make([]map[string]interface{}, len(ops))
+			for i, op := range ops {
+				lintOps[i] = map[string]interface{}{
+					"command": op.Command,
+					"params":  op.Params,
+					"name":    op.Name,
+				}
+			}
+			lintResult = designlint.Check(lintOps)
+			// Write fixes back
+			for i, lo := range lintOps {
+				if p, ok := lo["params"].(map[string]interface{}); ok {
+					ops[i].Params = p
+				}
+			}
+			if lintResult.Fixed > 0 || len(lintResult.Warnings) > 0 {
+				fmt.Fprintf(os.Stderr, "[design-lint] %d fixed, %d warnings, score: %.1f/10\n",
+					lintResult.Fixed, len(lintResult.Warnings), lintResult.Score.Overall)
+			}
+			if batchStrictQuality && lintResult.Score.Overall < 7.0 {
+				out := map[string]interface{}{
+					"ok": false,
+					"preValidation": map[string]interface{}{
+						"designLint": map[string]interface{}{
+							"canvas":   lintResult.Canvas,
+							"warnings": lintResult.Warnings,
+							"fixed":    lintResult.Fixed,
+							"score":    lintResult.Score,
+						},
+					},
+				}
+				j, _ := json.MarshalIndent(out, "", "  ")
+				fmt.Println(string(j))
+				return fmt.Errorf("design quality score %.1f/10 below threshold 7.0", lintResult.Score.Overall)
+			}
+		}
+
 		for i, op := range ops {
 			opStart := time.Now()
 			op.Name = batchutil.SanitizeStepName(op.Name)
@@ -742,15 +783,26 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 			}
 		}
 
-		// Include schema validation results if any
+		// Include pre-validation results (schema + design lint)
+		preVal := map[string]interface{}{}
 		if schemaResult.Fixed > 0 || len(schemaResult.Warnings) > 0 {
-			out["preValidation"] = map[string]interface{}{
-				"schema": map[string]interface{}{
-					"warnings": schemaResult.Warnings,
-					"fixed":    schemaResult.Fixed,
-					"blocked":  schemaResult.Blocked,
-				},
+			preVal["schema"] = map[string]interface{}{
+				"warnings": schemaResult.Warnings,
+				"fixed":    schemaResult.Fixed,
+				"blocked":  schemaResult.Blocked,
 			}
+		}
+		if lintResult.Fixed > 0 || len(lintResult.Warnings) > 0 {
+			preVal["designLint"] = map[string]interface{}{
+				"canvas":   lintResult.Canvas,
+				"tokens":   lintResult.Tokens,
+				"warnings": lintResult.Warnings,
+				"fixed":    lintResult.Fixed,
+				"score":    lintResult.Score,
+			}
+		}
+		if len(preVal) > 0 {
+			out["preValidation"] = preVal
 		}
 
 		// Post-batch lint: check created root frames for design issues.
