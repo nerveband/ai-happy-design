@@ -358,7 +358,10 @@ func (s *Server) writePump(conn *Conn) {
 		select {
 		case msg, ok := <-conn.sendCh:
 			if !ok {
-				conn.ws.WriteMessage(websocket.CloseMessage, []byte{})
+				// Channel closed — send close frame with 4000 ("evicted") so client
+				// knows not to auto-reconnect.
+				closeMsg := websocket.FormatCloseMessage(4000, "evicted")
+				conn.ws.WriteMessage(websocket.CloseMessage, closeMsg)
 				return
 			}
 			conn.ws.SetWriteDeadline(time.Now().Add(120 * time.Second))

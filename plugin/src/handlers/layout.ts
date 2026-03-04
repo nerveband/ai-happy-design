@@ -248,17 +248,23 @@ async function setGrid(params: any) {
       };
       layoutGrids.push(gridItem);
     } else {
-      var colRow: RowsColsLayoutGrid = {
+      var align = g.alignment || 'STRETCH';
+      var colRow: any = {
         pattern: pattern === 'ROWS' ? 'ROWS' : 'COLUMNS',
-        sectionSize: g.sectionSize || g.size || 0,
         visible: g.visible !== false,
         color: g.color ? parseHexColor(g.color) : { r: 0.06, g: 0.45, b: 1, a: 0.1 },
-        alignment: g.alignment || 'STRETCH',
+        alignment: align,
         gutterSize: g.gutterSize || g.gutter || 20,
         count: g.count || 12,
-        offset: g.offset || 0,
       };
-      layoutGrids.push(colRow);
+      // sectionSize only valid when alignment is not STRETCH
+      if (g.sectionSize != null || g.size != null) {
+        colRow.sectionSize = g.sectionSize || g.size;
+      }
+      if (g.offset != null) {
+        colRow.offset = g.offset;
+      }
+      layoutGrids.push(colRow as LayoutGrid);
     }
   }
 

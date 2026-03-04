@@ -86,6 +86,14 @@ export class WSClient {
         return;
       }
 
+      // Code 4000 = evicted by server (newer plugin connection replaced us).
+      // Do NOT reconnect — the new connection is the active one.
+      if (event.code === 4000) {
+        this.options.onStatusChange('disconnected');
+        this.options.onLog('Replaced by newer plugin connection. Not reconnecting.', 'info');
+        return;
+      }
+
       // Actionable error messages based on close code
       if (event.code === 1006) {
         this.options.onLog('Relay not running or unreachable.', 'error');
