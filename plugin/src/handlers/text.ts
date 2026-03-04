@@ -168,6 +168,15 @@ async function createText(params: any) {
     text.textCase = params.textCase;
   }
 
+  // Text truncation
+  if (params.maxLines != null) {
+    text.maxLines = params.maxLines;
+    text.textTruncation = 'ENDING';
+  }
+  if (params.textTruncation != null) {
+    text.textTruncation = params.textTruncation;
+  }
+
   if (params.opacity !== undefined) {
     text.opacity = Math.max(0, Math.min(1, params.opacity));
   }

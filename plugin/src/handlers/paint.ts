@@ -272,5 +272,16 @@ async function setStroke(params: any) {
     const align = params.alignment ?? params.strokeAlign;
     if (align) (node as any).strokeAlign = align;
   }
+  // Dash pattern
+  if (params.dashPattern != null && 'dashPattern' in node) {
+    (node as any).dashPattern = params.dashPattern;
+  }
+  // Stroke cap and join
+  if (params.strokeCap != null && 'strokeCap' in node) {
+    (node as any).strokeCap = params.strokeCap;
+  }
+  if (params.strokeJoin != null && 'strokeJoin' in node) {
+    (node as any).strokeJoin = params.strokeJoin;
+  }
   return { id: node.id, name: node.name };
 }

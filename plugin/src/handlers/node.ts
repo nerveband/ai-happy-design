@@ -140,6 +140,21 @@ async function createFrame(params: any) {
   }
   if (clipsContent !== undefined) frame.clipsContent = clipsContent;
 
+  // Min/max sizing (auto-layout children only)
+  if (params.minWidth != null) frame.minWidth = params.minWidth;
+  if (params.maxWidth != null) frame.maxWidth = params.maxWidth;
+  if (params.minHeight != null) frame.minHeight = params.minHeight;
+  if (params.maxHeight != null) frame.maxHeight = params.maxHeight;
+
+  // Constrain proportions
+  if (params.constrainProportions != null) frame.constrainProportions = params.constrainProportions;
+
+  // Structural frame shorthand: remove default fill, enable clipping
+  if (params.structural) {
+    frame.fills = [];
+    frame.clipsContent = true;
+  }
+
   // Auto-layout
   var layoutMode = params.layoutMode ?? params.direction;
   if (layoutMode) {
@@ -433,6 +448,30 @@ async function modifyNode(params: any) {
   if (params.blendMode !== undefined && 'blendMode' in node) {
     (node as any).blendMode = params.blendMode;
     changed.push('blendMode');
+  }
+
+  // Min/max sizing (auto-layout children only)
+  if (params.minWidth != null && 'minWidth' in node) {
+    (node as any).minWidth = params.minWidth;
+    changed.push('minWidth');
+  }
+  if (params.maxWidth != null && 'maxWidth' in node) {
+    (node as any).maxWidth = params.maxWidth;
+    changed.push('maxWidth');
+  }
+  if (params.minHeight != null && 'minHeight' in node) {
+    (node as any).minHeight = params.minHeight;
+    changed.push('minHeight');
+  }
+  if (params.maxHeight != null && 'maxHeight' in node) {
+    (node as any).maxHeight = params.maxHeight;
+    changed.push('maxHeight');
+  }
+
+  // Constrain proportions
+  if (params.constrainProportions != null && 'constrainProportions' in node) {
+    (node as any).constrainProportions = params.constrainProportions;
+    changed.push('constrainProportions');
   }
 
   return { id: node.id, name: node.name, type: node.type, modified: changed };

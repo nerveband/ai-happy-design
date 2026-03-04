@@ -130,6 +130,9 @@ async function createRectangle(params: any) {
   }
   applyFill(rect, params.color ?? params.fillColor);
   applyGeometryStyle(rect, params);
+  if (params.constrainProportions != null) {
+    rect.constrainProportions = params.constrainProportions;
+  }
 
   const parent = await getParentNode(params.parentId);
   parent.appendChild(rect);
@@ -146,6 +149,9 @@ async function createEllipse(params: any) {
   if (params.name) ellipse.name = params.name;
   applyFill(ellipse, params.color ?? params.fillColor);
   applyGeometryStyle(ellipse, params);
+  if (params.constrainProportions != null) {
+    ellipse.constrainProportions = params.constrainProportions;
+  }
 
   const arcStartAngle = params.arcStartAngle;
   const arcEndAngle = params.arcEndAngle;
