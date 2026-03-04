@@ -5,28 +5,30 @@ Guidance for AI coding agents working on AI Happy Design v2.
 ## Project Goal
 
 A single Go binary + Figma plugin that gives LLMs full Figma canvas access through:
-- MCP server for AI tool calls
-- CLI for direct operations
+- CLI for direct operations (schema-validated, design-linted)
 - WebSocket relay to Figma plugin
 - Built-in design intelligence (catalog + design guide)
+- Schema system with auto-correction and fuzzy matching
 
 ## System Components
 
 ### 1) Go Binary
 - Entry: `cmd/ai-happy-design/main.go`
-- Modes: `mcp` (stdio MCP + embedded relay), `ws` (relay only), `command`, `batch`, `tools`
+- Modes: `ws` (relay only), `command`, `batch`, `tools`, `schema`, `validate`, `guide`
 
 ### 2) Relay Layer
 - Server: `internal/ws/server.go`
 - Client: `internal/ws/client.go`
 - Legacy command routing: `internal/ws/command_routing.go`
 
-### 3) MCP Tool Layer
-- Registry: `internal/tools/registry.go`
-- Domain tools: `internal/tools/*.go`
+### 3) Schema + Validation Layer
+- Schema types: `internal/schema/types.go`
+- Schema registry: `internal/schema/registry.go`
+- Command schemas: `internal/schema/*_schemas.go`
+- Validator: `internal/validate/validator.go` (fuzzy matching, named colors, auto-fix)
+- Design lint: `internal/designlint/lint.go` (text sizing, contrast, spacing, scoring)
 - **LLM catalog (SOURCE OF TRUTH)**: `internal/tools/catalog_llm.go`
 - Describe tool: `internal/tools/describe.go`
-- Bulk tool: `internal/tools/bulk.go`
 
 ### 4) Plugin Runtime
 - Entry: `plugin/src/main.ts`
@@ -97,11 +99,13 @@ Use `await figma.getNodeByIdAsync(...)`. Avoid deprecated sync getters.
 
 ### Discovery endpoints:
 
-| Endpoint | Returns |
-|----------|---------|
-| `describe(action="catalog")` | Full catalog: tools + examples + design patterns + playbook |
-| `describe(action="design_guide")` | Focused: design thinking + patterns + playbook |
-| `describe(action="setup")` | Installation and connection instructions |
+| CLI Command | Returns |
+|-------------|---------|
+| `ai-happy-design schema` | List all commands with descriptions |
+| `ai-happy-design schema <command> --json` | Exact JSON schema for a command |
+| `ai-happy-design validate` | Dry-run validation (schema + design lint) |
+| `ai-happy-design guide` | Design intelligence (visual hierarchy, composition, effects) |
+| `ai-happy-design schema --all` | Full command reference (for llms-full.txt) |
 
 ### When updating design rules:
 
@@ -109,21 +113,23 @@ Use `await figma.getNodeByIdAsync(...)`. Avoid deprecated sync getters.
 2. Run `go build ./...` to verify compilation
 3. Rebuild binary: `make build && cp bin/ai-happy-design ~/bin/`
 4. Restart relay if running
-5. **Do NOT duplicate rules** into SKILL.md, AGENTS.md, or reference files — they all point to the MCP
+5. **Do NOT duplicate rules** into SKILL.md, AGENTS.md, or reference files — they all point to the CLI
 
 ### What references the catalog (but does NOT define rules):
 - **Claude skill** (`~/.claude/skills/ai-happy-design/SKILL.md`) — workflow + "call design_guide for rules"
 - **Skill reference files** (`references/design-patterns.md`) — quick offline fallback only
-- **README.md** — user-facing overview, links to MCP actions
+- **README.md** — user-facing overview, links to CLI commands
 - **This file (AGENTS.md)** — architecture + development practices
 
 ## Build/Test Commands
 
 ```bash
 make build                              # Go binary
-go test ./...                           # Go tests
+go test ./...                           # Go tests (schema, validate, designlint, tools)
 go build ./...                          # Verify compilation
 cd plugin && npm run check && cd ..     # Plugin typecheck + build + syntax verification
+ai-happy-design schema text.create      # Verify schema system
+ai-happy-design validate                # Verify validation pipeline
 ```
 
 ## Development Practices (Learned)
@@ -157,7 +163,7 @@ cd plugin && npm run check && cd ..     # Plugin typecheck + build + syntax veri
 
 ## CLI-First Development
 
-CLI is the priority path — fastest for bulk ops and what LLM agents use for heavy design work. Every feature works in CLI first, then gets a matching MCP tool.
+CLI is the only interface — fastest for bulk ops and what LLM agents use for heavy design work.
 
 **Compact aliases** for batch/CLI: `frame`, `rect`, `text`, `fill`, `stroke`, `gradient`, `shadow`, `blur`, `glass`, `noise`, `texture`, `modify`, `mask`, `find`.
 
@@ -180,7 +186,7 @@ CLI is the priority path — fastest for bulk ops and what LLM agents use for he
 ## Editing Rules for Agents
 
 1. Preserve backward compatibility for legacy command names via `internal/ws/command_routing.go`
-2. Keep error messages useful and pass-through to CLI + MCP
+2. Keep error messages useful and pass-through to CLI
 3. **Design rule changes go ONLY in `catalog_llm.go`** — never duplicate elsewhere
 4. Add/adjust tests when routing or envelope logic changes
 5. Do not silently change message schemas
@@ -228,4 +234,3 @@ skillshare sync
 - Figma Plugin API: https://developers.figma.com/docs/plugins/api/api-reference/
 - Figma plugin manifest: https://developers.figma.com/docs/plugins/manifest
 - Plugin typings: https://github.com/figma/plugin-typings
-- MCP specification: https://modelcontextprotocol.io/specification/latest/basic/lifecycle
