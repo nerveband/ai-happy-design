@@ -8,26 +8,29 @@ import (
 	"regexp"
 
 	"github.com/nerveband/ai-happy-design/internal/batchutil"
+	"github.com/nerveband/ai-happy-design/internal/validate"
 	"github.com/spf13/cobra"
 )
 
 var validateFixFlag bool
 
 var validateCmd = &cobra.Command{
-	Use:   "validate [file.json or '-' for stdin]",
-	Short: "Validate batch JSON against the ai-happy-design schema",
-	Long: `Checks batch JSON for common schema errors before sending to Figma.
+	Use:   "validate [file.json or operations-json or '-' for stdin]",
+	Short: "Dry-run: validate batch JSON without executing (structural + schema checks)",
+	Long: `Runs the full validation pipeline without sending any commands to Figma.
 
 Detects:
   - Using 'type' instead of 'command'
   - Missing 'params' field
   - Design properties at top level instead of inside params
-  - Broken ${{steps.X.result.id}} references (X not defined as a step name)
+  - Broken ${{steps.X.result.id}} references
+  - Unknown commands (with fuzzy suggestions)
+  - Invalid enum values (with auto-correction)
+  - Out-of-bounds numbers (with clamping)
+  - Named CSS colors (converted to hex)
+  - Missing dependencies (e.g. lineHeightUnit for lineHeight)
 
-Use --fix to auto-correct common issues in-place before validating:
-  - Strips markdown fences (models add these even when told not to)
-  - Renames "type" to "command"
-  - Hoists top-level design props (x, y, color, etc.) into "params"
+Use --fix to auto-correct common issues in-place before validating.
 
 Exit code 0 = valid, 1 = validation errors found.`,
 	Args: cobra.MaximumNArgs(1),
@@ -38,6 +41,11 @@ Exit code 0 = valid, 1 = validation errors found.`,
 		var err error
 		if fromFile {
 			data, err = os.ReadFile(args[0])
+		} else if len(args) > 0 && args[0] == "-" {
+			data, err = io.ReadAll(os.Stdin)
+		} else if len(args) > 0 {
+			// Inline JSON
+			data = []byte(args[0])
 		} else {
 			data, err = io.ReadAll(os.Stdin)
 		}
@@ -48,13 +56,13 @@ Exit code 0 = valid, 1 = validation errors found.`,
 		if validateFixFlag {
 			fixed, fixes, fixErr := batchutil.FixBatchOps(data)
 			if fixErr != nil {
-				fmt.Fprintf(os.Stderr, "✗ Could not parse input: %v\n", fixErr)
+				fmt.Fprintf(os.Stderr, "Could not parse input: %v\n", fixErr)
 				os.Exit(1)
 				return nil
 			}
 
 			if len(fixes) > 0 {
-				fmt.Fprintf(os.Stderr, "✎ Applied %d fix(es):\n", len(fixes))
+				fmt.Fprintf(os.Stderr, "Applied %d fix(es):\n", len(fixes))
 				for _, f := range fixes {
 					fmt.Fprintf(os.Stderr, "  %s\n", f)
 				}
@@ -62,9 +70,8 @@ Exit code 0 = valid, 1 = validation errors found.`,
 					if writeErr := os.WriteFile(args[0], fixed, 0644); writeErr != nil {
 						return fmt.Errorf("write error: %w", writeErr)
 					}
-					fmt.Fprintf(os.Stderr, "  → written back to %s\n", args[0])
+					fmt.Fprintf(os.Stderr, "  written back to %s\n", args[0])
 				} else {
-					// stdin mode: emit fixed JSON to stdout
 					fmt.Println(string(fixed))
 					return nil
 				}
@@ -73,16 +80,57 @@ Exit code 0 = valid, 1 = validation errors found.`,
 			data = fixed
 		}
 
-		errs := validateBatchOps(data)
-		if len(errs) == 0 {
-			fmt.Println("✓ Valid — 0 errors found")
+		// Structural validation (existing checks)
+		structuralErrs := validateBatchOps(data)
+
+		// Schema validation (new)
+		var ops []map[string]interface{}
+		if jsonErr := json.Unmarshal(data, &ops); jsonErr != nil {
+			out := map[string]interface{}{
+				"ok":     false,
+				"errors": []string{fmt.Sprintf("Invalid JSON: %v", jsonErr)},
+			}
+			j, _ := json.MarshalIndent(out, "", "  ")
+			fmt.Println(string(j))
+			os.Exit(1)
 			return nil
 		}
-		fmt.Fprintf(os.Stderr, "✗ %d error(s) found:\n\n", len(errs))
-		for _, e := range errs {
-			fmt.Fprintln(os.Stderr, "  "+e)
+
+		// Convert to validation format
+		validationOps := make([]map[string]interface{}, len(ops))
+		for i, op := range ops {
+			validationOps[i] = map[string]interface{}{
+				"command": op["command"],
+				"params":  op["params"],
+				"name":    op["name"],
+			}
 		}
-		os.Exit(1)
+
+		schemaResult := validate.ValidateBatch(validationOps)
+
+		out := map[string]interface{}{
+			"ok":    len(structuralErrs) == 0 && schemaResult.Blocked == 0,
+			"total": len(ops),
+		}
+
+		if len(structuralErrs) > 0 {
+			out["structuralErrors"] = structuralErrs
+		}
+
+		out["preValidation"] = map[string]interface{}{
+			"schema": map[string]interface{}{
+				"warnings": schemaResult.Warnings,
+				"fixed":    schemaResult.Fixed,
+				"blocked":  schemaResult.Blocked,
+			},
+		}
+
+		j, _ := json.MarshalIndent(out, "", "  ")
+		fmt.Println(string(j))
+
+		if len(structuralErrs) > 0 || schemaResult.Blocked > 0 {
+			os.Exit(1)
+		}
 		return nil
 	},
 }
@@ -138,6 +186,6 @@ func validateBatchOps(data []byte) []string {
 }
 
 func init() {
-	validateCmd.Flags().BoolVar(&validateFixFlag, "fix", false, "Auto-fix common issues: markdown fences, type→command, top-level params")
+	validateCmd.Flags().BoolVar(&validateFixFlag, "fix", false, "Auto-fix common issues: markdown fences, type->command, top-level params")
 	rootCmd.AddCommand(validateCmd)
 }
