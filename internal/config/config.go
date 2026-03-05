@@ -14,6 +14,11 @@ import (
 
 const DefaultPort = 3055
 
+const (
+	configDirName       = "ahd-figma"
+	legacyConfigDirName = "ai-happy-design"
+)
+
 // Config holds all configuration values for the application.
 type Config struct {
 	Port        int
@@ -39,16 +44,25 @@ type serverConfig struct {
 }
 
 // Dir returns the configuration directory path.
-// Respects AHD_CONFIG_DIR env var, otherwise defaults to ~/.config/ai-happy-design.
+// Respects AHD_CONFIG_DIR env var, otherwise defaults to ~/.config/ahd-figma
+// while transparently reusing a legacy ~/.config/ai-happy-design directory.
 func Dir() string {
 	if d := os.Getenv("AHD_CONFIG_DIR"); d != "" {
 		return d
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return filepath.Join(".", ".config", "ai-happy-design")
+		return filepath.Join(".", ".config", configDirName)
 	}
-	return filepath.Join(home, ".config", "ai-happy-design")
+	newDir := filepath.Join(home, ".config", configDirName)
+	legacyDir := filepath.Join(home, ".config", legacyConfigDirName)
+	if _, err := os.Stat(newDir); err == nil {
+		return newDir
+	}
+	if _, err := os.Stat(legacyDir); err == nil {
+		return legacyDir
+	}
+	return newDir
 }
 
 // Path returns the full path to the config.toml file.

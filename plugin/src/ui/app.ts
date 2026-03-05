@@ -284,7 +284,7 @@ function doCheckRelay() {
 
   xhr.onerror = function() {
     relayStatusEl.className = 'relay-status relay-err';
-    relayStatusEl.textContent = 'Relay not running — run: ai-happy-design relay start';
+    relayStatusEl.textContent = 'Relay not running — run: ahd-figma relay start';
     addLog('Relay not reachable at ' + statusUrl, 'error');
   };
 
@@ -564,5 +564,5 @@ channelInfoBtn.addEventListener('click', function() {
 });
 
 // ---- Initial Log ----
-addLog('AI Happy Design ready', 'info');
+addLog('AHD Figma ready', 'info');
 requestConnectionSettings();

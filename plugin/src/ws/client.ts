@@ -97,7 +97,7 @@ export class WSClient {
       // Actionable error messages based on close code
       if (event.code === 1006) {
         this.options.onLog('Relay not running or unreachable.', 'error');
-        this.options.onLog('Start it with: ai-happy-design relay start', 'warn');
+        this.options.onLog('Start it with: ahd-figma relay start', 'warn');
       } else if (event.code === 1008 || event.code === 1003) {
         this.options.onLog('Relay rejected the connection (code ' + event.code + '). Check your channel key.', 'error');
       } else {
@@ -112,8 +112,8 @@ export class WSClient {
       if (!this.hasLoggedTroubleshooting) {
         this.hasLoggedTroubleshooting = true;
         this.options.onLog('--- Troubleshooting ---', 'info');
-        this.options.onLog('1. Run: ai-happy-design relay start', 'info');
-        this.options.onLog('2. Check: ai-happy-design relay status', 'info');
+        this.options.onLog('1. Run: ahd-figma relay start', 'info');
+        this.options.onLog('2. Check: ahd-figma relay status', 'info');
         this.options.onLog('3. Verify the relay URL matches the port', 'info');
         this.options.onLog('-----------------------', 'info');
       }

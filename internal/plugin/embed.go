@@ -12,13 +12,22 @@ import (
 //go:embed files/manifest.json files/dist/code.js files/dist/ui.html
 var pluginFiles embed.FS
 
-// DefaultPluginDir returns ~/.ai-happy-design/plugin.
+// DefaultPluginDir returns ~/.ahd-figma/plugin, falling back to the legacy
+// ~/.ai-happy-design/plugin directory when present.
 func DefaultPluginDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".ai-happy-design", "plugin"), nil
+	newDir := filepath.Join(home, ".ahd-figma", "plugin")
+	legacyDir := filepath.Join(home, ".ai-happy-design", "plugin")
+	if _, err := os.Stat(newDir); err == nil {
+		return newDir, nil
+	}
+	if _, err := os.Stat(legacyDir); err == nil {
+		return legacyDir, nil
+	}
+	return newDir, nil
 }
 
 // NeedsUpdate returns true if the plugin at dir is missing or has a different version.

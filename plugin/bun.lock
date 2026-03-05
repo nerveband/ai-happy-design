@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "ai-happy-design-plugin",
+      "name": "ahd-figma-plugin",
       "devDependencies": {
         "@figma/plugin-typings": "^1.100.0",
         "esbuild": "^0.24.0",

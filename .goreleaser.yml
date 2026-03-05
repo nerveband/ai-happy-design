@@ -6,9 +6,9 @@ before:
     - make build-plugin sync-plugin
 
 builds:
-  - id: ai-happy-design
-    main: ./cmd/ai-happy-design
-    binary: ai-happy-design
+  - id: ahd-figma
+    main: ./cmd/ahd-figma
+    binary: ahd-figma
     env:
       - CGO_ENABLED=0
     goos:

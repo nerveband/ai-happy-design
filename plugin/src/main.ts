@@ -136,4 +136,4 @@ figma.ui.onmessage = async (msg: any) => {
 };
 
 // Notify that plugin is ready
-figma.notify('AI Happy Design connected', { timeout: 2000 });
+figma.notify('AHD Figma connected', { timeout: 2000 });
