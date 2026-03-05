@@ -1,6 +1,7 @@
-.PHONY: build build-go build-plugin sync-plugin run-mcp run-ws test clean install lint
+.PHONY: build build-go build-plugin sync-plugin build-figma build-illustrator run-mcp run-ws test clean install lint
 
 FIGMA_BINARY=ahd-figma
+ILLUSTRATOR_BINARY=ahd-illustrator
 VERSION=0.0.0-dev
 
 build-plugin:
@@ -12,11 +13,15 @@ sync-plugin:
 	cp plugin/dist/code.js internal/plugin/files/dist/code.js
 	cp plugin/dist/ui.html internal/plugin/files/dist/ui.html
 
-build: build-plugin sync-plugin
+build: build-plugin sync-plugin build-go
+
+build-go: build-figma build-illustrator
+
+build-figma:
 	go build -ldflags "-X main.version=$(VERSION)" -o bin/$(FIGMA_BINARY) ./cmd/ahd-figma
 
-build-go:
-	go build -ldflags "-X main.version=$(VERSION)" -o bin/$(FIGMA_BINARY) ./cmd/ahd-figma
+build-illustrator:
+	go build -ldflags "-X main.version=$(VERSION)" -o bin/$(ILLUSTRATOR_BINARY) ./cmd/ahd-illustrator
 
 run-mcp: build
 	./bin/$(FIGMA_BINARY) mcp
@@ -32,6 +37,7 @@ clean:
 
 install: build
 	cp bin/$(FIGMA_BINARY) $(GOPATH)/bin/
+	cp bin/$(ILLUSTRATOR_BINARY) $(GOPATH)/bin/
 
 # Full deploy: build plugin + Go, sign, install to ~/bin, restart relay
 deploy: build-plugin sync-plugin

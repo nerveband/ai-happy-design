@@ -27,6 +27,22 @@ builds:
     hooks:
       post:
         - cmd: '{{ if eq .Os "darwin" }}codesign -s - -f "{{ .Path }}"{{ else }}true{{ end }}'
+  - id: ahd-illustrator
+    main: ./cmd/ahd-illustrator
+    binary: ahd-illustrator
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+    hooks:
+      post:
+        - cmd: 'codesign -s - -f "{{ .Path }}"'
 
 archives:
   - id: default
