@@ -14,6 +14,18 @@ function ahdDoc() {
   return app.activeDocument;
 }
 
+function ahdDocument(id) {
+  if (!id) return ahdDoc();
+  for (var i = 0; i < app.documents.length; i++) {
+    var doc = app.documents[i];
+    if (doc.name === id) return doc;
+    try {
+      if (doc.fullName && (doc.fullName.fsName === id || doc.fullName.fullName === id)) return doc;
+    } catch (err) {}
+  }
+  throw new Error("Document not found: " + id);
+}
+
 function ahdLayer(doc, id) {
   if (!id) return doc.activeLayer || doc.layers[0];
   for (var i = 0; i < doc.layers.length; i++) {
@@ -36,6 +48,14 @@ function ahdArtboard(doc, id) {
   for (var i = 0; i < doc.artboards.length; i++) {
     var artboard = doc.artboards[i];
     if (artboard.name === id) return artboard;
+  }
+  throw new Error("Artboard not found: " + id);
+}
+
+function ahdArtboardIndex(doc, id) {
+  if (!id) return doc.artboards.getActiveArtboardIndex();
+  for (var i = 0; i < doc.artboards.length; i++) {
+    if (doc.artboards[i].name === id) return i;
   }
   throw new Error("Artboard not found: " + id);
 }
@@ -94,11 +114,31 @@ function ahdBounds(item) {
 
 function ahdSelectionItems() {
   var items = [];
-  if (!app.selection) return items;
-  for (var i = 0; i < app.selection.length; i++) {
-    items.push(app.selection[i]);
+  if (app.documents.length === 0) return items;
+  try {
+    if (!app.selection) return items;
+    for (var i = 0; i < app.selection.length; i++) {
+      items.push(app.selection[i]);
+    }
+  } catch (err) {
+    return items;
   }
   return items;
+}
+
+function ahdDocumentPath(doc) {
+  try {
+    if (doc.fullName) return doc.fullName.fsName;
+  } catch (err) {}
+  return null;
+}
+
+function ahdDocumentColorSpace(doc) {
+  try {
+    return doc.documentColorSpace === DocumentColorSpace.CMYK ? "CMYK" : "RGB";
+  } catch (err) {
+    return null;
+  }
 }
 
 function ahdPageItemSummary(item) {
@@ -124,6 +164,27 @@ function ahdCountMapToArray(counts) {
     if (a.name > b.name) return 1;
     return 0;
   });
+  return items;
+}
+
+function ahdArrayLikeStrings(values) {
+  var items = [];
+  if (!values) return items;
+  try {
+    if (values.length != null) {
+      for (var i = 0; i < values.length; i++) {
+        items.push(String(values[i]));
+      }
+      return items;
+    }
+  } catch (err) {}
+  try {
+    for (var key in values) {
+      if (values.hasOwnProperty(key)) {
+        items.push(String(values[key]));
+      }
+    }
+  } catch (err) {}
   return items;
 }
 
@@ -226,6 +287,20 @@ function ahdApplyGradient(doc, item, stops, kind) {
   item.fillColor = gradientColor;
   return gradient.name;
 }
+
+function ahdFileExtension(path) {
+  var value = String(path || "");
+  var index = value.lastIndexOf(".");
+  if (index === -1) return "";
+  return value.substring(index + 1).toLowerCase();
+}
+
+function ahdPathWithSuffix(path, suffix, defaultExtension) {
+  var value = String(path || "");
+  var index = value.lastIndexOf(".");
+  if (index === -1) return value + suffix + "." + defaultExtension;
+  return value.substring(0, index) + suffix + value.substring(index);
+}
 `
 
 func buildPlan(request Request) (executionPlan, error) {
@@ -234,8 +309,11 @@ func buildPlan(request Request) (executionPlan, error) {
 		return scriptPlan(request.Params, `return {
   name: app.name,
   version: app.version,
+  scriptingVersion: app.scriptingVersion || null,
   documents: app.documents.length,
-  activeDocument: app.documents.length ? app.activeDocument.name : null
+  activeDocument: app.documents.length ? app.activeDocument.name : null,
+  selectionCount: ahdSelectionItems().length,
+  startupPresets: ahdArrayLikeStrings(app.startupPresetsList)
 };`, 10*time.Second), nil
 	case "app.version":
 		return scriptPlan(request.Params, `return { version: app.version };`, 10*time.Second), nil
@@ -247,19 +325,19 @@ func buildPlan(request Request) (executionPlan, error) {
 		return scriptPlan(request.Params, `if (params.mode) { app.userInteractionLevel = UserInteractionLevel[params.mode]; } return { mode: String(app.userInteractionLevel) };`, 10*time.Second), nil
 
 	case "document.new":
-		return scriptPlan(request.Params, `var width = params.width || 1920; var height = params.height || 1080; var doc = app.documents.add(DocumentColorSpace.RGB, width, height); return { name: doc.name, width: width, height: height };`, 20*time.Second), nil
+		return scriptPlan(request.Params, `var width = params.width || 1920; var height = params.height || 1080; var artboards = params.artboards || 1; var colorSpace = params.colorSpace === "CMYK" ? DocumentColorSpace.CMYK : DocumentColorSpace.RGB; var layoutName = params.artboardLayout || "GridByRow"; var artboardLayout = DocumentArtboardLayout[layoutName]; var artboardSpacing = params.artboardSpacing != null ? params.artboardSpacing : 20; var artboardRowsOrCols = params.artboardRowsOrCols != null ? params.artboardRowsOrCols : 1; var doc; if (params.preset) { var preset = new DocumentPreset(); preset.colorMode = colorSpace; preset.width = width; preset.height = height; preset.numArtboards = artboards; preset.artboardLayout = artboardLayout; preset.artboardSpacing = artboardSpacing; preset.artboardRowsOrCols = artboardRowsOrCols; doc = app.documents.addDocument(params.preset, preset, false); } else { doc = app.documents.add(colorSpace, width, height, artboards, artboardLayout, artboardSpacing, artboardRowsOrCols); } return { name: doc.name, width: width, height: height, colorSpace: params.colorSpace || "RGB", artboards: doc.artboards.length, preset: params.preset || null, artboardLayout: layoutName, artboardSpacing: artboardSpacing, artboardRowsOrCols: artboardRowsOrCols };`, 30*time.Second), nil
 	case "document.open":
 		return scriptPlan(request.Params, `var file = new File(params.filePath); var doc = app.open(file); return { name: doc.name, path: file.fsName };`, 20*time.Second), nil
 	case "document.save":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); doc.save(); return { name: doc.name, saved: true };`, 20*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDocument(params.documentId); doc.save(); return { name: doc.name, path: ahdDocumentPath(doc), saved: true };`, 20*time.Second), nil
 	case "document.save_as":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.filePath); doc.saveAs(file); return { name: doc.name, path: file.fsName };`, 20*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDocument(params.documentId); var file = new File(params.filePath); var format = (params.format || ahdFileExtension(file.name) || "ai").toLowerCase(); if (format === "pdf") { var pdfOptions = new PDFSaveOptions(); doc.saveAs(file, pdfOptions); } else { var aiOptions = new IllustratorSaveOptions(); doc.saveAs(file, aiOptions); } return { name: doc.name, path: file.fsName, format: format };`, 20*time.Second), nil
 	case "document.close":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); doc.close(params.save ? SaveOptions.SAVECHANGES : SaveOptions.DONOTSAVECHANGES); return { closed: true };`, 20*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDocument(params.documentId); var name = doc.name; doc.close(params.save ? SaveOptions.SAVECHANGES : SaveOptions.DONOTSAVECHANGES); return { closed: true, name: name };`, 20*time.Second), nil
 	case "document.list":
-		return scriptPlan(request.Params, `var docs = []; for (var i = 0; i < app.documents.length; i++) { docs.push({ index: i, name: app.documents[i].name }); } return docs;`, 10*time.Second), nil
+		return scriptPlan(request.Params, `var docs = []; for (var i = 0; i < app.documents.length; i++) { var doc = app.documents[i]; docs.push({ index: i, name: doc.name, path: ahdDocumentPath(doc), artboards: doc.artboards.length, pageItems: doc.pageItems.length, colorSpace: ahdDocumentColorSpace(doc) }); } return docs;`, 10*time.Second), nil
 	case "document.info":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); return { name: doc.name, artboards: doc.artboards.length, layers: doc.layers.length, pageItems: doc.pageItems.length };`, 10*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDocument(params.documentId); return { name: doc.name, path: ahdDocumentPath(doc), artboards: doc.artboards.length, layers: doc.layers.length, pageItems: doc.pageItems.length, colorSpace: ahdDocumentColorSpace(doc), width: doc.width, height: doc.height };`, 10*time.Second), nil
 
 	case "artboard.list":
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var items = []; for (var i = 0; i < doc.artboards.length; i++) { var artboard = doc.artboards[i]; items.push({ index: i, name: artboard.name, rect: artboard.artboardRect }); } return items;`, 10*time.Second), nil
@@ -295,7 +373,7 @@ func buildPlan(request Request) (executionPlan, error) {
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var selection = []; for (var i = 0; i < doc.pageItems.length; i++) { var item = doc.pageItems[i]; if (params.partial ? item.name.indexOf(params.name) !== -1 : item.name === params.name) { selection.push(item); } } app.selection = selection; return { selected: selection.length, name: params.name };`, 20*time.Second), nil
 
 	case "path.create_rect":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); var layer = ahdLayer(doc, params.layerId); var item = layer.pathItems.rectangle(params.top, params.left, params.width, params.height); item.name = params.name; if (params.cornerRadius) { item.rounded = true; } return { name: item.name, width: item.width, height: item.height };`, 20*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var layer = ahdLayer(doc, params.layerId); var radius = params.cornerRadius || 0; var item = radius > 0 ? layer.pathItems.roundedRectangle(params.top, params.left, params.width, params.height, radius, radius) : layer.pathItems.rectangle(params.top, params.left, params.width, params.height); item.name = params.name; return { name: item.name, width: item.width, height: item.height, cornerRadius: radius };`, 20*time.Second), nil
 	case "path.create_ellipse":
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var layer = ahdLayer(doc, params.layerId); var item = layer.pathItems.ellipse(params.top, params.left, params.width, params.height); item.name = params.name; return { name: item.name, width: item.width, height: item.height };`, 20*time.Second), nil
 	case "path.create_path":
@@ -331,11 +409,11 @@ func buildPlan(request Request) (executionPlan, error) {
 		return scriptPlan(request.Params, `app.unloadAction(params.setName, ""); return { setName: params.setName, unloaded: true };`, 20*time.Second), nil
 
 	case "export.png":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new ExportOptionsPNG24(); if (params.scale) { options.horizontalScale = params.scale * 100; options.verticalScale = params.scale * 100; } doc.exportFile(file, ExportType.PNG24, options); return { outputPath: file.fsName, format: "png" };`, 30*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new ExportOptionsPNG24(); if (params.scale) { options.horizontalScale = params.scale * 100; options.verticalScale = params.scale * 100; } if (params.artboardId) { doc.artboards.setActiveArtboardIndex(ahdArtboardIndex(doc, params.artboardId)); options.artBoardClipping = true; } doc.exportFile(file, ExportType.PNG24, options); return { outputPath: file.fsName, format: "png", artboardId: params.artboardId || null };`, 30*time.Second), nil
 	case "export.jpg":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new ExportOptionsJPEG(); if (params.quality) { options.qualitySetting = params.quality; } doc.exportFile(file, ExportType.JPEG, options); return { outputPath: file.fsName, format: "jpg" };`, 30*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new ExportOptionsJPEG(); if (params.scale) { options.horizontalScale = params.scale * 100; options.verticalScale = params.scale * 100; } if (params.quality) { options.qualitySetting = params.quality; } if (params.artboardId) { doc.artboards.setActiveArtboardIndex(ahdArtboardIndex(doc, params.artboardId)); options.artBoardClipping = true; } doc.exportFile(file, ExportType.JPEG, options); return { outputPath: file.fsName, format: "jpg", artboardId: params.artboardId || null };`, 30*time.Second), nil
 	case "export.svg":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new ExportOptionsSVG(); doc.exportFile(file, ExportType.SVG, options); return { outputPath: file.fsName, format: "svg" };`, 30*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new ExportOptionsSVG(); var outputPath = file.fsName; if (params.artboardId) { options.saveMultipleArtboards = true; options.artboardRange = String(ahdArtboardIndex(doc, params.artboardId) + 1); outputPath = ahdPathWithSuffix(file.fsName, "_" + params.artboardId, "svg"); } doc.exportFile(file, ExportType.SVG, options); return { outputPath: outputPath, format: "svg", artboardId: params.artboardId || null };`, 30*time.Second), nil
 	case "export.pdf":
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new PDFSaveOptions(); if (params.preset) { options.pDFPreset = params.preset; } doc.saveAs(file, options); return { outputPath: file.fsName, format: "pdf" };`, 30*time.Second), nil
 	case "export.ai":

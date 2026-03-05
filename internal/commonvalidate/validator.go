@@ -3,6 +3,7 @@ package commonvalidate
 import (
 	"fmt"
 	"math"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -57,7 +58,7 @@ func ValidateCommand(command *commonschema.Command, params map[string]any, cwd s
 				Applied: true,
 			})
 		}
-		normalized, warnings, errors := validateValue(*param, value, cwd)
+		normalized, warnings, errors := validateValue(*param, value, cwd, canonical)
 		out.Warnings = append(out.Warnings, warnings...)
 		out.Errors = append(out.Errors, errors...)
 		if len(errors) == 0 {
@@ -79,10 +80,61 @@ func ValidateCommand(command *commonschema.Command, params map[string]any, cwd s
 		})
 	}
 
+	applyCommandSpecificRules(command, &out)
 	return out
 }
 
-func validateValue(param commonschema.Param, value any, cwd string) (any, []Issue, []Issue) {
+func applyCommandSpecificRules(command *commonschema.Command, out *Result) {
+	if command == nil {
+		return
+	}
+	switch command.Name {
+	case "document.new":
+		validateDocumentNewRules(out)
+	}
+}
+
+func validateDocumentNewRules(out *Result) {
+	artboards := int(numberOrDefault(out.Params["artboards"], 1))
+	if artboards < 1 {
+		return
+	}
+	rowsOrCols := int(numberOrDefault(out.Params["artboardRowsOrCols"], 1))
+	layout := stringOrDefault(out.Params["artboardLayout"], "GridByRow")
+	if rowsOrCols < 1 {
+		out.Errors = append(out.Errors, Issue{
+			Code:    "VALIDATION_ERROR",
+			Field:   "artboardRowsOrCols",
+			Message: "artboardRowsOrCols must be at least 1",
+		})
+		return
+	}
+
+	switch layout {
+	case "Row", "Column", "RLRow":
+		if rowsOrCols != 1 {
+			out.Errors = append(out.Errors, Issue{
+				Code:    "VALIDATION_ERROR",
+				Field:   "artboardRowsOrCols",
+				Message: fmt.Sprintf("artboardRowsOrCols must be 1 for %s layout", layout),
+			})
+		}
+	case "GridByRow", "GridByCol", "RLGridByRow", "RLGridByCol":
+		maxRowsOrCols := artboards - 1
+		if maxRowsOrCols < 1 {
+			maxRowsOrCols = 1
+		}
+		if rowsOrCols > maxRowsOrCols {
+			out.Errors = append(out.Errors, Issue{
+				Code:    "VALIDATION_ERROR",
+				Field:   "artboardRowsOrCols",
+				Message: fmt.Sprintf("artboardRowsOrCols must be between 1 and %d for %d artboards using %s layout", maxRowsOrCols, artboards, layout),
+			})
+		}
+	}
+}
+
+func validateValue(param commonschema.Param, value any, cwd, fieldPath string) (any, []Issue, []Issue) {
 	var warnings []Issue
 	var errors []Issue
 
@@ -90,21 +142,24 @@ func validateValue(param commonschema.Param, value any, cwd string) (any, []Issu
 	case "string":
 		str, ok := value.(string)
 		if !ok {
-			return nil, warnings, []Issue{typeMismatch(param, value)}
+			return nil, warnings, []Issue{typeMismatch(fieldPath, param.Type, value)}
 		}
 		if strings.ContainsRune(str, 0) || hasControlChars(str) {
 			return nil, warnings, []Issue{{
 				Code:    "VALIDATION_ERROR",
-				Field:   param.Name,
+				Field:   fieldPath,
 				Message: "string contains control characters",
 			}}
+		}
+		if param.OpaqueIdentifier {
+			errors = append(errors, validateOpaqueIdentifier(fieldPath, str)...)
 		}
 		if param.Pattern != "" {
 			re, err := regexp.Compile(param.Pattern)
 			if err == nil && !re.MatchString(str) {
 				errors = append(errors, Issue{
 					Code:    "VALIDATION_ERROR",
-					Field:   param.Name,
+					Field:   fieldPath,
 					Message: fmt.Sprintf("value %q does not match pattern %s", str, param.Pattern),
 				})
 			}
@@ -123,7 +178,7 @@ func validateValue(param commonschema.Param, value any, cwd string) (any, []Issu
 					if best != "" {
 						warnings = append(warnings, Issue{
 							Code:    "FUZZY_ENUM",
-							Field:   param.Name,
+							Field:   fieldPath,
 							Message: fmt.Sprintf("normalized %q to %q", str, best),
 							Fix:     best,
 							Applied: true,
@@ -135,7 +190,7 @@ func validateValue(param commonschema.Param, value any, cwd string) (any, []Issu
 				if !match {
 					errors = append(errors, Issue{
 						Code:    "VALIDATION_ERROR",
-						Field:   param.Name,
+						Field:   fieldPath,
 						Message: fmt.Sprintf("value %q is not in enum %v", str, param.Enum),
 					})
 				}
@@ -146,7 +201,7 @@ func validateValue(param commonschema.Param, value any, cwd string) (any, []Issu
 			if err != nil {
 				errors = append(errors, Issue{
 					Code:    "VALIDATION_ERROR",
-					Field:   param.Name,
+					Field:   fieldPath,
 					Message: err.Error(),
 				})
 			} else {
@@ -158,19 +213,19 @@ func validateValue(param commonschema.Param, value any, cwd string) (any, []Issu
 	case "number":
 		number, ok := toFloat64(value)
 		if !ok {
-			return nil, warnings, []Issue{typeMismatch(param, value)}
+			return nil, warnings, []Issue{typeMismatch(fieldPath, param.Type, value)}
 		}
 		if param.Minimum != nil && number < *param.Minimum {
 			errors = append(errors, Issue{
 				Code:    "VALIDATION_ERROR",
-				Field:   param.Name,
+				Field:   fieldPath,
 				Message: fmt.Sprintf("value %.2f is below minimum %.2f", number, *param.Minimum),
 			})
 		}
 		if param.Maximum != nil && number > *param.Maximum {
 			errors = append(errors, Issue{
 				Code:    "VALIDATION_ERROR",
-				Field:   param.Name,
+				Field:   fieldPath,
 				Message: fmt.Sprintf("value %.2f is above maximum %.2f", number, *param.Maximum),
 			})
 		}
@@ -179,35 +234,202 @@ func validateValue(param commonschema.Param, value any, cwd string) (any, []Issu
 	case "boolean":
 		boolean, ok := value.(bool)
 		if !ok {
-			return nil, warnings, []Issue{typeMismatch(param, value)}
+			return nil, warnings, []Issue{typeMismatch(fieldPath, param.Type, value)}
 		}
 		return boolean, warnings, errors
 
 	case "array":
 		items, ok := value.([]any)
 		if !ok {
-			return nil, warnings, []Issue{typeMismatch(param, value)}
+			return nil, warnings, []Issue{typeMismatch(fieldPath, param.Type, value)}
 		}
-		return items, warnings, errors
+		if param.MinItems != nil && len(items) < *param.MinItems {
+			errors = append(errors, Issue{
+				Code:    "VALIDATION_ERROR",
+				Field:   fieldPath,
+				Message: fmt.Sprintf("array must contain at least %d item(s)", *param.MinItems),
+			})
+		}
+		if param.MaxItems != nil && len(items) > *param.MaxItems {
+			errors = append(errors, Issue{
+				Code:    "VALIDATION_ERROR",
+				Field:   fieldPath,
+				Message: fmt.Sprintf("array must contain at most %d item(s)", *param.MaxItems),
+			})
+		}
+		normalized := make([]any, 0, len(items))
+		for index, item := range items {
+			itemField := fmt.Sprintf("%s[%d]", fieldPath, index)
+			if param.Items != nil {
+				value, childWarnings, childErrors := validateValue(*param.Items, item, cwd, itemField)
+				warnings = append(warnings, childWarnings...)
+				errors = append(errors, childErrors...)
+				if len(childErrors) == 0 {
+					normalized = append(normalized, value)
+				}
+				continue
+			}
+			errors = append(errors, validateGenericValue(itemField, item)...)
+			normalized = append(normalized, item)
+		}
+		if len(errors) > 0 {
+			return nil, warnings, errors
+		}
+		return normalized, warnings, errors
 
 	case "object":
 		object, ok := value.(map[string]any)
 		if !ok {
-			return nil, warnings, []Issue{typeMismatch(param, value)}
+			return nil, warnings, []Issue{typeMismatch(fieldPath, param.Type, value)}
 		}
-		return object, warnings, errors
+		if len(param.Fields) == 0 {
+			errors = append(errors, validateGenericValue(fieldPath, object)...)
+			if len(errors) > 0 {
+				return nil, warnings, errors
+			}
+			return object, warnings, errors
+		}
+
+		normalized := map[string]any{}
+		for key, childValue := range object {
+			child := lookupField(param.Fields, key)
+			if child == nil {
+				if !param.AllowUnknown {
+					errors = append(errors, Issue{
+						Code:    "VALIDATION_ERROR",
+						Field:   fmt.Sprintf("%s.%s", fieldPath, key),
+						Message: fmt.Sprintf("unknown field %q", key),
+					})
+				}
+				continue
+			}
+			childPath := fmt.Sprintf("%s.%s", fieldPath, child.Name)
+			value, childWarnings, childErrors := validateValue(*child, childValue, cwd, childPath)
+			warnings = append(warnings, childWarnings...)
+			errors = append(errors, childErrors...)
+			if len(childErrors) == 0 {
+				normalized[child.Name] = value
+			}
+		}
+
+		for _, child := range param.Fields {
+			if !child.Required {
+				continue
+			}
+			if _, ok := normalized[child.Name]; ok {
+				continue
+			}
+			errors = append(errors, Issue{
+				Code:    "VALIDATION_ERROR",
+				Field:   fmt.Sprintf("%s.%s", fieldPath, child.Name),
+				Message: fmt.Sprintf("missing required field %q", child.Name),
+			})
+		}
+
+		if len(errors) > 0 {
+			return nil, warnings, errors
+		}
+		return normalized, warnings, errors
 
 	default:
+		errors = append(errors, validateGenericValue(fieldPath, value)...)
+		if len(errors) > 0 {
+			return nil, warnings, errors
+		}
 		return value, warnings, errors
 	}
 }
 
-func typeMismatch(param commonschema.Param, value any) Issue {
+func typeMismatch(field, want string, value any) Issue {
 	return Issue{
 		Code:    "VALIDATION_ERROR",
-		Field:   param.Name,
-		Message: fmt.Sprintf("param %q must be %s, got %T", param.Name, param.Type, value),
+		Field:   field,
+		Message: fmt.Sprintf("param %q must be %s, got %T", field, want, value),
 	}
+}
+
+func validateGenericValue(fieldPath string, value any) []Issue {
+	switch typed := value.(type) {
+	case string:
+		if strings.ContainsRune(typed, 0) || hasControlChars(typed) {
+			return []Issue{{
+				Code:    "VALIDATION_ERROR",
+				Field:   fieldPath,
+				Message: "string contains control characters",
+			}}
+		}
+	case []any:
+		var errors []Issue
+		for index, item := range typed {
+			errors = append(errors, validateGenericValue(fmt.Sprintf("%s[%d]", fieldPath, index), item)...)
+		}
+		return errors
+	case map[string]any:
+		var errors []Issue
+		for key, item := range typed {
+			errors = append(errors, validateGenericValue(fmt.Sprintf("%s.%s", fieldPath, key), item)...)
+		}
+		return errors
+	}
+	return nil
+}
+
+func validateOpaqueIdentifier(fieldPath, value string) []Issue {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return []Issue{{
+			Code:    "VALIDATION_ERROR",
+			Field:   fieldPath,
+			Message: "identifier cannot be blank",
+		}}
+	}
+	if trimmed != value {
+		return []Issue{{
+			Code:    "VALIDATION_ERROR",
+			Field:   fieldPath,
+			Message: "identifier must not have leading or trailing whitespace",
+		}}
+	}
+	lower := strings.ToLower(value)
+	if strings.Contains(lower, "://") || strings.HasPrefix(lower, "file:") {
+		return []Issue{{
+			Code:    "VALIDATION_ERROR",
+			Field:   fieldPath,
+			Message: "identifier must not be a URL",
+		}}
+	}
+	if strings.ContainsAny(value, "?#") {
+		return []Issue{{
+			Code:    "VALIDATION_ERROR",
+			Field:   fieldPath,
+			Message: "identifier must not contain query or fragment syntax",
+		}}
+	}
+	for _, snippet := range []string{"../", "..\\", "?=", "&", "=%", "%2e", "%2f", "%5c", "%00", "%3f", "%26", "%3d"} {
+		if strings.Contains(lower, snippet) {
+			return []Issue{{
+				Code:    "VALIDATION_ERROR",
+				Field:   fieldPath,
+				Message: "identifier contains encoded or query-like syntax",
+			}}
+		}
+	}
+	return nil
+}
+
+func lookupField(fields []commonschema.Param, name string) *commonschema.Param {
+	needle := strings.ToLower(strings.TrimSpace(name))
+	for i := range fields {
+		if strings.ToLower(fields[i].Name) == needle {
+			return &fields[i]
+		}
+		for _, alias := range fields[i].Aliases {
+			if strings.ToLower(alias) == needle {
+				return &fields[i]
+			}
+		}
+	}
+	return nil
 }
 
 func hasControlChars(value string) bool {
@@ -304,4 +526,28 @@ func min3(a, b, c int) int {
 		return b
 	}
 	return c
+}
+
+func normalizePotentialEncodedPath(value string) (string, bool) {
+	unescaped, err := url.PathUnescape(value)
+	if err != nil {
+		return value, false
+	}
+	return unescaped, unescaped != value
+}
+
+func numberOrDefault(value any, fallback float64) float64 {
+	number, ok := toFloat64(value)
+	if !ok {
+		return fallback
+	}
+	return number
+}
+
+func stringOrDefault(value any, fallback string) string {
+	typed, ok := value.(string)
+	if !ok || strings.TrimSpace(typed) == "" {
+		return fallback
+	}
+	return typed
 }

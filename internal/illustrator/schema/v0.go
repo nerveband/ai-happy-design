@@ -74,7 +74,10 @@ func registerDocument() {
 			numberParam("width", "Document width in points.", false, commonschema.Ptr(1), nil),
 			numberParam("height", "Document height in points.", false, commonschema.Ptr(1), nil),
 			numberParam("artboards", "Number of artboards.", false, commonschema.Ptr(1), commonschema.Ptr(100)),
-			stringParam("colorSpace", "Document color space.", false),
+			enumParam("artboardLayout", "Layout for multi-artboard documents.", false, []string{"GridByRow", "GridByCol", "Row", "Column", "RLGridByRow", "RLGridByCol", "RLRow"}, true),
+			numberParam("artboardSpacing", "Spacing between artboards in points.", false, commonschema.Ptr(0), nil),
+			numberParam("artboardRowsOrCols", "Rows or columns to use for multi-artboard layouts.", false, commonschema.Ptr(1), commonschema.Ptr(100)),
+			enumParam("colorSpace", "Document color space.", false, []string{"RGB", "CMYK"}, true),
 			stringParam("preset", "Document preset name.", false),
 		},
 	})
@@ -93,7 +96,7 @@ func registerDocument() {
 		Description: "Save the current document.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("documentId", "Optional document identifier.", false),
+			identifierParam("documentId", "Optional document identifier.", false),
 		},
 	})
 	commonschema.Register(commonschema.Command{
@@ -102,6 +105,7 @@ func registerDocument() {
 		Description: "Save the current document to a new path.",
 		Mutating:    true,
 		Params: []commonschema.Param{
+			identifierParam("documentId", "Optional document identifier.", false),
 			pathParam("filePath", "Destination path.", true),
 			enumParam("format", "Output format.", false, []string{"ai", "pdf"}, true),
 		},
@@ -112,7 +116,7 @@ func registerDocument() {
 		Description: "Close the current or specified document.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("documentId", "Optional document identifier.", false),
+			identifierParam("documentId", "Optional document identifier.", false),
 			boolParam("save", "Save before closing.", false),
 		},
 	})
@@ -128,7 +132,7 @@ func registerDocument() {
 		Domain:      "document",
 		Description: "Return the active document summary.",
 		Params: []commonschema.Param{
-			stringParam("documentId", "Optional document identifier.", false),
+			identifierParam("documentId", "Optional document identifier.", false),
 		},
 	})
 }
@@ -154,7 +158,7 @@ func registerArtboard() {
 		Description: "Resize an artboard.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("artboardId", "Artboard identifier.", true),
+			identifierParam("artboardId", "Artboard identifier.", true),
 			numberParam("width", "Artboard width.", true, commonschema.Ptr(1), nil),
 			numberParam("height", "Artboard height.", true, commonschema.Ptr(1), nil),
 		},
@@ -165,7 +169,7 @@ func registerArtboard() {
 		Description: "Set the active artboard.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("artboardId", "Artboard identifier.", true),
+			identifierParam("artboardId", "Artboard identifier.", true),
 		},
 	})
 	commonschema.Register(commonschema.Command{
@@ -186,7 +190,7 @@ func registerLayer() {
 		Mutating:    true,
 		Params: []commonschema.Param{
 			stringParam("name", "Layer name.", true),
-			stringParam("parentLayerId", "Optional parent layer identifier.", false),
+			identifierParam("parentLayerId", "Optional parent layer identifier.", false),
 		},
 	})
 	commonschema.Register(commonschema.Command{
@@ -195,7 +199,7 @@ func registerLayer() {
 		Description: "Rename a layer.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("layerId", "Layer identifier.", true),
+			identifierParam("layerId", "Layer identifier.", true),
 			stringParam("name", "New layer name.", true),
 		},
 	})
@@ -205,7 +209,7 @@ func registerLayer() {
 		Description: "Set layer visibility.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("layerId", "Layer identifier.", true),
+			identifierParam("layerId", "Layer identifier.", true),
 			boolParam("visible", "Whether the layer is visible.", true),
 		},
 	})
@@ -215,7 +219,7 @@ func registerLayer() {
 		Description: "Set layer lock state.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("layerId", "Layer identifier.", true),
+			identifierParam("layerId", "Layer identifier.", true),
 			boolParam("locked", "Whether the layer is locked.", true),
 		},
 	})
@@ -225,8 +229,8 @@ func registerLayer() {
 		Description: "Move a layer before or after another layer.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("layerId", "Layer identifier.", true),
-			stringParam("relativeTo", "Neighbor layer identifier.", true),
+			identifierParam("layerId", "Layer identifier.", true),
+			identifierParam("relativeTo", "Neighbor layer identifier.", true),
 			enumParam("position", "Reorder position.", true, []string{"before", "after", "inside"}, true),
 		},
 	})
@@ -241,7 +245,7 @@ func registerSelection() {
 		Description: "Select items by stable IDs.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			arrayParam("ids", "Item identifiers to select.", true),
+			arrayParam("ids", "Item identifiers to select.", true, commonschema.PtrInt(1), nil, &commonschema.Param{Type: "string", OpaqueIdentifier: true}),
 		},
 	})
 	commonschema.Register(commonschema.Command{
@@ -269,7 +273,7 @@ func registerPath() {
 			numberParam("width", "Width.", true, commonschema.Ptr(1), nil),
 			numberParam("height", "Height.", true, commonschema.Ptr(1), nil),
 			numberParam("cornerRadius", "Corner radius.", false, commonschema.Ptr(0), nil),
-			stringParam("layerId", "Optional target layer.", false),
+			identifierParam("layerId", "Optional target layer.", false),
 		},
 	})
 	commonschema.Register(commonschema.Command{
@@ -283,7 +287,7 @@ func registerPath() {
 			numberParam("top", "Top coordinate.", true, nil, nil),
 			numberParam("width", "Width.", true, commonschema.Ptr(1), nil),
 			numberParam("height", "Height.", true, commonschema.Ptr(1), nil),
-			stringParam("layerId", "Optional target layer.", false),
+			identifierParam("layerId", "Optional target layer.", false),
 		},
 	})
 	commonschema.Register(commonschema.Command{
@@ -293,9 +297,16 @@ func registerPath() {
 		Mutating:    true,
 		Params: []commonschema.Param{
 			stringParam("name", "Path name.", true),
-			arrayParam("points", "Point array in Illustrator coordinate space.", true),
+			arrayParam("points", "Point array in Illustrator coordinate space.", true, commonschema.PtrInt(2), nil, &commonschema.Param{
+				Type:     "array",
+				MinItems: commonschema.PtrInt(2),
+				MaxItems: commonschema.PtrInt(2),
+				Items: &commonschema.Param{
+					Type: "number",
+				},
+			}),
 			boolParam("closed", "Whether the path is closed.", false),
-			stringParam("layerId", "Optional target layer.", false),
+			identifierParam("layerId", "Optional target layer.", false),
 		},
 	})
 	commonschema.Register(commonschema.Command{
@@ -304,7 +315,7 @@ func registerPath() {
 		Description: "Transform a path item.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("itemId", "Path item identifier.", true),
+			identifierParam("itemId", "Path item identifier.", true),
 			numberParam("translateX", "Horizontal translation.", false, nil, nil),
 			numberParam("translateY", "Vertical translation.", false, nil, nil),
 			numberParam("scaleX", "Horizontal scale percentage.", false, commonschema.Ptr(0), nil),
@@ -318,8 +329,8 @@ func registerPath() {
 		Description: "Duplicate a path item.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("itemId", "Path item identifier.", true),
-			stringParam("destinationLayerId", "Optional destination layer identifier.", false),
+			identifierParam("itemId", "Path item identifier.", true),
+			identifierParam("destinationLayerId", "Optional destination layer identifier.", false),
 		},
 	})
 }
@@ -335,7 +346,7 @@ func registerText() {
 			{Name: "contents", Type: "string", Description: "Text contents.", Required: true, Aliases: []string{"text"}},
 			numberParam("left", "Left coordinate.", true, nil, nil),
 			numberParam("top", "Top coordinate.", true, nil, nil),
-			stringParam("layerId", "Optional target layer.", false),
+			identifierParam("layerId", "Optional target layer.", false),
 		},
 	})
 	commonschema.Register(commonschema.Command{
@@ -344,7 +355,7 @@ func registerText() {
 		Description: "Replace the contents of a text frame.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("itemId", "Text frame identifier.", true),
+			identifierParam("itemId", "Text frame identifier.", true),
 			stringParam("contents", "New contents.", true),
 		},
 	})
@@ -354,7 +365,7 @@ func registerText() {
 		Description: "Apply basic typographic styling to a text frame.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("itemId", "Text frame identifier.", true),
+			identifierParam("itemId", "Text frame identifier.", true),
 			stringParam("fontFamily", "Font family name.", false),
 			numberParam("fontSize", "Font size in points.", false, commonschema.Ptr(1), nil),
 			numberParam("tracking", "Tracking value.", false, nil, nil),
@@ -369,7 +380,7 @@ func registerText() {
 		Mutating:       true,
 		PluginRequired: false,
 		Params: []commonschema.Param{
-			stringParam("itemId", "Text frame identifier.", true),
+			identifierParam("itemId", "Text frame identifier.", true),
 		},
 	})
 }
@@ -381,7 +392,7 @@ func registerAppearance() {
 		Description: "Set a solid fill on an item.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("itemId", "Target item identifier.", true),
+			identifierParam("itemId", "Target item identifier.", true),
 			colorParam("color", "Solid fill color.", true),
 			numberParam("opacity", "Fill opacity percent.", false, commonschema.Ptr(0), commonschema.Ptr(100)),
 		},
@@ -392,7 +403,7 @@ func registerAppearance() {
 		Description: "Set stroke color and weight on an item.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("itemId", "Target item identifier.", true),
+			identifierParam("itemId", "Target item identifier.", true),
 			colorParam("color", "Stroke color.", true),
 			numberParam("width", "Stroke width.", true, commonschema.Ptr(0), nil),
 		},
@@ -403,8 +414,14 @@ func registerAppearance() {
 		Description: "Set a simple linear gradient on an item.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("itemId", "Target item identifier.", true),
-			arrayParam("stops", "Gradient stop definitions.", true),
+			identifierParam("itemId", "Target item identifier.", true),
+			arrayParam("stops", "Gradient stop definitions.", true, commonschema.PtrInt(2), nil, &commonschema.Param{
+				Type: "object",
+				Fields: []commonschema.Param{
+					colorParam("color", "Gradient stop color.", true),
+					numberParam("offset", "Gradient stop offset percent.", false, commonschema.Ptr(0), commonschema.Ptr(100)),
+				},
+			}),
 			enumParam("type", "Gradient type.", false, []string{"linear", "radial"}, true),
 		},
 	})
@@ -414,8 +431,8 @@ func registerAppearance() {
 		Description: "Apply a named graphic style to an item.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("itemId", "Target item identifier.", true),
-			stringParam("styleName", "Graphic style name.", true),
+			identifierParam("itemId", "Target item identifier.", true),
+			identifierParam("styleName", "Graphic style name.", true),
 		},
 	})
 }
@@ -436,8 +453,8 @@ func registerAction() {
 		Description: "Run an action by set and action name.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("setName", "Action set name.", true),
-			stringParam("actionName", "Action name.", true),
+			identifierParam("setName", "Action set name.", true),
+			identifierParam("actionName", "Action name.", true),
 		},
 	})
 	commonschema.Register(commonschema.Command{
@@ -446,7 +463,7 @@ func registerAction() {
 		Description: "Unload an Illustrator action set.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			stringParam("setName", "Action set name.", true),
+			identifierParam("setName", "Action set name.", true),
 		},
 	})
 }
@@ -460,7 +477,7 @@ func registerExport() {
 		Params: []commonschema.Param{
 			{Name: "outputPath", Type: "string", Description: "Destination path.", Required: true, SafePath: true, Aliases: []string{"path"}},
 			numberParam("scale", "Scale multiplier.", false, commonschema.Ptr(0.1), commonschema.Ptr(10)),
-			stringParam("artboardId", "Optional artboard identifier.", false),
+			identifierParam("artboardId", "Optional artboard identifier.", false),
 		},
 	})
 	commonschema.Register(commonschema.Command{
@@ -470,7 +487,9 @@ func registerExport() {
 		Mutating:    true,
 		Params: []commonschema.Param{
 			pathParam("outputPath", "Destination path.", true),
+			numberParam("scale", "Scale multiplier.", false, commonschema.Ptr(0.1), commonschema.Ptr(10)),
 			numberParam("quality", "JPEG quality.", false, commonschema.Ptr(1), commonschema.Ptr(100)),
+			identifierParam("artboardId", "Optional artboard identifier.", false),
 		},
 	})
 	commonschema.Register(commonschema.Command{
@@ -480,6 +499,7 @@ func registerExport() {
 		Mutating:    true,
 		Params: []commonschema.Param{
 			pathParam("outputPath", "Destination path.", true),
+			identifierParam("artboardId", "Optional artboard identifier.", false),
 		},
 	})
 	commonschema.Register(commonschema.Command{
@@ -548,8 +568,8 @@ func boolParam(name, description string, required bool) commonschema.Param {
 	return commonschema.Param{Name: name, Type: "boolean", Description: description, Required: required}
 }
 
-func arrayParam(name, description string, required bool) commonschema.Param {
-	return commonschema.Param{Name: name, Type: "array", Description: description, Required: required}
+func arrayParam(name, description string, required bool, minItems, maxItems *int, items *commonschema.Param) commonschema.Param {
+	return commonschema.Param{Name: name, Type: "array", Description: description, Required: required, MinItems: minItems, MaxItems: maxItems, Items: items}
 }
 
 func pathParam(name, description string, required bool) commonschema.Param {
@@ -558,6 +578,10 @@ func pathParam(name, description string, required bool) commonschema.Param {
 
 func colorParam(name, description string, required bool) commonschema.Param {
 	return commonschema.Param{Name: name, Type: "string", Description: description, Required: required, Pattern: colorPattern}
+}
+
+func identifierParam(name, description string, required bool) commonschema.Param {
+	return commonschema.Param{Name: name, Type: "string", Description: description, Required: required, OpaqueIdentifier: true}
 }
 
 func enumParam(name, description string, required bool, values []string, lowRisk bool) commonschema.Param {

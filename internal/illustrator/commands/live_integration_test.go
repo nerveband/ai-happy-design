@@ -34,7 +34,15 @@ func TestScratchDocumentLiveFlow(t *testing.T) {
 	mustExecute(t, executor, "app.version", map[string]any{})
 	mustExecute(t, executor, "app.info", map[string]any{})
 	mustExecute(t, executor, "app.user_interaction_level", map[string]any{"mode": "DONTDISPLAYALERTS"})
-	mustExecute(t, executor, "document.new", map[string]any{"width": 800, "height": 600})
+	mustExecute(t, executor, "document.new", map[string]any{
+		"width":              800,
+		"height":             600,
+		"artboards":          2,
+		"artboardLayout":     "GridByRow",
+		"artboardSpacing":    24,
+		"artboardRowsOrCols": 1,
+		"colorSpace":         "RGB",
+	})
 	mustExecute(t, executor, "document.info", map[string]any{})
 	mustExecute(t, executor, "document.list", map[string]any{})
 	mustExecute(t, executor, "artboard.list", map[string]any{})
@@ -97,18 +105,32 @@ func TestScratchDocumentLiveFlow(t *testing.T) {
 	mustExecute(t, executor, "text.outline", map[string]any{"itemId": "Validation Text"})
 
 	outDir := t.TempDir()
+	aiPath := filepath.Join(outDir, "live-validation.ai")
 	svgPath := filepath.Join(outDir, "live-validation.svg")
 	pngPath := filepath.Join(outDir, "live-validation.png")
-	mustExecute(t, executor, "export.svg", map[string]any{"outputPath": svgPath})
-	mustExecute(t, executor, "export.png", map[string]any{"outputPath": pngPath, "scale": 1})
+	jpgPath := filepath.Join(outDir, "live-validation.jpg")
+	mustExecute(t, executor, "document.save_as", map[string]any{"filePath": aiPath, "format": "ai"})
+	svgResult := mustExecute(t, executor, "export.svg", map[string]any{"outputPath": svgPath, "artboardId": "Secondary Board"})
+	mustExecute(t, executor, "export.png", map[string]any{"outputPath": pngPath, "scale": 1, "artboardId": "Secondary Board"})
+	mustExecute(t, executor, "export.jpg", map[string]any{"outputPath": jpgPath, "quality": 60, "scale": 1, "artboardId": "Secondary Board"})
+	svgExportPath := exportPath(svgResult, svgPath)
 
-	if _, err := os.Stat(svgPath); err != nil {
-		t.Fatalf("expected svg export at %s: %v", svgPath, err)
+	if _, err := os.Stat(aiPath); err != nil {
+		t.Fatalf("expected ai save at %s: %v", aiPath, err)
+	}
+	if _, err := os.Stat(svgExportPath); err != nil {
+		t.Fatalf("expected svg export at %s: %v", svgExportPath, err)
 	}
 	if _, err := os.Stat(pngPath); err != nil {
 		t.Fatalf("expected png export at %s: %v", pngPath, err)
 	}
+	if _, err := os.Stat(jpgPath); err != nil {
+		t.Fatalf("expected jpg export at %s: %v", jpgPath, err)
+	}
 
+	mustExecute(t, executor, "document.close", map[string]any{"save": false})
+	mustExecute(t, executor, "document.open", map[string]any{"filePath": aiPath})
+	mustExecute(t, executor, "document.info", map[string]any{})
 	mustExecute(t, executor, "document.close", map[string]any{"save": false})
 }
 
@@ -136,4 +158,16 @@ func firstGraphicStyle(result any) string {
 	}
 	name, _ := values[0].(string)
 	return name
+}
+
+func exportPath(result any, fallback string) string {
+	root, ok := result.(map[string]any)
+	if !ok {
+		return fallback
+	}
+	value, _ := root["outputPath"].(string)
+	if value == "" {
+		return fallback
+	}
+	return value
 }

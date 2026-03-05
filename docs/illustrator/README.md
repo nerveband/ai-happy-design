@@ -16,6 +16,8 @@
 - `host status` and `doctor` resolve the app via bundle id and surface the installed app path plus version.
 - The JSX bridge does not rely on `JSON.stringify`; Illustrator's ExtendScript runtime in this build does not provide a global `JSON` object.
 - The native plugin probe remains visible in diagnostics, but the current inspect and appearance command surface is script-backed and works without the plugin installed.
+- `app.info` exposes runtime discovery fields that agents can use directly, including `scriptingVersion` and the installed startup preset list.
+- Multi-artboard document creation is script-backed through Illustrator's real `documents.add(...)` and `documents.addDocument(...)` surfaces rather than post-hoc placeholder logic.
 
 ## Without Plugin Or SDK
 
@@ -45,6 +47,13 @@
 5. `ahd-illustrator batch --ops ops.json --dry-run`
 6. Only remove `--dry-run` once the payload is stable and Illustrator is running
 
+## Input Hardening
+
+- Output paths are sandboxed to the current working directory.
+- Opaque identifiers such as `itemId`, `layerId`, `artboardId`, `styleName`, and action names reject URL, query, fragment, and encoded traversal syntax.
+- Nested payloads such as gradient stops and path points are schema-validated before execution.
+- `document.new` applies cross-field validation so invalid artboard-count/layout combinations fail fast instead of hanging Illustrator.
+
 ## Start Here
 
 1. Read [architecture.md](architecture.md)
@@ -56,6 +65,7 @@
 
 - Scratch-document validation is the recommended live test path so existing user artwork is not modified.
 - All output paths are sandboxed to the current working directory unless the CLI later adds an explicit override.
+- Artboard-targeted SVG export is script-backed, but Illustrator 30.2.1 expects a 1-based numeric artboard range at runtime even though the reference text describes name-based ranges. The CLI normalizes this internally from `artboardId`.
 - The native bridge skeleton is still buildable in CMake, but live Illustrator SDK wiring remains a later step for future native-only capabilities.
 
 Adobe Illustrator is a trademark of Adobe. This project is unaffiliated.

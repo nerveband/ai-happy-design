@@ -20,7 +20,7 @@ func TestExecuteScriptIntegration(t *testing.T) {
 	}
 
 	client := NewClient(adapter)
-	response, err := client.ExecuteScript(`(function () { return { version: app.version, name: app.name }; }())`, 10*time.Second)
+	response, err := client.ExecuteScript(`(function () { return { version: app.version, name: app.name }; }())`, 15*time.Second)
 	if err != nil {
 		t.Fatalf("execute script: %v", err)
 	}

@@ -16,12 +16,21 @@
 - JSX remains the broadest low-friction scripting layer for v0.1.
 - Illustrator 30.2.1 on macOS does not expose a global `JSON` object inside ExtendScript, so the bridge ships its own serializer for the machine envelope.
 - The plugin bridge is reserved for capabilities and deep inspection that are awkward or unreliable via pure scripting.
+- Runtime discovery stays close to the executable surface: `tools`, `schema`, and `app.info` expose the typeable contract and the live preset/runtime state that agents need.
+- Input hardening follows an agent-first rule set: reject suspicious paths and opaque identifiers up front, then validate nested JSON payload structure and command-specific invariants before any host call.
 
 ## Runtime Modes
 
 - Script-only: commands that can be fulfilled entirely through ExtendScript.
 - Plugin-capable: commands that use `sendScriptMessage` when the bridge is installed and respond to the `ahd.version` probe.
 - Dry-run: validate, normalize, and emit the stable machine envelope without touching Illustrator.
+
+## Script-First Behaviors Verified Live
+
+- `document.new` maps directly to Illustrator's multi-artboard document APIs, including color space, layout, spacing, and preset-backed creation.
+- `document.save_as` performs explicit format-aware saves for `ai` and `pdf`.
+- `path.create_rect` uses `roundedRectangle(...)` for non-zero corner radii.
+- `export.png`, `export.jpg`, and `export.svg` apply artboard targeting in the script layer rather than treating `artboardId` as inert schema.
 
 ## Shared Monorepo Packages
 

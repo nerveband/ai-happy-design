@@ -87,6 +87,18 @@ Batch success/error summary:
 - `--fields` trims the top-level response envelope to reduce context bloat.
 - `batch --strict` stops on the first invalid step.
 - Live validation should use a scratch document and disposable export paths.
+- Opaque identifiers reject URL, query, fragment, and encoded traversal syntax.
+- Nested payloads such as `appearance.set_gradient.stops` and `path.create_path.points` are validated structurally before execution.
+- `document.new` enforces cross-field rules for `artboards`, `artboardLayout`, and `artboardRowsOrCols` so impossible payloads fail validation instead of hanging Illustrator.
+
+## Live-Validated Script Notes
+
+- `app.info` returns `name`, `version`, `scriptingVersion`, document counts, selection count, and the installed startup preset list.
+- `document.new` supports `width`, `height`, `artboards`, `artboardLayout`, `artboardSpacing`, `artboardRowsOrCols`, `colorSpace`, and optional `preset`.
+- `document.save_as` honors `format` and now supports `ai` and `pdf` without relying on extension guessing alone.
+- `path.create_rect` uses Illustrator's real `roundedRectangle(...)` API when `cornerRadius` is greater than zero.
+- `export.png` and `export.jpg` honor `artboardId` by activating the requested artboard and enabling artboard clipping.
+- `export.svg` honors `artboardId`, but Illustrator 30.2.1 emits the file as `basename_<Artboard Name>.svg` when multi-artboard export is enabled. The command result returns that actual output path.
 
 ## No Plugin / No SDK
 

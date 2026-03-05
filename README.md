@@ -76,11 +76,14 @@ The host adapter resolves the installed app via bundle id, and the JSX bridge us
 
 ## Agent-First Principles
 
+- Typeable schema contracts are the source of truth for agents, not prose-only docs.
 - JSON envelopes are the default public contract.
 - `tools` and `schema` are canonical discovery surfaces.
 - `--dry-run` is required on all mutating Illustrator command flows.
 - `--fields` and NDJSON output keep agent context under control.
 - Validation and hardening happen before execution, not after failure.
+- Opaque identifiers reject URL, query, fragment, and encoded traversal syntax before any Illustrator call is made.
+- Cross-field validation blocks impossible payloads such as invalid multi-artboard layout combinations before they reach Illustrator.
 
 ## Repo Layout
 
@@ -108,6 +111,8 @@ skills/ahd-illustrator/   Agent skill bundle
 
 - End users only need Adobe Illustrator plus the `ahd-illustrator` binary for the current CLI surface.
 - The current script-backed surface includes discovery commands plus `app.*`, `document.*`, `artboard.*`, `layer.*`, `selection.*`, `path.*`, `text.*`, `appearance.*`, `action.*`, `export.*`, and `inspect.*`.
+- `app.info` now exposes runtime-ready discovery fields including `scriptingVersion` and the installed Illustrator startup preset list.
+- Live script validation on March 5, 2026 covered multi-artboard document creation, rounded rectangles, save/open roundtrips, and artboard-targeted PNG/JPG/SVG export behavior.
 - The native plugin is optional and currently diagnostic-only for future native-only capabilities.
 - The Adobe Illustrator SDK is only needed by maintainers who want to build the native plugin from source.
 

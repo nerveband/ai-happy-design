@@ -31,7 +31,7 @@ func TestExecuteJavaScriptIntegration(t *testing.T) {
 		t.Skip("Illustrator not running; skipping live script execution")
 	}
 
-	out, err := adapter.ExecuteJavaScript(`(function () { return "ok"; }())`, 5*time.Second)
+	out, err := adapter.ExecuteJavaScript(`(function () { return "ok"; }())`, 15*time.Second)
 	if err != nil {
 		t.Fatalf("execute javascript: %v", err)
 	}

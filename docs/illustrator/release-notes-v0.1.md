@@ -11,6 +11,7 @@
 - JSX bridge runtime for raw script execution and plugin selector dispatch
 - Live hardening for Illustrator 30.2.1: bundle-id app discovery, version reporting, ES3-safe bridge serialization, and deterministic plugin probing
 - Plugin dependency reduction: `inspect.*`, gradient application, and graphic style application now run through pure scripting
+- Script-depth improvements: multi-artboard `document.new`, format-aware `document.save_as`, rounded rectangles, artboard-targeted PNG/JPG/SVG export, and `app.info` runtime preset discovery
 - Buildable C++ plugin bridge skeleton with `sendScriptMessage` handlers
 
 ## Command Coverage
@@ -35,6 +36,8 @@ v0.1 ships command domains for:
 - Schema introspection via `ahd-illustrator schema`
 - Low-risk fuzzy correction for enum-like fields only
 - Working-directory path hardening for output paths
+- Opaque identifier hardening against URL/query/fragment/encoded traversal syntax
+- Command-specific validation for impossible multi-artboard layout payloads
 - Tagged macOS integration coverage for the host adapter
 
 ## Platform Notes
