@@ -29,9 +29,9 @@ type Envelope struct {
 	Command   string        `json:"command,omitempty"`
 	Result    any           `json:"result,omitempty"`
 	Warnings  []Warning     `json:"warnings,omitempty"`
-	TimingMs  int64         `json:"timingMs,omitempty"`
+	TimingMs  int64         `json:"timingMs"`
 	Error     *CommandError `json:"error,omitempty"`
-	Retryable bool          `json:"retryable,omitempty"`
+	Retryable bool          `json:"retryable"`
 }
 
 // BatchSummary summarizes a batch execution.
@@ -60,7 +60,7 @@ type BatchEnvelope struct {
 	Steps     []BatchStep   `json:"steps"`
 	TimingMs  int64         `json:"timingMs"`
 	Error     *CommandError `json:"error,omitempty"`
-	Retryable bool          `json:"retryable,omitempty"`
+	Retryable bool          `json:"retryable"`
 }
 
 // BatchOp is the machine-facing batch input format.

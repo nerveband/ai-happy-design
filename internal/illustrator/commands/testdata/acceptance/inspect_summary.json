@@ -1,0 +1,14 @@
+[
+  {
+    "name": "open_doc",
+    "command": "document.open",
+    "params": {
+      "filePath": "fixtures/sample.ai"
+    }
+  },
+  {
+    "name": "summary",
+    "command": "inspect.summary",
+    "params": {}
+  }
+]

@@ -30,6 +30,11 @@ func Lookup(name string) *Command {
 		if strings.ToLower(registry[i].Name) == needle {
 			return &registry[i]
 		}
+		for _, alias := range registry[i].Aliases {
+			if strings.ToLower(alias) == needle {
+				return &registry[i]
+			}
+		}
 	}
 	return nil
 }

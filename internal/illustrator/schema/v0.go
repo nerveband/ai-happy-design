@@ -24,6 +24,7 @@ func init() {
 func registerApp() {
 	commonschema.Register(commonschema.Command{
 		Name:        "app.info",
+		Aliases:     []string{"app.get_info"},
 		Domain:      "app",
 		Description: "Return application metadata and runtime host info.",
 		Params:      []commonschema.Param{},
@@ -117,6 +118,7 @@ func registerDocument() {
 	})
 	commonschema.Register(commonschema.Command{
 		Name:        "document.list",
+		Aliases:     []string{"document.get_all"},
 		Domain:      "document",
 		Description: "List open documents.",
 		Params:      []commonschema.Param{},
@@ -330,7 +332,7 @@ func registerText() {
 		Mutating:    true,
 		Params: []commonschema.Param{
 			stringParam("name", "Text item name.", true),
-			stringParam("contents", "Text contents.", true),
+			{Name: "contents", Type: "string", Description: "Text contents.", Required: true, Aliases: []string{"text"}},
 			numberParam("left", "Left coordinate.", true, nil, nil),
 			numberParam("top", "Top coordinate.", true, nil, nil),
 			stringParam("layerId", "Optional target layer.", false),
@@ -458,7 +460,7 @@ func registerExport() {
 		Description: "Export the document or selection as PNG.",
 		Mutating:    true,
 		Params: []commonschema.Param{
-			pathParam("outputPath", "Destination path.", true),
+			{Name: "outputPath", Type: "string", Description: "Destination path.", Required: true, SafePath: true, Aliases: []string{"path"}},
 			numberParam("scale", "Scale multiplier.", false, commonschema.Ptr(0.1), commonschema.Ptr(10)),
 			stringParam("artboardId", "Optional artboard identifier.", false),
 		},

@@ -1,0 +1,41 @@
+[
+  {
+    "name": "new_doc",
+    "command": "document.new",
+    "params": {
+      "width": 1440,
+      "height": 1024,
+      "artboards": 2
+    }
+  },
+  {
+    "name": "cover_board",
+    "command": "artboard.create",
+    "params": {
+      "name": "Cover",
+      "left": 0,
+      "top": 1024,
+      "right": "${{steps.new_doc.result.params.width}}",
+      "bottom": 0
+    }
+  },
+  {
+    "name": "headline",
+    "command": "text.create",
+    "params": {
+      "name": "Headline",
+      "text": "Launch Ready",
+      "left": 96,
+      "top": 900
+    }
+  },
+  {
+    "name": "headline_fill",
+    "command": "appearance.set_fill",
+    "params": {
+      "itemId": "Headline",
+      "color": "#112233",
+      "opacity": 90
+    }
+  }
+]

@@ -19,6 +19,7 @@ type Param struct {
 // Command defines the public schema for a CLI command.
 type Command struct {
 	Name           string   `json:"command"`
+	Aliases        []string `json:"aliases,omitempty"`
 	Description    string   `json:"description"`
 	Domain         string   `json:"domain"`
 	Mutating       bool     `json:"mutating,omitempty"`
