@@ -13,6 +13,7 @@ import (
 	"github.com/nerveband/ai-happy-design/internal/commoncli"
 	"github.com/nerveband/ai-happy-design/internal/commonschema"
 	"github.com/nerveband/ai-happy-design/internal/commonvalidate"
+	"github.com/nerveband/ai-happy-design/internal/illustrator/bridge"
 	"github.com/nerveband/ai-happy-design/internal/illustrator/commands"
 	illustratorhost "github.com/nerveband/ai-happy-design/internal/illustrator/host"
 	_ "github.com/nerveband/ai-happy-design/internal/illustrator/schema"
@@ -235,8 +236,8 @@ var hostStatusCmd = &cobra.Command{
 	Short: "Report basic host readiness",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		started := time.Now()
-		status := illustratorhost.NewAdapter().Status()
-		return writeEnvelope("json", "", commoncli.SuccessEnvelope("host.status", status, nil, started))
+		result := runtimeDiagnostics()
+		return writeEnvelope("json", "", commoncli.SuccessEnvelope("host.status", result, nil, started))
 	},
 }
 
@@ -275,12 +276,14 @@ var doctorCmd = &cobra.Command{
 	Short: "Inspect local prerequisites for ahd-illustrator",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		started := time.Now()
-		status := illustratorhost.NewAdapter().Status()
+		diagnostics := runtimeDiagnostics()
+		status := diagnostics["host"]
 		result := map[string]any{
 			"platform":  runtime.GOOS,
 			"arch":      runtime.GOARCH,
-			"supported": status.Supported,
+			"supported": status.(illustratorhost.Status).Supported,
 			"host":      status,
+			"plugin":    diagnostics["plugin"],
 			"schemas":   len(commonschema.All()),
 			"domains":   commonschema.Domains(),
 		}
@@ -388,6 +391,38 @@ func toWarnings(issues []commonvalidate.Issue) []commoncli.Warning {
 		})
 	}
 	return out
+}
+
+func runtimeDiagnostics() map[string]any {
+	adapter := illustratorhost.NewAdapter()
+	status := adapter.Status()
+	plugin := bridge.PluginStatus{}
+	switch {
+	case !status.Supported:
+		plugin = bridge.PluginStatus{
+			Reachable: false,
+			Code:      "ILLUSTRATOR_NOT_RUNNING",
+			Message:   "Illustrator host support is currently macOS-only",
+		}
+	case !status.IllustratorAppFound:
+		plugin = bridge.PluginStatus{
+			Reachable: false,
+			Code:      "ILLUSTRATOR_NOT_RUNNING",
+			Message:   "Adobe Illustrator is not installed",
+		}
+	case !status.IllustratorRunning:
+		plugin = bridge.PluginStatus{
+			Reachable: false,
+			Code:      "ILLUSTRATOR_NOT_RUNNING",
+			Message:   "Adobe Illustrator is not running",
+		}
+	default:
+		plugin = bridge.NewClient(adapter).ProbePlugin(5 * time.Second)
+	}
+	return map[string]any{
+		"host":   status,
+		"plugin": plugin,
+	}
 }
 
 func writeEnvelope(format, fields string, envelope commoncli.Envelope) error {

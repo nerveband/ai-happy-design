@@ -12,6 +12,8 @@ ahd-illustrator doctor
 ahd-illustrator examples [category]
 ```
 
+`host status` and `doctor` include the resolved Illustrator app path, resolved version, and the current plugin probe result.
+
 ## Domain Coverage
 
 | Domain | Commands |
@@ -84,6 +86,7 @@ Batch success/error summary:
 - Use `--dry-run` on all mutating commands first.
 - `--fields` trims the top-level response envelope to reduce context bloat.
 - `batch --strict` stops on the first invalid step.
+- Live validation should use a scratch document and disposable export paths.
 
 ## Batch Interpolation
 
@@ -131,3 +134,9 @@ These currently route through the `sendScriptMessage` bridge:
 - `appearance.apply_graphic_style`
 
 If the plugin bridge is unavailable, they fail with `PLUGIN_REQUIRED`.
+
+The plugin probe currently uses `ahd.version`. A healthy installed bridge should return a JSON payload for:
+
+```text
+app.sendScriptMessage("AHDIllustrator", "ahd.version", "{}")
+```

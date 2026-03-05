@@ -9,6 +9,7 @@
 - Batch interpolation engine with strict step-result resolution
 - AppleScript host adapter for `do javascript`, app open, and app quit flows
 - JSX bridge runtime for raw script execution and plugin selector dispatch
+- Live hardening for Illustrator 30.2.1: bundle-id app discovery, version reporting, ES3-safe bridge serialization, and deterministic plugin probing
 - Buildable C++ plugin bridge skeleton with `sendScriptMessage` handlers
 
 ## Command Coverage
@@ -39,4 +40,5 @@ v0.1 ships command domains for:
 
 - Supported platform: macOS
 - Scope: CLI-first, no MCP in v0.1
+- Selector-backed commands remain plugin-required until the AHD Illustrator bridge plugin is installed
 - Adobe Illustrator is a trademark of Adobe. This project is unaffiliated.

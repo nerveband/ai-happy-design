@@ -3,7 +3,6 @@
 package host
 
 import (
-	"strings"
 	"testing"
 	"time"
 )
@@ -17,23 +16,26 @@ func TestStatusIntegration(t *testing.T) {
 	if !status.OSAScriptAvailable {
 		t.Skip("osascript is unavailable on this runner")
 	}
+	if status.IllustratorAppFound && status.AppPath == "" {
+		t.Fatal("expected resolved app path when Illustrator is installed")
+	}
 }
 
 func TestExecuteJavaScriptIntegration(t *testing.T) {
 	adapter := NewAdapter()
 	status := adapter.Status()
 	if !status.IllustratorAppFound {
-		t.Skip("Adobe Illustrator.app not installed")
+		t.Skip("Illustrator not installed")
 	}
 	if !status.IllustratorRunning {
 		t.Skip("Illustrator not running; skipping live script execution")
 	}
 
-	out, err := adapter.ExecuteJavaScript(`(function () { return JSON.stringify({ "ok": true }); }())`, 5*time.Second)
+	out, err := adapter.ExecuteJavaScript(`(function () { return "ok"; }())`, 5*time.Second)
 	if err != nil {
 		t.Fatalf("execute javascript: %v", err)
 	}
-	if !strings.Contains(out, `"ok": true`) && !strings.Contains(out, `"ok":true`) {
+	if out != "ok" {
 		t.Fatalf("unexpected script output: %s", out)
 	}
 }

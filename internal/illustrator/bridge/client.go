@@ -11,7 +11,16 @@ import (
 	"github.com/nerveband/ai-happy-design/internal/illustrator/host"
 )
 
-const pluginName = "AHDIllustrator"
+const (
+	pluginName          = "AHDIllustrator"
+	pluginProbeSelector = "ahd.version"
+)
+
+const pluginRemediation = "Build and install the AHD Illustrator plugin bridge for Illustrator 2026, then retry the selector-backed command."
+
+type scriptRunner interface {
+	ExecuteJavaScript(script string, timeout time.Duration) (string, error)
+}
 
 // Request is the selector payload sent to the bridge.
 type Request struct {
@@ -34,6 +43,17 @@ type Response struct {
 	Details  json.RawMessage `json:"details,omitempty"`
 }
 
+// PluginStatus describes whether the optional plugin bridge can be reached.
+type PluginStatus struct {
+	Reachable   bool   `json:"reachable"`
+	Code        string `json:"code,omitempty"`
+	Message     string `json:"message,omitempty"`
+	Selector    string `json:"selector,omitempty"`
+	ProbeID     string `json:"probeId,omitempty"`
+	Version     string `json:"version,omitempty"`
+	Remediation string `json:"remediation,omitempty"`
+}
+
 type runtimePayload struct {
 	ID       string  `json:"id"`
 	Mode     string  `json:"mode"`
@@ -44,12 +64,57 @@ type runtimePayload struct {
 
 // Client wraps the host adapter with the shared JSX bridge runtime.
 type Client struct {
-	host *host.Adapter
+	host scriptRunner
 }
 
 // NewClient returns a bridge client bound to a host adapter.
 func NewClient(adapter *host.Adapter) *Client {
 	return &Client{host: adapter}
+}
+
+// ProbePlugin checks whether the optional sendScriptMessage bridge is live.
+func (c *Client) ProbePlugin(timeout time.Duration) PluginStatus {
+	if timeout <= 0 {
+		timeout = 5 * time.Second
+	}
+	request := Request{
+		V:         "1.0",
+		ID:        uuid.NewString(),
+		Command:   "plugin.probe",
+		Params:    map[string]any{},
+		TimeoutMs: int(timeout / time.Millisecond),
+	}
+	response, err := c.execute(runtimePayload{
+		ID:       request.ID,
+		Mode:     "selector",
+		Selector: pluginProbeSelector,
+		Request:  request,
+	}, timeout, true)
+	if err != nil {
+		return PluginStatus{
+			Reachable:   false,
+			Code:        err.Code,
+			Message:     err.Message,
+			Selector:    pluginProbeSelector,
+			ProbeID:     request.ID,
+			Remediation: pluginRemediation,
+		}
+	}
+
+	status := PluginStatus{
+		Reachable: true,
+		Selector:  pluginProbeSelector,
+		ProbeID:   request.ID,
+	}
+	switch result := response.Result.(type) {
+	case map[string]any:
+		if version, ok := result["version"].(string); ok {
+			status.Version = version
+		}
+	case string:
+		status.Version = result
+	}
+	return status
 }
 
 // ExecuteScript runs a raw ExtendScript snippet through the bridge wrapper.
@@ -70,6 +135,11 @@ func (c *Client) ExecuteSelector(selector string, request Request, timeout time.
 	if request.ID == "" {
 		request.ID = uuid.NewString()
 	}
+	probe := c.ProbePlugin(minDuration(timeout, 5*time.Second))
+	if !probe.Reachable {
+		return nil, pluginRequiredError(selector, probe.Message, probe)
+	}
+
 	payload := runtimePayload{
 		ID:       request.ID,
 		Mode:     "selector",
@@ -80,7 +150,7 @@ func (c *Client) ExecuteSelector(selector string, request Request, timeout time.
 }
 
 func (c *Client) execute(payload runtimePayload, timeout time.Duration, selectorMode bool) (*Response, *commoncli.CommandError) {
-	body, err := json.Marshal(payload)
+	script, err := buildRuntimeScript(payload)
 	if err != nil {
 		return nil, &commoncli.CommandError{
 			Code:    "HOST_EXEC_ERROR",
@@ -88,92 +158,252 @@ func (c *Client) execute(payload runtimePayload, timeout time.Duration, selector
 			Details: err.Error(),
 		}
 	}
-	script := strings.ReplaceAll(bridgeTemplate, "__AHD_PAYLOAD__", string(body))
+
 	raw, execErr := c.host.ExecuteJavaScript(script, timeout)
 	if execErr != nil {
-		code := "HOST_EXEC_ERROR"
-		if strings.Contains(execErr.Error(), "PLUGIN_TIMEOUT") {
-			code = "PLUGIN_TIMEOUT"
+		return nil, classifyHostExecutionError(execErr, selectorMode, payload.Selector)
+	}
+
+	return parseBridgeResponse(raw, selectorMode, payload.Selector)
+}
+
+func buildRuntimeScript(payload runtimePayload) (string, error) {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+	return strings.ReplaceAll(bridgeTemplate, "__AHD_PAYLOAD__", string(body)), nil
+}
+
+func parseBridgeResponse(raw string, selectorMode bool, selector string) (*Response, *commoncli.CommandError) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		if selectorMode {
+			return nil, pluginRequiredError(selector, "plugin selector returned an empty response", nil)
 		}
 		return nil, &commoncli.CommandError{
-			Code:    code,
-			Message: execErr.Error(),
+			Code:    "HOST_EXEC_ERROR",
+			Message: "host bridge returned an empty response",
 		}
 	}
-	if strings.TrimSpace(raw) == "" && selectorMode {
-		return nil, &commoncli.CommandError{
-			Code:    "PLUGIN_REQUIRED",
-			Message: "plugin selector returned an empty response",
-			Details: map[string]any{"selector": payload.Selector},
-		}
-	}
+
 	var response Response
-	if err := json.Unmarshal([]byte(raw), &response); err != nil {
+	if err := json.Unmarshal([]byte(trimmed), &response); err != nil {
 		return nil, &commoncli.CommandError{
 			Code:    "HOST_EXEC_ERROR",
 			Message: "failed to decode bridge response",
-			Details: map[string]any{"raw": raw, "error": err.Error()},
+			Details: map[string]any{"raw": trimmed, "error": err.Error()},
 		}
 	}
-	if !response.OK {
-		code := "HOST_EXEC_ERROR"
-		if selectorMode {
-			code = "PLUGIN_REQUIRED"
-		}
-		return &response, &commoncli.CommandError{
-			Code:    code,
-			Message: response.Error,
-			Details: map[string]any{"selector": payload.Selector},
+	if response.OK {
+		return &response, nil
+	}
+
+	if selectorMode && isPluginUnavailable(response.Error) {
+		return &response, pluginRequiredError(selector, response.Error, map[string]any{
+			"selector": selector,
+			"raw":      trimmed,
+		})
+	}
+
+	code := "HOST_EXEC_ERROR"
+	if selectorMode && strings.Contains(strings.ToUpper(response.Error), "TIMEOUT") {
+		code = "PLUGIN_TIMEOUT"
+	}
+	return &response, &commoncli.CommandError{
+		Code:    code,
+		Message: response.Error,
+		Details: map[string]any{
+			"selector": selector,
+			"details":  response.Details,
+		},
+	}
+}
+
+func classifyHostExecutionError(execErr error, selectorMode bool, selector string) *commoncli.CommandError {
+	message := strings.TrimSpace(execErr.Error())
+	if selectorMode && isPluginUnavailable(message) {
+		return pluginRequiredError(selector, message, nil)
+	}
+	code := "HOST_EXEC_ERROR"
+	if selectorMode && strings.Contains(strings.ToUpper(message), "TIMEOUT") {
+		code = "PLUGIN_TIMEOUT"
+	}
+	return &commoncli.CommandError{
+		Code:    code,
+		Message: message,
+	}
+}
+
+func pluginRequiredError(selector, message string, details any) *commoncli.CommandError {
+	msg := strings.TrimSpace(message)
+	if msg == "" {
+		msg = "AHD Illustrator plugin bridge is not installed or not responding"
+	}
+	return &commoncli.CommandError{
+		Code:    "PLUGIN_REQUIRED",
+		Message: msg,
+		Details: map[string]any{
+			"selector":    selector,
+			"remediation": pluginRemediation,
+			"probe":       details,
+		},
+	}
+}
+
+func isPluginUnavailable(message string) bool {
+	needle := strings.ToLower(strings.TrimSpace(message))
+	if needle == "" {
+		return false
+	}
+	snippets := []string{
+		"1344357988",
+		"df!p",
+		"sendscriptmessage",
+		"empty plugin response",
+		"no messaging plug-in",
+		"no messaging plugin",
+	}
+	for _, snippet := range snippets {
+		if strings.Contains(needle, strings.ToLower(snippet)) {
+			return true
 		}
 	}
-	return &response, nil
+	return false
+}
+
+func minDuration(a, b time.Duration) time.Duration {
+	if a <= 0 {
+		return b
+	}
+	if a < b {
+		return a
+	}
+	return b
 }
 
 var bridgeTemplate = `(function () {
-  function stringify(value) {
-    try {
-      return JSON.stringify(value);
-    } catch (err) {
-      return JSON.stringify({
-        v: "1.0",
-        id: (value && value.id) || "",
-        ok: false,
-        error: "failed to stringify bridge payload: " + err
-      });
+  function ahdQuote(value) {
+    var str = String(value);
+    var out = '"';
+    var i;
+    var ch;
+    var code;
+    var hex;
+    for (i = 0; i < str.length; i++) {
+      ch = str.charAt(i);
+      code = str.charCodeAt(i);
+      if (ch === "\\") {
+        out += "\\\\";
+      } else if (ch === "\"") {
+        out += "\\\"";
+      } else if (ch === "\b") {
+        out += "\\b";
+      } else if (ch === "\f") {
+        out += "\\f";
+      } else if (ch === "\n") {
+        out += "\\n";
+      } else if (ch === "\r") {
+        out += "\\r";
+      } else if (ch === "\t") {
+        out += "\\t";
+      } else if (code < 32) {
+        hex = code.toString(16);
+        out += "\\u" + ("0000" + hex).slice(-4);
+      } else {
+        out += ch;
+      }
     }
+    return out + '"';
+  }
+
+  function ahdIsArray(value) {
+    return Object.prototype.toString.call(value) === "[object Array]";
+  }
+
+  function ahdStringify(value, seen) {
+    var i;
+    var keys;
+    var parts;
+    var item;
+    if (!seen) {
+      seen = [];
+    }
+    if (value === null || typeof value === "undefined") {
+      return "null";
+    }
+    if (typeof value === "string") {
+      return ahdQuote(value);
+    }
+    if (typeof value === "number") {
+      return isFinite(value) ? String(value) : "null";
+    }
+    if (typeof value === "boolean") {
+      return value ? "true" : "false";
+    }
+    if (typeof value === "function") {
+      return "null";
+    }
+    for (i = 0; i < seen.length; i++) {
+      if (seen[i] === value) {
+        return ahdQuote("[Circular]");
+      }
+    }
+    seen.push(value);
+    if (ahdIsArray(value)) {
+      parts = [];
+      for (i = 0; i < value.length; i++) {
+        parts.push(ahdStringify(value[i], seen));
+      }
+      seen.pop();
+      return "[" + parts.join(",") + "]";
+    }
+    parts = [];
+    keys = [];
+    for (item in value) {
+      if (Object.prototype.hasOwnProperty.call(value, item)) {
+        keys.push(item);
+      }
+    }
+    keys.sort();
+    for (i = 0; i < keys.length; i++) {
+      item = keys[i];
+      if (typeof value[item] === "undefined" || typeof value[item] === "function") {
+        continue;
+      }
+      parts.push(ahdQuote(item) + ":" + ahdStringify(value[item], seen));
+    }
+    seen.pop();
+    return "{" + parts.join(",") + "}";
+  }
+
+  function ahdSuccess(id, result) {
+    return ahdStringify({
+      v: "1.0",
+      id: id,
+      ok: true,
+      result: typeof result === "undefined" ? {} : result,
+      warnings: []
+    });
+  }
+
+  function ahdError(id, message) {
+    return "{\"v\":\"1.0\",\"id\":" + ahdQuote(id || "") + ",\"ok\":false,\"error\":" + ahdQuote(String(message || "unknown bridge error")) + ",\"warnings\":[]}";
   }
 
   var payload = __AHD_PAYLOAD__;
   try {
     if (payload.mode === "script") {
-      var result = eval(payload.script);
-      return stringify({
-        v: "1.0",
-        id: payload.id,
-        ok: true,
-        result: result || {},
-        warnings: []
-      });
+      return ahdSuccess(payload.id, eval(payload.script));
     }
 
-    var raw = app.sendScriptMessage("` + pluginName + `", payload.selector, stringify(payload.request));
+    var requestBody = ahdStringify(payload.request || {});
+    var raw = app.sendScriptMessage("` + pluginName + `", payload.selector, requestBody);
     if (!raw || raw === "") {
-      return stringify({
-        v: "1.0",
-        id: payload.request.id,
-        ok: false,
-        error: "empty plugin response",
-        warnings: []
-      });
+      return ahdError((payload.request && payload.request.id) || payload.id, "empty plugin response");
     }
     return raw;
   } catch (err) {
-    return stringify({
-      v: "1.0",
-      id: (payload.request && payload.request.id) || payload.id,
-      ok: false,
-      error: String(err),
-      warnings: []
-    });
+    return ahdError((payload.request && payload.request.id) || payload.id, err);
   }
 }());`

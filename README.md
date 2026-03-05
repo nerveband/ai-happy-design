@@ -71,6 +71,9 @@ go build -o bin/ahd-illustrator ./cmd/ahd-illustrator
 ./bin/ahd-illustrator tools --llm
 ```
 
+Live validation on March 5, 2026 was run against Adobe Illustrator 30.2.1 on macOS.
+The host adapter resolves the installed app via bundle id, and the JSX bridge uses an internal ES3-safe serializer because Illustrator's ExtendScript runtime does not expose a global `JSON` object.
+
 ## Agent-First Principles
 
 - JSON envelopes are the default public contract.
@@ -97,7 +100,9 @@ skills/ahd-illustrator/   Agent skill bundle
 ## Status
 
 - `ahd-figma`: active and shipping from this repo
-- `ahd-illustrator`: v0.1 scope is macOS-only, CLI-only, with script fallback plus plugin capability mode
+- `ahd-illustrator`: v0.1 scope is macOS-only, CLI-only, with live-validated script mode plus plugin capability mode
+- `host status` and `doctor` report resolved Illustrator app path, version, and plugin probe status
+- `inspect.*`, `appearance.set_gradient`, and `appearance.apply_graphic_style` remain plugin-required until the AHD bridge plugin is installed
 
 ## Docs
 
