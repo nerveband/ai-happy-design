@@ -104,6 +104,13 @@ skills/ahd-illustrator/   Agent skill bundle
 - `host status` and `doctor` report resolved Illustrator app path, version, and plugin probe status
 - the current Illustrator CLI surface no longer depends on the native plugin for `inspect.*`, gradients, or graphic styles
 
+## Illustrator Without Plugin Or SDK
+
+- End users only need Adobe Illustrator plus the `ahd-illustrator` binary for the current CLI surface.
+- The current script-backed surface includes discovery commands plus `app.*`, `document.*`, `artboard.*`, `layer.*`, `selection.*`, `path.*`, `text.*`, `appearance.*`, `action.*`, `export.*`, and `inspect.*`.
+- The native plugin is optional and currently diagnostic-only for future native-only capabilities.
+- The Adobe Illustrator SDK is only needed by maintainers who want to build the native plugin from source.
+
 ## Docs
 
 - [Docs index](docs/README.md)

@@ -88,6 +88,13 @@ Batch success/error summary:
 - `batch --strict` stops on the first invalid step.
 - Live validation should use a scratch document and disposable export paths.
 
+## No Plugin / No SDK
+
+- The current command surface is script-backed and works without the native plugin.
+- End users do not need the Illustrator SDK to use the CLI.
+- Maintainers only need the SDK if they want to build the optional native plugin from source.
+- `host status` and `doctor` may still show the native plugin probe as unavailable; that does not block the current CLI surface.
+
 ## Batch Interpolation
 
 Step references use the form `${{steps.step_name.result.path}}`.

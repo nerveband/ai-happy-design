@@ -17,6 +17,25 @@
 - The JSX bridge does not rely on `JSON.stringify`; Illustrator's ExtendScript runtime in this build does not provide a global `JSON` object.
 - The native plugin probe remains visible in diagnostics, but the current inspect and appearance command surface is script-backed and works without the plugin installed.
 
+## Without Plugin Or SDK
+
+- End users do not need the Adobe Illustrator SDK.
+- End users do not need the native AHD plugin for the current CLI surface.
+- With only Illustrator installed, users can run discovery plus the full current command surface:
+  - `app.*`
+  - `document.*`
+  - `artboard.*`
+  - `layer.*`
+  - `selection.*`
+  - `path.*`
+  - `text.*`
+  - `appearance.*`
+  - `action.*`
+  - `export.*`
+  - `inspect.*`
+- The SDK is only needed if a maintainer wants to build the native plugin from source.
+- The plugin is only for future native-only capabilities or deeper integration beyond the current script-backed surface.
+
 ## Recommended Workflow
 
 1. `ahd-illustrator doctor`
