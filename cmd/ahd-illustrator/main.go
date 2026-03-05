@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"runtime"
 	"strings"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/nerveband/ai-happy-design/internal/commonschema"
 	"github.com/nerveband/ai-happy-design/internal/commonvalidate"
 	"github.com/nerveband/ai-happy-design/internal/illustrator/commands"
+	illustratorhost "github.com/nerveband/ai-happy-design/internal/illustrator/host"
 	_ "github.com/nerveband/ai-happy-design/internal/illustrator/schema"
 	illustratorvalidate "github.com/nerveband/ai-happy-design/internal/illustrator/validate"
 )
@@ -217,12 +217,7 @@ var hostStatusCmd = &cobra.Command{
 	Short: "Report basic host readiness",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		started := time.Now()
-		status := map[string]any{
-			"platform":              runtime.GOOS,
-			"supported":             runtime.GOOS == "darwin",
-			"osascriptAvailable":    hasCommand("osascript"),
-			"illustratorExecutable": hasIllustratorApp(),
-		}
+		status := illustratorhost.NewAdapter().Status()
 		return writeEnvelope("json", "", commoncli.SuccessEnvelope("host.status", status, nil, started))
 	},
 }
@@ -232,7 +227,12 @@ var hostOpenCmd = &cobra.Command{
 	Short: "Open Illustrator (wired in the host bridge phase)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		started := time.Now()
-		envelope := commoncli.ErrorEnvelope("host.open", "UNSUPPORTED_COMMAND", "host.open is not wired yet", map[string]any{"next": "host bridge phase"}, false, nil, started)
+		adapter := illustratorhost.NewAdapter()
+		if err := adapter.Open(); err != nil {
+			envelope := commoncli.ErrorEnvelope("host.open", "HOST_EXEC_ERROR", err.Error(), nil, false, nil, started)
+			return writeEnvelope("json", "", envelope)
+		}
+		envelope := commoncli.SuccessEnvelope("host.open", map[string]any{"opened": true}, nil, started)
 		return writeEnvelope("json", "", envelope)
 	},
 }
@@ -242,7 +242,12 @@ var hostQuitCmd = &cobra.Command{
 	Short: "Quit Illustrator (wired in the host bridge phase)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		started := time.Now()
-		envelope := commoncli.ErrorEnvelope("host.quit", "UNSUPPORTED_COMMAND", "host.quit is not wired yet", map[string]any{"next": "host bridge phase"}, false, nil, started)
+		adapter := illustratorhost.NewAdapter()
+		if err := adapter.Quit(); err != nil {
+			envelope := commoncli.ErrorEnvelope("host.quit", "HOST_EXEC_ERROR", err.Error(), nil, false, nil, started)
+			return writeEnvelope("json", "", envelope)
+		}
+		envelope := commoncli.SuccessEnvelope("host.quit", map[string]any{"quit": true}, nil, started)
 		return writeEnvelope("json", "", envelope)
 	},
 }
@@ -252,13 +257,14 @@ var doctorCmd = &cobra.Command{
 	Short: "Inspect local prerequisites for ahd-illustrator",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		started := time.Now()
+		status := illustratorhost.NewAdapter().Status()
 		result := map[string]any{
-			"platform":           runtime.GOOS,
-			"arch":               runtime.GOARCH,
-			"supported":          runtime.GOOS == "darwin",
-			"osascriptAvailable": hasCommand("osascript"),
-			"schemas":            len(commonschema.All()),
-			"domains":            commonschema.Domains(),
+			"platform":  runtime.GOOS,
+			"arch":      runtime.GOARCH,
+			"supported": status.Supported,
+			"host":      status,
+			"schemas":   len(commonschema.All()),
+			"domains":   commonschema.Domains(),
 		}
 		return writeEnvelope("json", "", commoncli.SuccessEnvelope("doctor", result, nil, started))
 	},
@@ -407,19 +413,6 @@ func writeBatch(format string, batch commoncli.BatchEnvelope) error {
 	default:
 		return commoncli.WriteJSON(batch)
 	}
-}
-
-func hasCommand(name string) bool {
-	_, err := exec.LookPath(name)
-	return err == nil
-}
-
-func hasIllustratorApp() bool {
-	if runtime.GOOS != "darwin" {
-		return false
-	}
-	_, err := os.Stat("/Applications/Adobe Illustrator.app")
-	return err == nil
 }
 
 func exampleOps(category string) []commoncli.BatchOp {
