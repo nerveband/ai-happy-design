@@ -8,6 +8,7 @@ This repo now contains both Figma and Illustrator surfaces.
 - `illustrator/architecture.md` - host, JSX, and plugin bridge design.
 - `illustrator/commands.md` - command domains and output contract.
 - `illustrator/plugin-build.md` - C++ plugin bridge build notes.
+- `illustrator/release-notes-v0.1.md` - initial Illustrator release notes.
 - `plans/2026-03-05-ahd-illustrator-monorepo-spec.md` - locked implementation spec.
 
 ## Figma

@@ -106,7 +106,12 @@ skills/ahd-illustrator/   Agent skill bundle
 - [Illustrator architecture](docs/illustrator/architecture.md)
 - [Illustrator commands](docs/illustrator/commands.md)
 - [Illustrator plugin build](docs/illustrator/plugin-build.md)
+- [Illustrator release notes](docs/illustrator/release-notes-v0.1.md)
 - [Implementation plan](docs/plans/2026-03-05-ahd-illustrator-monorepo-spec.md)
+
+## Skills
+
+- [AHD Illustrator skill](skills/ahd-illustrator/SKILL.md)
 
 ## Trademark Disclaimer
 
