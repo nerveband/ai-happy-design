@@ -161,14 +161,32 @@ var batchCmd = &cobra.Command{
 		executor := commands.NewExecutor()
 		steps := make([]commoncli.BatchStep, 0, len(ops))
 		for index, op := range ops {
-			schema := commonschema.Lookup(op.Command)
-			validation := illustratorvalidate.ValidateCommand(schema, op.Params)
+			resolvedOp, resolveErr := commands.ResolveBatchOp(op, steps)
+			if resolveErr != nil {
+				steps = append(steps, commoncli.BatchStep{
+					Index:   index,
+					Name:    op.Name,
+					Command: op.Command,
+					OK:      false,
+					Error: map[string]any{
+						"code":    "VALIDATION_ERROR",
+						"message": resolveErr.Error(),
+					},
+				})
+				if batchStrict {
+					break
+				}
+				continue
+			}
+
+			schema := commonschema.Lookup(resolvedOp.Command)
+			validation := illustratorvalidate.ValidateCommand(schema, resolvedOp.Params)
 			warnings := toWarnings(validation.Warnings)
 			if len(validation.Errors) > 0 {
 				steps = append(steps, commoncli.BatchStep{
 					Index:    index,
-					Name:     op.Name,
-					Command:  op.Command,
+					Name:     resolvedOp.Name,
+					Command:  resolvedOp.Command,
 					OK:       false,
 					Warnings: warnings,
 					Error:    validation.Errors,
@@ -187,8 +205,8 @@ var batchCmd = &cobra.Command{
 			warnings = append(warnings, extraWarnings...)
 			step := commoncli.BatchStep{
 				Index:    index,
-				Name:     op.Name,
-				Command:  op.Command,
+				Name:     resolvedOp.Name,
+				Command:  resolvedOp.Command,
 				OK:       execErr == nil,
 				Result:   result,
 				Warnings: warnings,

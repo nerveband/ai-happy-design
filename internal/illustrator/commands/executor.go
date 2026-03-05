@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/nerveband/ai-happy-design/internal/commoncli"
@@ -23,6 +22,13 @@ type Executor struct {
 	bridge *bridge.Client
 }
 
+type executionPlan struct {
+	mode     string
+	script   string
+	selector string
+	timeout  time.Duration
+}
+
 // NewExecutor returns a command executor.
 func NewExecutor() *Executor {
 	adapter := host.NewAdapter()
@@ -30,13 +36,6 @@ func NewExecutor() *Executor {
 		host:   adapter,
 		bridge: bridge.NewClient(adapter),
 	}
-}
-
-type executionPlan struct {
-	mode     string
-	script   string
-	selector string
-	timeout  time.Duration
 }
 
 // Execute runs a validated command request.
@@ -109,47 +108,4 @@ func (e *Executor) Execute(request Request) (any, []commoncli.Warning, *commoncl
 		})
 	}
 	return response.Result, warnings, nil
-}
-
-func buildPlan(request Request) (executionPlan, error) {
-	switch request.Command.Name {
-	case "app.info":
-		return executionPlan{mode: "script", timeout: 10 * time.Second, script: `(function () {
-  return {
-    name: app.name,
-    version: app.version,
-    documents: app.documents.length,
-    activeDocument: app.documents.length ? app.activeDocument.name : null
-  };
-}())`}, nil
-	case "app.version":
-		return executionPlan{mode: "script", timeout: 10 * time.Second, script: `(function () {
-  return { version: app.version };
-}())`}, nil
-	case "document.list":
-		return executionPlan{mode: "script", timeout: 10 * time.Second, script: `(function () {
-  var docs = [];
-  for (var i = 0; i < app.documents.length; i++) {
-    docs.push({
-      index: i,
-      name: app.documents[i].name
-    });
-  }
-  return docs;
-}())`}, nil
-	case "document.info":
-		return executionPlan{mode: "script", timeout: 10 * time.Second, script: `(function () {
-  if (app.documents.length === 0) {
-    return {};
-  }
-  var doc = app.activeDocument;
-  return {
-    name: doc.name,
-    artboards: doc.artboards.length,
-    layers: doc.layers.length
-  };
-}())`}, nil
-	default:
-		return executionPlan{}, fmt.Errorf("%s execution is not wired yet", request.Command.Name)
-	}
 }
