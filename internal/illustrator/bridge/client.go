@@ -91,10 +91,16 @@ func (c *Client) ProbePlugin(timeout time.Duration) PluginStatus {
 		Request:  request,
 	}, timeout, true)
 	if err != nil {
+		code := err.Code
+		message := err.Message
+		if strings.Contains(strings.ToLower(message), "timed out") {
+			code = "PLUGIN_REQUIRED"
+			message = "AHD Illustrator plugin bridge is not installed or not responding"
+		}
 		return PluginStatus{
 			Reachable:   false,
-			Code:        err.Code,
-			Message:     err.Message,
+			Code:        code,
+			Message:     message,
 			Selector:    pluginProbeSelector,
 			ProbeID:     request.ID,
 			Remediation: pluginRemediation,

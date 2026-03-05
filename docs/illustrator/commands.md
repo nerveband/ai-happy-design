@@ -121,22 +121,14 @@ Interpolation is intentionally strict:
 - missing result paths fail validation
 - non-scalar values cannot be embedded into larger strings
 
-## Plugin-Required Commands
+## Native Bridge Probe
 
-These currently route through the `sendScriptMessage` bridge:
+The current CLI surface is script-backed for inspection, gradients, and graphic style application.
 
-- `inspect.tree`
-- `inspect.styles`
-- `inspect.bounds`
-- `inspect.fonts`
-- `inspect.summary`
-- `appearance.set_gradient`
-- `appearance.apply_graphic_style`
-
-If the plugin bridge is unavailable, they fail with `PLUGIN_REQUIRED`.
-
-The plugin probe currently uses `ahd.version`. A healthy installed bridge should return a JSON payload for:
+`host status` and `doctor` still probe the optional native bridge with `ahd.version`. A healthy installed bridge should return a JSON payload for:
 
 ```text
 app.sendScriptMessage("AHDIllustrator", "ahd.version", "{}")
 ```
+
+This probe is now diagnostic only. It is reserved for future native-only capabilities rather than the current v0.1 command surface.

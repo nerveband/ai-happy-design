@@ -18,7 +18,8 @@ The Illustrator bridge plugin lives under `tools/illustrator/plugin-cpp/`.
 ## Current Live State
 
 - Script-backed commands are live-validated without the plugin.
-- Selector-backed commands currently fail with `PLUGIN_REQUIRED` on this machine because `sendScriptMessage` is not yet backed by an installed AHD bridge plugin.
+- The current inspect, gradient, and graphic-style command surface is script-backed and does not require the plugin.
+- `host status` and `doctor` still probe `sendScriptMessage` so future native-only capabilities can be diagnosed cleanly.
 - The Illustrator app path currently resolves to `/Applications/Adobe Illustrator 2026/Adobe Illustrator.app`.
 
 ## Local CMake Build

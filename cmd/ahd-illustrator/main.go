@@ -417,7 +417,7 @@ func runtimeDiagnostics() map[string]any {
 			Message:   "Adobe Illustrator is not running",
 		}
 	default:
-		plugin = bridge.NewClient(adapter).ProbePlugin(5 * time.Second)
+		plugin = bridge.NewClient(adapter).ProbePlugin(2 * time.Second)
 	}
 	return map[string]any{
 		"host":   status,

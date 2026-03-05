@@ -73,14 +73,19 @@ func (a *Adapter) Status() Status {
 }
 
 func (a *Adapter) resolveAppPath(ctx context.Context) string {
-	if ctx == nil {
-		ctx = context.Background()
+	bundlePath := ""
+	if ctx != nil {
+		probeCtx, cancel := context.WithTimeout(ctx, 750*time.Millisecond)
+		defer cancel()
+		out, err := runCommand(probeCtx, "osascript", "-e", fmt.Sprintf(`POSIX path of (path to application id "%s")`, a.BundleID))
+		if err == nil {
+			bundlePath = normalizeAppPath(out)
+		}
 	}
-	out, err := runCommand(ctx, "osascript", "-e", fmt.Sprintf(`POSIX path of (path to application id "%s")`, a.BundleID))
-	if err != nil {
-		return ""
+	if bundlePath != "" {
+		return bundlePath
 	}
-	return normalizeAppPath(out)
+	return fallbackAppPath()
 }
 
 func normalizeAppPath(raw string) string {
@@ -162,6 +167,27 @@ func runCommandImpl(ctx context.Context, name string, args ...string) (string, e
 func hasCommand(name string) bool {
 	_, err := lookPathFunc(name)
 	return err == nil
+}
+
+func fallbackAppPath() string {
+	patterns := []string{
+		"/Applications/Adobe Illustrator.app",
+		"/Applications/Adobe Illustrator*/Adobe Illustrator.app",
+		filepath.Join(os.Getenv("HOME"), "Applications", "Adobe Illustrator.app"),
+		filepath.Join(os.Getenv("HOME"), "Applications", "Adobe Illustrator*", "Adobe Illustrator.app"),
+	}
+	for _, pattern := range patterns {
+		matches, err := filepath.Glob(pattern)
+		if err != nil {
+			continue
+		}
+		for _, match := range matches {
+			if info, err := os.Stat(match); err == nil && info.IsDir() {
+				return match
+			}
+		}
+	}
+	return ""
 }
 
 func readBundleVersion(ctx context.Context, appPath string) string {

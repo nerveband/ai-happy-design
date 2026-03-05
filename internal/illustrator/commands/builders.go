@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-
-	illustratorinspect "github.com/nerveband/ai-happy-design/internal/illustrator/inspect"
 )
 
 const scriptPrelude = `
@@ -52,6 +50,181 @@ function ahdRGB(hex, opacity) {
   color.green = parseInt(value.substring(2, 4), 16);
   color.blue = parseInt(value.substring(4, 6), 16);
   return { color: color, opacity: opacity == null ? 100 : opacity };
+}
+
+function ahdHexByte(value) {
+  var rounded = Math.round(Number(value || 0));
+  if (rounded < 0) rounded = 0;
+  if (rounded > 255) rounded = 255;
+  var hex = rounded.toString(16).toUpperCase();
+  return hex.length === 1 ? "0" + hex : hex;
+}
+
+function ahdColorValue(color) {
+  if (!color) return null;
+  try {
+    if (color.typename === "RGBColor") {
+      return "#" + ahdHexByte(color.red) + ahdHexByte(color.green) + ahdHexByte(color.blue);
+    }
+    if (color.typename === "GrayColor") {
+      return "Gray(" + color.gray + ")";
+    }
+    if (color.typename === "CMYKColor") {
+      return "CMYK(" + [color.cyan, color.magenta, color.yellow, color.black].join(",") + ")";
+    }
+    if (color.typename === "SpotColor" && color.spot) {
+      return "Spot(" + color.spot.name + ")";
+    }
+    if (color.typename === "GradientColor" && color.gradient) {
+      return "Gradient(" + color.gradient.name + ")";
+    }
+    return color.typename || String(color);
+  } catch (err) {
+    return "UnknownColor";
+  }
+}
+
+function ahdBounds(item) {
+  return {
+    geometric: item.geometricBounds ? [item.geometricBounds[0], item.geometricBounds[1], item.geometricBounds[2], item.geometricBounds[3]] : null,
+    visible: item.visibleBounds ? [item.visibleBounds[0], item.visibleBounds[1], item.visibleBounds[2], item.visibleBounds[3]] : null,
+    control: item.controlBounds ? [item.controlBounds[0], item.controlBounds[1], item.controlBounds[2], item.controlBounds[3]] : null
+  };
+}
+
+function ahdSelectionItems() {
+  var items = [];
+  if (!app.selection) return items;
+  for (var i = 0; i < app.selection.length; i++) {
+    items.push(app.selection[i]);
+  }
+  return items;
+}
+
+function ahdPageItemSummary(item) {
+  return {
+    name: item.name || "",
+    typename: item.typename,
+    layer: item.layer ? item.layer.name : null,
+    locked: item.locked === true,
+    hidden: item.hidden === true || item.visible === false,
+    bounds: ahdBounds(item)
+  };
+}
+
+function ahdCountMapToArray(counts) {
+  var items = [];
+  for (var key in counts) {
+    if (counts.hasOwnProperty(key)) {
+      items.push({ name: key, count: counts[key] });
+    }
+  }
+  items.sort(function (a, b) {
+    if (a.name < b.name) return -1;
+    if (a.name > b.name) return 1;
+    return 0;
+  });
+  return items;
+}
+
+function ahdCollectFonts(doc) {
+  var counts = {};
+  var fontName = "";
+  for (var i = 0; i < doc.textFrames.length; i++) {
+    fontName = "Unknown";
+    try {
+      if (doc.textFrames[i].textRange && doc.textFrames[i].textRange.characterAttributes && doc.textFrames[i].textRange.characterAttributes.textFont) {
+        fontName = doc.textFrames[i].textRange.characterAttributes.textFont.name || "Unknown";
+      }
+    } catch (err) {
+      fontName = "Unknown";
+    }
+    if (!counts[fontName]) counts[fontName] = 0;
+    counts[fontName] += 1;
+  }
+  return ahdCountMapToArray(counts);
+}
+
+function ahdCollectStyles(doc) {
+  var fills = {};
+  var strokes = {};
+  var graphicStyles = [];
+  var item;
+  var fillKey;
+  var strokeKey;
+  for (var i = 0; i < doc.pageItems.length; i++) {
+    item = doc.pageItems[i];
+    if (item.filled) {
+      fillKey = ahdColorValue(item.fillColor) || "None";
+      if (!fills[fillKey]) fills[fillKey] = 0;
+      fills[fillKey] += 1;
+    }
+    if (item.stroked) {
+      strokeKey = ahdColorValue(item.strokeColor) || "None";
+      if (!strokes[strokeKey]) strokes[strokeKey] = 0;
+      strokes[strokeKey] += 1;
+    }
+  }
+  for (var j = 0; j < doc.graphicStyles.length; j++) {
+    graphicStyles.push(doc.graphicStyles[j].name);
+  }
+  graphicStyles.sort();
+  return {
+    fills: ahdCountMapToArray(fills),
+    strokes: ahdCountMapToArray(strokes),
+    graphicStyles: graphicStyles
+  };
+}
+
+function ahdLayerTree(layer) {
+  var node = {
+    name: layer.name,
+    visible: layer.visible,
+    locked: layer.locked,
+    items: [],
+    layers: []
+  };
+  for (var i = 0; i < layer.pageItems.length; i++) {
+    node.items.push(ahdPageItemSummary(layer.pageItems[i]));
+  }
+  for (var j = 0; j < layer.layers.length; j++) {
+    node.layers.push(ahdLayerTree(layer.layers[j]));
+  }
+  return node;
+}
+
+function ahdGraphicStyle(doc, name) {
+  for (var i = 0; i < doc.graphicStyles.length; i++) {
+    if (doc.graphicStyles[i].name === name) return doc.graphicStyles[i];
+  }
+  throw new Error("Graphic style not found: " + name);
+}
+
+function ahdApplyGradient(doc, item, stops, kind) {
+  if (!stops || stops.length < 2) {
+    throw new Error("Gradient requires at least two stops");
+  }
+  var gradient = doc.gradients.add();
+  gradient.name = "AHD Gradient " + new Date().getTime();
+  gradient.type = kind === "radial" ? GradientType.RADIAL : GradientType.LINEAR;
+  while (gradient.gradientStops.length < stops.length) {
+    gradient.gradientStops.add();
+  }
+  for (var i = 0; i < stops.length; i++) {
+    var spec = stops[i] || {};
+    var stop = gradient.gradientStops[i];
+    stop.color = ahdRGB(spec.color).color;
+    if (spec.offset != null) {
+      stop.rampPoint = spec.offset;
+    } else {
+      stop.rampPoint = stops.length === 1 ? 0 : (100 * i) / (stops.length - 1);
+    }
+  }
+  var gradientColor = new GradientColor();
+  gradientColor.gradient = gradient;
+  item.filled = true;
+  item.fillColor = gradientColor;
+  return gradient.name;
 }
 `
 
@@ -113,7 +286,7 @@ func buildPlan(request Request) (executionPlan, error) {
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var layer = ahdLayer(doc, params.layerId); var relative = ahdLayer(doc, params.relativeTo); if (params.position === "before") { layer.move(relative, ElementPlacement.PLACEBEFORE); } else if (params.position === "after") { layer.move(relative, ElementPlacement.PLACEAFTER); } else { layer.move(relative, ElementPlacement.INSIDE); } return { layerId: params.layerId, relativeTo: params.relativeTo, position: params.position };`, 20*time.Second), nil
 
 	case "selection.get":
-		return scriptPlan(request.Params, `var items = []; for (var i = 0; i < app.selection.length; i++) { items.push({ index: i, name: app.selection[i].name || "", typename: app.selection[i].typename }); } return items;`, 10*time.Second), nil
+		return scriptPlan(request.Params, `var selection = ahdSelectionItems(); var items = []; for (var i = 0; i < selection.length; i++) { items.push({ index: i, name: selection[i].name || "", typename: selection[i].typename }); } return items;`, 10*time.Second), nil
 	case "selection.clear":
 		return scriptPlan(request.Params, `app.selection = null; return { cleared: true };`, 10*time.Second), nil
 	case "selection.set_by_ids":
@@ -145,8 +318,10 @@ func buildPlan(request Request) (executionPlan, error) {
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var item = ahdPageItem(doc, params.itemId); var fill = ahdRGB(params.color, params.opacity); item.filled = true; item.fillColor = fill.color; item.opacity = fill.opacity; return { itemId: params.itemId, fill: params.color };`, 20*time.Second), nil
 	case "appearance.set_stroke":
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var item = ahdPageItem(doc, params.itemId); var stroke = ahdRGB(params.color); item.stroked = true; item.strokeColor = stroke.color; item.strokeWidth = params.width; return { itemId: params.itemId, stroke: params.color, width: params.width };`, 20*time.Second), nil
-	case "appearance.set_gradient", "appearance.apply_graphic_style":
-		return selectorPlan("ahd.exec", 20*time.Second), nil
+	case "appearance.set_gradient":
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var item = ahdPageItem(doc, params.itemId); var gradientName = ahdApplyGradient(doc, item, params.stops, params.type || "linear"); return { itemId: params.itemId, gradient: gradientName, stops: params.stops.length, type: params.type || "linear" };`, 20*time.Second), nil
+	case "appearance.apply_graphic_style":
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var item = ahdPageItem(doc, params.itemId); var style = ahdGraphicStyle(doc, params.styleName); style.applyTo(item); return { itemId: params.itemId, styleName: style.name };`, 20*time.Second), nil
 
 	case "action.load":
 		return scriptPlan(request.Params, `app.loadAction(new File(params.filePath)); return { filePath: params.filePath, loaded: true };`, 20*time.Second), nil
@@ -166,8 +341,16 @@ func buildPlan(request Request) (executionPlan, error) {
 	case "export.ai":
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new IllustratorSaveOptions(); doc.saveAs(file, options); return { outputPath: file.fsName, format: "ai" };`, 30*time.Second), nil
 
-	case "inspect.tree", "inspect.styles", "inspect.bounds", "inspect.fonts", "inspect.summary":
-		return selectorPlan(illustratorinspect.SelectorFor(request.Command.Name), 20*time.Second), nil
+	case "inspect.tree":
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var tree = []; for (var i = 0; i < doc.layers.length; i++) { tree.push(ahdLayerTree(doc.layers[i])); } return { document: doc.name, layers: tree };`, 20*time.Second), nil
+	case "inspect.styles":
+		return scriptPlan(request.Params, `var doc = ahdDoc(); return ahdCollectStyles(doc);`, 20*time.Second), nil
+	case "inspect.bounds":
+		return scriptPlan(request.Params, `var selection = ahdSelectionItems(); var items = []; for (var i = 0; i < selection.length; i++) { items.push(ahdPageItemSummary(selection[i])); } return { count: items.length, items: items };`, 20*time.Second), nil
+	case "inspect.fonts":
+		return scriptPlan(request.Params, `var doc = ahdDoc(); return { fonts: ahdCollectFonts(doc) };`, 20*time.Second), nil
+	case "inspect.summary":
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var styles = ahdCollectStyles(doc); return { name: doc.name, artboards: doc.artboards.length, layers: doc.layers.length, pageItems: doc.pageItems.length, selectionCount: ahdSelectionItems().length, fonts: ahdCollectFonts(doc), fills: styles.fills, strokes: styles.strokes, graphicStyles: styles.graphicStyles };`, 20*time.Second), nil
 	default:
 		return executionPlan{}, fmt.Errorf("%s execution is not wired yet", request.Command.Name)
 	}

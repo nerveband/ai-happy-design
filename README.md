@@ -102,7 +102,7 @@ skills/ahd-illustrator/   Agent skill bundle
 - `ahd-figma`: active and shipping from this repo
 - `ahd-illustrator`: v0.1 scope is macOS-only, CLI-only, with live-validated script mode plus plugin capability mode
 - `host status` and `doctor` report resolved Illustrator app path, version, and plugin probe status
-- `inspect.*`, `appearance.set_gradient`, and `appearance.apply_graphic_style` remain plugin-required until the AHD bridge plugin is installed
+- the current Illustrator CLI surface no longer depends on the native plugin for `inspect.*`, gradients, or graphic styles
 
 ## Docs
 

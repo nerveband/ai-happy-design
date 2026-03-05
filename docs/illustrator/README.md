@@ -15,7 +15,7 @@
 - Live validation currently targets Adobe Illustrator 30.2.1 on macOS.
 - `host status` and `doctor` resolve the app via bundle id and surface the installed app path plus version.
 - The JSX bridge does not rely on `JSON.stringify`; Illustrator's ExtendScript runtime in this build does not provide a global `JSON` object.
-- Selector-backed commands are probed before execution and fail with `PLUGIN_REQUIRED` plus remediation when the plugin is absent.
+- The native plugin probe remains visible in diagnostics, but the current inspect and appearance command surface is script-backed and works without the plugin installed.
 
 ## Recommended Workflow
 
@@ -35,9 +35,8 @@
 
 ## Current Caveats
 
-- `inspect.*`, `appearance.set_gradient`, and `appearance.apply_graphic_style` use the plugin bridge path.
 - Scratch-document validation is the recommended live test path so existing user artwork is not modified.
 - All output paths are sandboxed to the current working directory unless the CLI later adds an explicit override.
-- The bridge skeleton is buildable in CMake, but live Illustrator SDK wiring still depends on local Adobe SDK installation.
+- The native bridge skeleton is still buildable in CMake, but live Illustrator SDK wiring remains a later step for future native-only capabilities.
 
 Adobe Illustrator is a trademark of Adobe. This project is unaffiliated.

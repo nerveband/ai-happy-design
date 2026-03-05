@@ -398,11 +398,10 @@ func registerAppearance() {
 		},
 	})
 	commonschema.Register(commonschema.Command{
-		Name:           "appearance.set_gradient",
-		Domain:         "appearance",
-		Description:    "Set a simple linear gradient on an item.",
-		Mutating:       true,
-		PluginRequired: true,
+		Name:        "appearance.set_gradient",
+		Domain:      "appearance",
+		Description: "Set a simple linear gradient on an item.",
+		Mutating:    true,
 		Params: []commonschema.Param{
 			stringParam("itemId", "Target item identifier.", true),
 			arrayParam("stops", "Gradient stop definitions.", true),
@@ -410,11 +409,10 @@ func registerAppearance() {
 		},
 	})
 	commonschema.Register(commonschema.Command{
-		Name:           "appearance.apply_graphic_style",
-		Domain:         "appearance",
-		Description:    "Apply a named graphic style to an item.",
-		Mutating:       true,
-		PluginRequired: true,
+		Name:        "appearance.apply_graphic_style",
+		Domain:      "appearance",
+		Description: "Apply a named graphic style to an item.",
+		Mutating:    true,
 		Params: []commonschema.Param{
 			stringParam("itemId", "Target item identifier.", true),
 			stringParam("styleName", "Graphic style name.", true),
@@ -507,39 +505,34 @@ func registerExport() {
 
 func registerInspect() {
 	commonschema.Register(commonschema.Command{
-		Name:           "inspect.tree",
-		Domain:         "inspect",
-		Description:    "Return a tree view of the current document.",
-		PluginRequired: true,
-		Params:         []commonschema.Param{},
+		Name:        "inspect.tree",
+		Domain:      "inspect",
+		Description: "Return a tree view of the current document.",
+		Params:      []commonschema.Param{},
 	})
 	commonschema.Register(commonschema.Command{
-		Name:           "inspect.styles",
-		Domain:         "inspect",
-		Description:    "Return document style usage summaries.",
-		PluginRequired: true,
-		Params:         []commonschema.Param{},
+		Name:        "inspect.styles",
+		Domain:      "inspect",
+		Description: "Return document style usage summaries.",
+		Params:      []commonschema.Param{},
 	})
 	commonschema.Register(commonschema.Command{
-		Name:           "inspect.bounds",
-		Domain:         "inspect",
-		Description:    "Return bounds for the current selection.",
-		PluginRequired: true,
-		Params:         []commonschema.Param{},
+		Name:        "inspect.bounds",
+		Domain:      "inspect",
+		Description: "Return bounds for the current selection.",
+		Params:      []commonschema.Param{},
 	})
 	commonschema.Register(commonschema.Command{
-		Name:           "inspect.fonts",
-		Domain:         "inspect",
-		Description:    "Return font usage for the current document.",
-		PluginRequired: true,
-		Params:         []commonschema.Param{},
+		Name:        "inspect.fonts",
+		Domain:      "inspect",
+		Description: "Return font usage for the current document.",
+		Params:      []commonschema.Param{},
 	})
 	commonschema.Register(commonschema.Command{
-		Name:           "inspect.summary",
-		Domain:         "inspect",
-		Description:    "Return an overall document summary for agents.",
-		PluginRequired: true,
-		Params:         []commonschema.Param{},
+		Name:        "inspect.summary",
+		Domain:      "inspect",
+		Description: "Return an overall document summary for agents.",
+		Params:      []commonschema.Param{},
 	})
 }
 

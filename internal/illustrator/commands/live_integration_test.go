@@ -62,10 +62,19 @@ func TestScratchDocumentLiveFlow(t *testing.T) {
 	})
 	mustExecute(t, executor, "appearance.set_fill", map[string]any{"itemId": "Validation Rect", "color": "#FF5500"})
 	mustExecute(t, executor, "appearance.set_stroke", map[string]any{"itemId": "Validation Rect", "color": "#112233", "width": 2})
+	mustExecute(t, executor, "appearance.set_gradient", map[string]any{
+		"itemId": "Validation Rect",
+		"stops": []any{
+			map[string]any{"offset": 0, "color": "#FF5500"},
+			map[string]any{"offset": 100, "color": "#112233"},
+		},
+		"type": "linear",
+	})
 	mustExecute(t, executor, "path.transform", map[string]any{"itemId": "Validation Rect", "translateX": 10, "translateY": -10, "rotate": 5})
 	mustExecute(t, executor, "path.duplicate", map[string]any{"itemId": "Validation Rect", "destinationLayerId": "Validation Layer"})
 	mustExecute(t, executor, "selection.select_by_name", map[string]any{"name": "Validation Rect"})
 	mustExecute(t, executor, "selection.get", map[string]any{})
+	mustExecute(t, executor, "inspect.bounds", map[string]any{})
 	mustExecute(t, executor, "selection.clear", map[string]any{})
 	mustExecute(t, executor, "text.create", map[string]any{
 		"layerId":  "Validation Layer",
@@ -76,8 +85,15 @@ func TestScratchDocumentLiveFlow(t *testing.T) {
 	})
 	mustExecute(t, executor, "text.set_contents", map[string]any{"itemId": "Validation Text", "contents": "Live Bridge Validation"})
 	mustExecute(t, executor, "text.set_style", map[string]any{"itemId": "Validation Text", "fontSize": 24, "tracking": 20, "fillColor": "#223344"})
+	mustExecute(t, executor, "inspect.fonts", map[string]any{})
 	mustExecute(t, executor, "selection.select_by_name", map[string]any{"name": "Validation Text"})
 	mustExecute(t, executor, "artboard.fit_to_artwork", map[string]any{})
+	styles := mustExecute(t, executor, "inspect.styles", map[string]any{})
+	if styleName := firstGraphicStyle(styles); styleName != "" {
+		mustExecute(t, executor, "appearance.apply_graphic_style", map[string]any{"itemId": "Validation Rect", "styleName": styleName})
+	}
+	mustExecute(t, executor, "inspect.tree", map[string]any{})
+	mustExecute(t, executor, "inspect.summary", map[string]any{})
 	mustExecute(t, executor, "text.outline", map[string]any{"itemId": "Validation Text"})
 
 	outDir := t.TempDir()
@@ -96,37 +112,6 @@ func TestScratchDocumentLiveFlow(t *testing.T) {
 	mustExecute(t, executor, "document.close", map[string]any{"save": false})
 }
 
-func TestSelectorCommandsFailFastWithoutPlugin(t *testing.T) {
-	adapter := illustratorhost.NewAdapter()
-	status := adapter.Status()
-	if !status.IllustratorAppFound {
-		t.Skip("Illustrator not installed")
-	}
-	if !status.IllustratorRunning {
-		t.Skip("Illustrator not running")
-	}
-
-	executor := commands.NewExecutor()
-	for _, tc := range []struct {
-		name   string
-		params map[string]any
-	}{
-		{name: "inspect.summary", params: map[string]any{}},
-		{name: "appearance.set_gradient", params: map[string]any{"itemId": "Validation Rect"}},
-	} {
-		_, _, err := executor.Execute(commands.Request{
-			Command: commonschema.Lookup(tc.name),
-			Params:  tc.params,
-		})
-		if err == nil {
-			t.Fatalf("expected %s to fail without plugin", tc.name)
-		}
-		if got, want := err.Code, "PLUGIN_REQUIRED"; got != want {
-			t.Fatalf("unexpected code for %s: got %q want %q", tc.name, got, want)
-		}
-	}
-}
-
 func mustExecute(t *testing.T, executor *commands.Executor, name string, params map[string]any) any {
 	t.Helper()
 
@@ -138,4 +123,17 @@ func mustExecute(t *testing.T, executor *commands.Executor, name string, params 
 		t.Fatalf("%s failed: %+v", name, err)
 	}
 	return result
+}
+
+func firstGraphicStyle(result any) string {
+	root, ok := result.(map[string]any)
+	if !ok {
+		return ""
+	}
+	values, ok := root["graphicStyles"].([]any)
+	if !ok || len(values) == 0 {
+		return ""
+	}
+	name, _ := values[0].(string)
+	return name
 }
