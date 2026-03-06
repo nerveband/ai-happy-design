@@ -58,8 +58,13 @@ Known script-first exclusions are:
 
 - `workspace.list`
 - `export.for_screens`
+
+Experimental script-first commands are still shipped:
+
 - `document.write_as_library`
 - `page_item.bring_in_perspective`
 - `trace.preset.store`
+
+These return `EXPERIMENTAL_COMMAND` warnings and may still fail on Illustrator 30.2.1 even though they are exposed through `tools` and `schema`.
 
 Adobe Illustrator is a trademark of Adobe. This project is unaffiliated.

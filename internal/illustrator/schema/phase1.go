@@ -172,6 +172,17 @@ func registerPhase1Document() {
 		},
 	})
 	commonschema.Register(commonschema.Command{
+		Name:        "document.write_as_library",
+		Domain:      "document",
+		Description: "Experimental. Export the active document as an Illustrator library file. Illustrator 30.2.1 may reject some documented library types at runtime.",
+		Mutating:    true,
+		Params: []commonschema.Param{
+			identifierParam("documentId", "Optional document identifier.", false),
+			pathParam("filePath", "Destination library file path.", true),
+			enumParam("libraryType", "Experimental Illustrator library type.", false, []string{"IllustratorArtwork", "Swatches", "Brushes", "GraphicStyles", "Symbols"}, true),
+		},
+	})
+	commonschema.Register(commonschema.Command{
 		Name:        "document.export_pdf_preset",
 		Domain:      "document",
 		Description: "Export the current document PDF preset values to a file.",
@@ -584,6 +595,18 @@ func registerPageItem() {
 		Params: []commonschema.Param{
 			identifierParam("itemId", "Page item identifier.", true),
 			enumParam("method", "Illustrator z-order method.", true, []string{"BRINGTOFRONT", "BRINGFORWARD", "SENDBACKWARD", "SENDTOBACK"}, true),
+		},
+	})
+	commonschema.Register(commonschema.Command{
+		Name:        "page_item.bring_in_perspective",
+		Domain:      "page_item",
+		Description: "Experimental. Place a page item into the active perspective grid at a specified location. Illustrator 30.2.1 can reject documented plane enumerations at runtime.",
+		Mutating:    true,
+		Params: []commonschema.Param{
+			identifierParam("itemId", "Page item identifier.", true),
+			numberParam("posX", "Perspective x position.", true, nil, nil),
+			numberParam("posY", "Perspective y position.", true, nil, nil),
+			enumParam("plane", "Perspective grid plane.", true, []string{"GRIDLEFTPLANETYPE", "GRIDRIGHTPLANETYPE", "GRIDFLOORPLANETYPE", "INVALIDGRIDPLANETYPE"}, true),
 		},
 	})
 }
@@ -1201,6 +1224,16 @@ func registerTracePreset() {
 		Domain:      "trace.preset",
 		Description: "List Illustrator tracing presets available to the scripting runtime.",
 		Params:      []commonschema.Param{},
+	})
+	commonschema.Register(commonschema.Command{
+		Name:        "trace.preset.store",
+		Domain:      "trace.preset",
+		Description: "Experimental. Store tracing options from a traced plugin item into a named preset. Illustrator 30.2.1 can fail with a native error instead of persisting the preset.",
+		Mutating:    true,
+		Params: []commonschema.Param{
+			identifierParam("itemId", "Tracing plugin item identifier.", true),
+			stringParam("presetName", "Tracing preset name.", true),
+		},
 	})
 }
 

@@ -35,7 +35,7 @@ func TestPhase1SchemaCommandsHaveExecutorCases(t *testing.T) {
 	}
 }
 
-func TestPhase1SchemaExcludesUnstableRuntimeCommands(t *testing.T) {
+func TestPhase1SchemaIncludesExperimentalRuntimeCommands(t *testing.T) {
 	t.Parallel()
 
 	schemaSource, err := os.ReadFile("../schema/phase1.go")
@@ -48,8 +48,8 @@ func TestPhase1SchemaExcludesUnstableRuntimeCommands(t *testing.T) {
 		"page_item.bring_in_perspective",
 		"trace.preset.store",
 	} {
-		if _, ok := schemaNames[name]; ok {
-			t.Fatalf("phase1 schema unexpectedly still exposes %s", name)
+		if _, ok := schemaNames[name]; !ok {
+			t.Fatalf("phase1 schema should expose experimental command %s", name)
 		}
 	}
 }

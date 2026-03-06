@@ -106,7 +106,7 @@ skills/ahd-illustrator/   Agent skill bundle
 - `ahd-illustrator`: v0.1 scope is macOS-only, CLI-only, with live-validated script mode plus plugin capability mode
 - `host status` and `doctor` report resolved Illustrator app path, version, and plugin probe status
 - the current Illustrator CLI surface no longer depends on the native plugin for `inspect.*`, gradients, or graphic styles
-- unstable reference-documented script calls such as `document.write_as_library`, `page_item.bring_in_perspective`, and `trace.preset.store` are intentionally excluded from the shipped schema until they pass live runtime validation
+- unstable reference-documented script calls such as `document.write_as_library`, `page_item.bring_in_perspective`, and `trace.preset.store` are now shipped as experimental commands with structured warnings instead of being hidden from the schema
 
 ## Illustrator Without Plugin Or SDK
 

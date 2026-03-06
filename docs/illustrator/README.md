@@ -53,7 +53,7 @@
   - `repeat.*`
   - `dataset.*`
   - `variable.*`
-  - `trace.preset.list`
+  - `trace.preset.*`
   - `capture.*`
   - `print.*`
 - The SDK is only needed if a maintainer wants to build the native plugin from source.
@@ -61,9 +61,11 @@
 - Known script-first exclusions are documented explicitly:
   - `workspace.list` is not exposed by the scripting references.
   - `export.for_screens` exists live but is not yet deterministic enough for agent-first CLI exposure.
-  - `document.write_as_library` is documented in the references, but the live 30.2.1 runtime rejected every enumerated `LibraryType` variant we tested.
-  - `page_item.bring_in_perspective` is documented in the references, but the live 30.2.1 runtime rejected every plane enumeration we tested.
-  - `trace.preset.store` is documented in the references, but the live 30.2.1 runtime returned a deterministic Illustrator error instead of storing the preset.
+- Risky script-first commands are still shipped and discoverable:
+  - `document.write_as_library`
+  - `page_item.bring_in_perspective`
+  - `trace.preset.store`
+  These emit `EXPERIMENTAL_COMMAND` warnings because the live 30.2.1 runtime can still fail or reject the documented path.
 
 ## Recommended Workflow
 

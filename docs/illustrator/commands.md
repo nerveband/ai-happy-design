@@ -19,11 +19,11 @@ ahd-illustrator examples [category]
 | Domain | Commands |
 | --- | --- |
 | `app.*` | `info`, `version`, `select_tool`, `execute_menu`, `user_interaction_level`, `beep`, `copy`, `cut`, `paste`, `undo`, `redo`, `redraw`, `convert_sample_color`, `translate_placeholder_text`, `preset_lists`, `get_preset_file`, `get_preset_settings`, `load_color_settings`, `show_presets` |
-| `document.*` | `new`, `open`, `save`, `save_as`, `close`, `list`, `info`, `activate`, `arrange`, `export_pdf_preset`, `import_pdf_preset`, `export_print_preset`, `import_print_preset` |
+| `document.*` | `new`, `open`, `save`, `save_as`, `close`, `list`, `info`, `activate`, `arrange`, `write_as_library` (experimental), `export_pdf_preset`, `import_pdf_preset`, `export_print_preset`, `import_print_preset` |
 | `artboard.*` | `list`, `create`, `resize`, `set_active`, `fit_to_artwork`, `rearrange` |
 | `layer.*` | `list`, `create`, `rename`, `visibility`, `lock`, `reorder` |
 | `selection.*` | `get`, `clear`, `set_by_ids`, `select_by_name`, `select_active_artboard_objects` |
-| `page_item.*` | `remove`, `duplicate`, `move`, `resize`, `rotate`, `transform`, `translate`, `z_order` |
+| `page_item.*` | `remove`, `duplicate`, `move`, `resize`, `rotate`, `transform`, `translate`, `z_order`, `bring_in_perspective` (experimental) |
 | `path.*` | `create_rect`, `create_ellipse`, `create_path`, `transform`, `duplicate`, `create_polygon`, `create_star`, `create_rounded_rect`, `set_entire_path` |
 | `text.*` | `create`, `set_contents`, `set_style`, `outline`, `create_area`, `create_on_path`, `thread`, `convert_to_area`, `convert_to_point`, `change_case` |
 | `appearance.*` | `set_fill`, `set_stroke`, `set_gradient`, `apply_graphic_style` |
@@ -48,7 +48,7 @@ ahd-illustrator examples [category]
 | `repeat.symmetry.*` | `list`, `create`, `update` |
 | `dataset.*` | `list`, `create`, `apply`, `update`, `delete`, `import`, `export` |
 | `variable.*` | `list`, `create`, `delete`, `bind_visibility`, `bind_text`, `bind_content`, `import`, `export` |
-| `trace.preset.*` | `list` |
+| `trace.preset.*` | `list`, `store` (experimental) |
 | `capture.*` | `image`, `window` |
 | `print.*` | `presets`, `devices`, `run` |
 
@@ -120,6 +120,7 @@ Batch success/error summary:
 - `document.new` supports `width`, `height`, `artboards`, `artboardLayout`, `artboardSpacing`, `artboardRowsOrCols`, `colorSpace`, and optional `preset`.
 - `document.save_as` honors `format` and now supports `ai` and `pdf` without relying on extension guessing alone.
 - `document.arrange` is normalized through the stable `cascade` and `tile` menu commands because the documented `doc.arrange(...)` surface is not live on Illustrator 30.2.1.
+- `document.write_as_library` is shipped as an experimental command. The CLI surfaces it with a warning because Illustrator 30.2.1 can reject documented library types at runtime.
 - `path.create_rect` uses Illustrator's real `roundedRectangle(...)` API when `cornerRadius` is greater than zero.
 - `view.set_ruler_visibility` and `view.set_transparency_grid_visibility` are normalized setter commands built on top of Illustrator menu toggles rather than leaking toggle semantics to the caller.
 - `symbol.break_link` is script-backed through the live `SymbolItem.breakLink()` runtime method.
@@ -130,6 +131,7 @@ Batch success/error summary:
 - `document.export_pdf_preset` and `document.export_print_preset` return the real exported artifact path because Illustrator can replace the requested filename with the preset name.
 - `print.devices` intentionally reports a deterministic degraded result because live `printerList` and `PPDFileList` enumeration on this host was unreliable enough to hang Illustrator.
 - `trace.preset.list` can legitimately return an empty array when the host exposes no script-visible tracing presets beyond the defaults.
+- `page_item.bring_in_perspective` and `trace.preset.store` are shipped as experimental commands. Both return structured warnings because Illustrator 30.2.1 can reject the documented runtime path.
 
 ## No Plugin / No SDK
 
@@ -140,10 +142,11 @@ Batch success/error summary:
 - The current script-first exclusions are:
   - `workspace.list`
   - `export.for_screens`
+- The current script-first experimental commands are:
   - `document.write_as_library`
   - `page_item.bring_in_perspective`
   - `trace.preset.store`
-  These are documented with runtime notes in [live-script-runtime-learnings.md](live-script-runtime-learnings.md).
+  These are documented with runtime notes in [live-script-runtime-learnings.md](live-script-runtime-learnings.md) and emit `EXPERIMENTAL_COMMAND` warnings in the response envelope.
 
 ## Batch Interpolation
 

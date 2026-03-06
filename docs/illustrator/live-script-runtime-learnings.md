@@ -188,15 +188,15 @@ Reliable script-first coverage on this branch includes:
 - `document.write_as_library`
   - documented in the JavaScript reference
   - live 30.2.1 rejected both `LibraryType.IllustratorArtwork` and the other exposed `LibraryType` variants with `Invalid enumeration value`
-  - excluded from the Phase 1 public CLI surface until the runtime enum mapping is proven
+  - shipped as an experimental Phase 1 command with a structured warning in the response envelope
 - `page_item.bring_in_perspective`
   - documented in the JavaScript reference
   - live 30.2.1 rejected the exposed `PerspectiveGridPlaneType` values with `Invalid enumeration value`
-  - excluded from the Phase 1 public CLI surface until there is a deterministic script-only path
+  - shipped as an experimental Phase 1 command with a structured warning in the response envelope
 - `trace.preset.store`
   - documented in the JavaScript reference
   - live 30.2.1 returned Illustrator error 100 instead of storing a preset from traced plugin art
-  - excluded from the Phase 1 public CLI surface until there is a deterministic script-only path
+  - shipped as an experimental Phase 1 command with a structured warning in the response envelope
 - Very deep text-range styling surfaces
   - possible in script
   - should be exposed only with tighter schemas so the CLI does not become a vague bag of partially validated text mutations

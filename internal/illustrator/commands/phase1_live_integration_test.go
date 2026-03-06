@@ -206,6 +206,12 @@ func TestPhase1LiveFlow(t *testing.T) {
 				"itemId": duplicateName,
 				"method": "BRINGTOFRONT",
 			})
+			optionalExecute(t, executor, "page_item.bring_in_perspective", map[string]any{
+				"itemId": duplicateName,
+				"posX":   240,
+				"posY":   300,
+				"plane":  "GRIDLEFTPLANETYPE",
+			})
 			mustExecute(t, executor, "page_item.remove", map[string]any{
 				"itemId": duplicateName,
 			})
@@ -362,6 +368,9 @@ func TestPhase1LiveFlow(t *testing.T) {
 			})
 			mustExecute(t, executor, "spot.list", map[string]any{})
 			mustExecute(t, executor, "spot.delete", map[string]any{"spotId": "Phase1 Spot"})
+			optionalExecute(t, executor, "document.write_as_library", map[string]any{
+				"filePath": filepath.Join(t.TempDir(), "phase1-symbols.ai"),
+			})
 			mustExecute(t, executor, "symbol.create", map[string]any{
 				"itemId":            "Visibility Source",
 				"name":              "Phase1 Symbol",
@@ -629,6 +638,10 @@ func TestPhase1LiveFlow(t *testing.T) {
 				"presetName": "Default",
 			})
 			if pluginItem := stringField(rasterTrace, "pluginItemName"); pluginItem != "" {
+				optionalExecute(t, executor, "trace.preset.store", map[string]any{
+					"itemId":     pluginItem,
+					"presetName": "AHD Phase1 Temp Preset",
+				})
 				mustExecute(t, executor, "raster.release_tracing", map[string]any{
 					"itemId": pluginItem,
 				})

@@ -373,6 +373,17 @@ function ahdDocumentPresetTypeValue(name) {
   throw new Error("Unknown document preset type: " + name);
 }
 
+function ahdLibraryTypeValue(name) {
+  var libraryTypeName = name || "IllustratorArtwork";
+  if (typeof this[libraryTypeName] !== "undefined") {
+    return this[libraryTypeName];
+  }
+  if (LibraryType && LibraryType[libraryTypeName] != null) {
+    return LibraryType[libraryTypeName];
+  }
+  throw new Error("Unknown library type: " + libraryTypeName);
+}
+
 function ahdDocumentLayoutStyleValue(name) {
   if (!name) return DocumentLayoutStyle.CASCADE;
   if (DocumentLayoutStyle && DocumentLayoutStyle[name] != null) {
@@ -551,6 +562,8 @@ func buildPhase1Plan(request Request) (executionPlan, error) {
 		return scriptPlan(request.Params, `var doc = ahdDocument(params.documentId); doc.activate(); return { documentId: doc.name, activated: true };`, 10*time.Second), nil
 	case "document.arrange":
 		return scriptPlanActivated(request.Params, `var layoutStyle = params.layoutStyle || "CASCADE"; var menuCommand = layoutStyle === "CASCADE" ? "cascade" : "tile"; app.executeMenuCommand(menuCommand); return { layoutStyle: layoutStyle, menuCommand: menuCommand, arranged: true, documents: app.documents.length };`, 15*time.Second), nil
+	case "document.write_as_library":
+		return scriptPlan(request.Params, `var doc = ahdDocument(params.documentId); var file = new File(params.filePath); var libraryType = params.libraryType || "IllustratorArtwork"; var ok = doc.writeAsLibrary(file, ahdLibraryTypeValue(libraryType)); return { documentId: doc.name, filePath: file.fsName, libraryType: libraryType, written: ok === true };`, 20*time.Second), nil
 	case "document.export_pdf_preset":
 		return scriptPlan(request.Params, `var doc = ahdDocument(params.documentId); var file = new File(params.filePath); var snapshot = ahdFolderSnapshot(file.parent, [".joboptions"]); doc.exportPDFPreset(file); return { documentId: doc.name, filePath: ahdResolveCreatedSibling(file, [".joboptions"], snapshot), exported: true, presetType: "pdf" };`, 20*time.Second), nil
 	case "document.import_pdf_preset":
@@ -644,6 +657,8 @@ func buildPhase1Plan(request Request) (executionPlan, error) {
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var item = ahdPageItem(doc, params.itemId); item.translate(params.deltaX || 0, params.deltaY || 0, params.transformObjects, params.transformFillPatterns, params.transformFillGradients, params.transformStrokePatterns); ahdTryRedraw(); return { itemId: params.itemId, deltaX: params.deltaX || 0, deltaY: params.deltaY || 0, bounds: ahdBounds(item) };`, 20*time.Second), nil
 	case "page_item.z_order":
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var item = ahdPageItem(doc, params.itemId); item.zOrder(ahdZOrderMethodValue(params.method)); ahdTryRedraw(); return { itemId: params.itemId, method: params.method, reordered: true };`, 20*time.Second), nil
+	case "page_item.bring_in_perspective":
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var item = ahdPageItem(doc, params.itemId); item.bringInPerspective(params.posX, params.posY, ahdPerspectivePlaneValue(params.plane)); ahdTryRedraw(); return { itemId: params.itemId, posX: params.posX, posY: params.posY, plane: params.plane, bounds: ahdBounds(item) };`, 20*time.Second), nil
 
 	case "path.create_polygon":
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var layer = ahdLayer(doc, params.layerId); var item = layer.pathItems.polygon(params.top, params.left, params.radius, params.sides); item.name = params.name; return { name: item.name, radius: params.radius, sides: params.sides, width: item.width, height: item.height };`, 20*time.Second), nil
@@ -787,6 +802,8 @@ func buildPhase1Plan(request Request) (executionPlan, error) {
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.filePath); doc.exportVariables(file); return { filePath: file.fsName, exported: true, variables: doc.variables.length, dataSets: doc.dataSets.length };`, 30*time.Second), nil
 	case "trace.preset.list":
 		return scriptPlan(request.Params, `return { presets: ahdArrayLikeStrings(app.tracingPresetList) };`, 10*time.Second), nil
+	case "trace.preset.store":
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var plugin = ahdTracingPlugin(doc, params.itemId); var stored = plugin.tracing.tracingOptions.storeToPreset(params.presetName) === true; return { itemId: params.itemId, presetName: params.presetName, stored: stored };`, 20*time.Second), nil
 
 	case "capture.image":
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); if (params.clipBounds && params.options) { doc.imageCapture(file, ahdRectValue(params.clipBounds), ahdImageCaptureOptions(params.options)); } else if (params.clipBounds) { doc.imageCapture(file, ahdRectValue(params.clipBounds)); } else if (params.options) { doc.imageCapture(file, undefined, ahdImageCaptureOptions(params.options)); } else { doc.imageCapture(file); } return { outputPath: ahdResolvedOutputPath(file, null), captured: true };`, 30*time.Second), nil

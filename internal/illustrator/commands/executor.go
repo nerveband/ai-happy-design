@@ -48,13 +48,14 @@ func (e *Executor) Execute(request Request) (any, []commoncli.Warning, *commoncl
 			Message: "unknown command",
 		}
 	}
+	warnings := commandWarnings(request.Command.Name)
 	if request.DryRun {
 		return map[string]any{
 			"validated":      true,
 			"pluginRequired": request.Command.PluginRequired,
 			"mutating":       request.Command.Mutating,
 			"params":         request.Params,
-		}, nil, nil
+		}, warnings, nil
 	}
 
 	status := e.host.Status()
@@ -96,7 +97,6 @@ func (e *Executor) Execute(request Request) (any, []commoncli.Warning, *commoncl
 	if cmdErr != nil {
 		return nil, nil, cmdErr
 	}
-	warnings := make([]commoncli.Warning, 0, len(response.Warnings))
 	for _, warning := range response.Warnings {
 		warnings = append(warnings, commoncli.Warning{
 			Code:    "HOST_WARNING",
@@ -140,4 +140,26 @@ func shouldRetryScriptError(plan executionPlan, cmdErr *commoncli.CommandError) 
 	return strings.Contains(message, "timed out") ||
 		strings.Contains(message, "connection is invalid") ||
 		strings.Contains(message, "(-609)")
+}
+
+func commandWarnings(name string) []commoncli.Warning {
+	switch strings.TrimSpace(name) {
+	case "document.write_as_library":
+		return []commoncli.Warning{{
+			Code:    "EXPERIMENTAL_COMMAND",
+			Message: "document.write_as_library is exposed as experimental. Illustrator 30.2.1 can reject documented library types at runtime.",
+		}}
+	case "page_item.bring_in_perspective":
+		return []commoncli.Warning{{
+			Code:    "EXPERIMENTAL_COMMAND",
+			Message: "page_item.bring_in_perspective is exposed as experimental. Illustrator 30.2.1 can reject documented perspective plane values at runtime.",
+		}}
+	case "trace.preset.store":
+		return []commoncli.Warning{{
+			Code:    "EXPERIMENTAL_COMMAND",
+			Message: "trace.preset.store is exposed as experimental. Illustrator 30.2.1 can return a native error instead of persisting the preset.",
+		}}
+	default:
+		return nil
+	}
 }
