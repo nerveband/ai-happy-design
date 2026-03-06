@@ -173,6 +173,102 @@ func TestValidateCommandRejectsImpossibleDocumentNewGridLayout(t *testing.T) {
 	}
 }
 
+func TestValidateCommandRequiresTypedPreferenceValue(t *testing.T) {
+	t.Parallel()
+
+	command := commonschema.Lookup("preference.set")
+	result := commonvalidate.ValidateCommand(command, map[string]any{
+		"key":       "AHD/TestPreference",
+		"valueType": "integer",
+		"value": map[string]any{
+			"string": "wrong",
+		},
+	}, t.TempDir())
+
+	if len(result.Errors) == 0 {
+		t.Fatal("expected typed preference mismatch to be rejected")
+	}
+}
+
+func TestValidateCommandAcceptsRGBSwatchCreate(t *testing.T) {
+	t.Parallel()
+
+	command := commonschema.Lookup("swatch.create")
+	result := commonvalidate.ValidateCommand(command, map[string]any{
+		"name":      "Brand Orange",
+		"colorMode": "RGB",
+		"hex":       "#FF5500",
+	}, t.TempDir())
+
+	if len(result.Errors) != 0 {
+		t.Fatalf("expected RGB swatch payload to validate, got %+v", result.Errors)
+	}
+}
+
+func TestValidateCommandRejectsIncompleteCMYKSpotCreate(t *testing.T) {
+	t.Parallel()
+
+	command := commonschema.Lookup("spot.create")
+	result := commonvalidate.ValidateCommand(command, map[string]any{
+		"name":      "Brand Spot",
+		"colorMode": "CMYK",
+		"cyan":      10.0,
+		"magenta":   20.0,
+		"yellow":    30.0,
+	}, t.TempDir())
+
+	if len(result.Errors) == 0 {
+		t.Fatal("expected incomplete CMYK spot payload to be rejected")
+	}
+}
+
+func TestValidateCommandAcceptsPathSetEntirePath(t *testing.T) {
+	t.Parallel()
+
+	command := commonschema.Lookup("path.set_entire_path")
+	result := commonvalidate.ValidateCommand(command, map[string]any{
+		"itemId": "Editable Path",
+		"points": []any{
+			[]any{0.0, 0.0},
+			[]any{10.0, 10.0},
+			[]any{20.0, 5.0},
+		},
+		"closed": false,
+	}, t.TempDir())
+
+	if len(result.Errors) != 0 {
+		t.Fatalf("expected full path payload to validate, got %+v", result.Errors)
+	}
+}
+
+func TestValidateCommandNormalizesPPDNameAlias(t *testing.T) {
+	t.Parallel()
+
+	command := commonschema.Lookup("print.run")
+	result := commonvalidate.ValidateCommand(command, map[string]any{
+		"ppdName": "AHD Generic PPD",
+	}, t.TempDir())
+
+	if len(result.Errors) != 0 {
+		t.Fatalf("expected ppdName alias to validate, got %+v", result.Errors)
+	}
+	if _, ok := result.Params["PPDName"]; !ok {
+		t.Fatalf("expected canonical PPDName param, got %+v", result.Params)
+	}
+}
+
+func TestValidateCommandLooksUpVariableBindContentCommand(t *testing.T) {
+	t.Parallel()
+
+	command := commonschema.Lookup("variable.bind_content")
+	if command == nil {
+		t.Fatal("expected variable.bind_content lookup to resolve")
+	}
+	if command.Name != "variable.bind_content" {
+		t.Fatalf("expected variable.bind_content lookup to resolve to variable.bind_content, got %s", command.Name)
+	}
+}
+
 func TestSafePathReturnsJoinedPath(t *testing.T) {
 	t.Parallel()
 

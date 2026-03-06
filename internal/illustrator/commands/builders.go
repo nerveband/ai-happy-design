@@ -8,10 +8,23 @@ import (
 
 const scriptPrelude = `
 function ahdDoc() {
+  for (var attempt = 0; attempt < 40; attempt++) {
+    if (app.documents.length > 0) {
+      break;
+    }
+    try {
+      $.sleep(100);
+    } catch (sleepErr) {}
+  }
   if (app.documents.length === 0) {
     throw new Error("No active document");
   }
-  return app.activeDocument;
+  try {
+    if (app.activeDocument) {
+      return app.activeDocument;
+    }
+  } catch (err) {}
+  return app.documents[0];
 }
 
 function ahdDocument(id) {
@@ -26,12 +39,31 @@ function ahdDocument(id) {
   throw new Error("Document not found: " + id);
 }
 
+function ahdTryRedraw() {
+  try {
+    app.redraw();
+  } catch (err) {}
+}
+
+function ahdFindLayer(collection, id) {
+  for (var i = 0; i < collection.length; i++) {
+    var layer = collection[i];
+    if (layer.name === id || layer.note === id) return layer;
+    if (layer.layers && layer.layers.length) {
+      var nested = ahdFindLayer(layer.layers, id);
+      if (nested) return nested;
+    }
+  }
+  return null;
+}
+
 function ahdLayer(doc, id) {
   if (!id) return doc.activeLayer || doc.layers[0];
-  for (var i = 0; i < doc.layers.length; i++) {
-    var layer = doc.layers[i];
-    if (layer.name === id || layer.note === id) return layer;
-  }
+  var layer = ahdFindLayer(doc.layers, id);
+  if (layer) return layer;
+  ahdTryRedraw();
+  layer = ahdFindLayer(doc.layers, id);
+  if (layer) return layer;
   throw new Error("Layer not found: " + id);
 }
 
@@ -40,7 +72,161 @@ function ahdPageItem(doc, id) {
     var item = doc.pageItems[i];
     if (item.name === id || item.note === id) return item;
   }
+  ahdTryRedraw();
+  for (var j = 0; j < doc.pageItems.length; j++) {
+    var retryItem = doc.pageItems[j];
+    if (retryItem.name === id || retryItem.note === id) return retryItem;
+  }
   throw new Error("Page item not found: " + id);
+}
+
+function ahdStampIdentifier(item, id) {
+  if (!item || !id) return item;
+  try {
+    item.name = id;
+  } catch (err) {}
+  try {
+    item.note = id;
+  } catch (err) {}
+  return item;
+}
+
+function ahdResolvedOutputPath(file, suffixes) {
+  if (!file) return null;
+  var candidates = [];
+  var originalPath = "";
+  try {
+    if (file.fsName) {
+      originalPath = String(file.fsName);
+      candidates.push(originalPath);
+    }
+  } catch (err) {}
+  var stemPath = originalPath;
+  var dotIndex = stemPath.lastIndexOf(".");
+  if (dotIndex > 0) {
+    stemPath = stemPath.substring(0, dotIndex);
+  }
+  if (suffixes) {
+    for (var i = 0; i < suffixes.length; i++) {
+      try {
+        candidates.push(String(file.fsName) + suffixes[i]);
+        if (stemPath && stemPath !== originalPath) {
+          candidates.push(stemPath + suffixes[i]);
+        }
+      } catch (err) {}
+    }
+  }
+  for (var attempt = 0; attempt < 40; attempt++) {
+    for (var j = 0; j < candidates.length; j++) {
+      try {
+        var resolved = new File(candidates[j]);
+        if (resolved.exists) return resolved.fsName;
+      } catch (err) {}
+    }
+    try {
+      $.sleep(100);
+    } catch (sleepErr) {}
+  }
+  try {
+    var requestedName = String(file.name || "");
+    var requestedStem = requestedName;
+    var requestedDot = requestedStem.lastIndexOf(".");
+    if (requestedDot > 0) {
+      requestedStem = requestedStem.substring(0, requestedDot);
+    }
+    var parentFolder = file.parent;
+    if (parentFolder && parentFolder.exists && requestedStem) {
+      var matchedFiles = parentFolder.getFiles(function(entry) {
+        if (!(entry instanceof File)) return false;
+        var lowerName = String(entry.name || "").toLowerCase();
+        if (lowerName.indexOf(requestedStem.toLowerCase()) !== 0) return false;
+        if (!suffixes || suffixes.length === 0) return true;
+        for (var k = 0; k < suffixes.length; k++) {
+          var lowerSuffix = String(suffixes[k] || "").toLowerCase();
+          if (lowerSuffix && lowerName.slice(lowerName.length - lowerSuffix.length) === lowerSuffix) {
+            return true;
+          }
+        }
+        return false;
+      });
+      if (matchedFiles && matchedFiles.length > 0) {
+        matchedFiles.sort(function(a, b) {
+          if (String(a.name) < String(b.name)) return -1;
+          if (String(a.name) > String(b.name)) return 1;
+          return 0;
+        });
+        return matchedFiles[0].fsName;
+      }
+    }
+  } catch (matchErr) {}
+  if (suffixes && suffixes.length > 0) {
+    var primary = String(suffixes[0]);
+    if (primary !== "") {
+      var lowerPath = String(file.fsName || "").toLowerCase();
+      var lowerPrimary = primary.toLowerCase();
+      if (lowerPath.slice(lowerPath.length - lowerPrimary.length) === lowerPrimary) {
+        return file.fsName;
+      }
+      return file.fsName + primary;
+    }
+  }
+  return file.fsName;
+}
+
+function ahdMatchesSuffixes(path, suffixes) {
+  if (!suffixes || suffixes.length === 0) return true;
+  var lowerPath = String(path || "").toLowerCase();
+  for (var i = 0; i < suffixes.length; i++) {
+    var lowerSuffix = String(suffixes[i] || "").toLowerCase();
+    if (lowerSuffix && lowerPath.slice(lowerPath.length - lowerSuffix.length) === lowerSuffix) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function ahdFolderSnapshot(folder, suffixes) {
+  var seen = {};
+  try {
+    if (!folder || !folder.exists) return seen;
+    var files = folder.getFiles();
+    for (var i = 0; i < files.length; i++) {
+      var entry = files[i];
+      if (!(entry instanceof File)) continue;
+      if (!ahdMatchesSuffixes(entry.fsName, suffixes)) continue;
+      seen[entry.fsName] = true;
+    }
+  } catch (err) {}
+  return seen;
+}
+
+function ahdResolveCreatedSibling(file, suffixes, snapshot) {
+  try {
+    var folder = file.parent;
+    if (!folder || !folder.exists) return ahdResolvedOutputPath(file, suffixes);
+    var created = [];
+    var files = folder.getFiles();
+    for (var i = 0; i < files.length; i++) {
+      var entry = files[i];
+      if (!(entry instanceof File)) continue;
+      if (!ahdMatchesSuffixes(entry.fsName, suffixes)) continue;
+      if (snapshot && snapshot[entry.fsName]) continue;
+      created.push(entry);
+    }
+    if (created.length > 0) {
+      created.sort(function(a, b) {
+        var aTime = a.modified ? a.modified.getTime() : 0;
+        var bTime = b.modified ? b.modified.getTime() : 0;
+        if (aTime > bTime) return -1;
+        if (aTime < bTime) return 1;
+        if (String(a.name) < String(b.name)) return -1;
+        if (String(a.name) > String(b.name)) return 1;
+        return 0;
+      });
+      return created[0].fsName;
+    }
+  } catch (err) {}
+  return ahdResolvedOutputPath(file, suffixes);
 }
 
 function ahdArtboard(doc, id) {
@@ -117,9 +303,13 @@ function ahdSelectionItems() {
   if (app.documents.length === 0) return items;
   try {
     if (!app.selection) return items;
-    for (var i = 0; i < app.selection.length; i++) {
-      items.push(app.selection[i]);
+    if (app.selection.length != null) {
+      for (var i = 0; i < app.selection.length; i++) {
+        items.push(app.selection[i]);
+      }
+      return items;
     }
+    items.push(app.selection);
   } catch (err) {
     return items;
   }
@@ -144,6 +334,7 @@ function ahdDocumentColorSpace(doc) {
 function ahdPageItemSummary(item) {
   return {
     name: item.name || "",
+    note: item.note || "",
     typename: item.typename,
     layer: item.layer ? item.layer.name : null,
     locked: item.locked === true,
@@ -322,10 +513,10 @@ func buildPlan(request Request) (executionPlan, error) {
 	case "app.execute_menu":
 		return scriptPlan(request.Params, `app.executeMenuCommand(params.menuCommand); return { menuCommand: params.menuCommand };`, 10*time.Second), nil
 	case "app.user_interaction_level":
-		return scriptPlan(request.Params, `if (params.mode) { app.userInteractionLevel = UserInteractionLevel[params.mode]; } return { mode: String(app.userInteractionLevel) };`, 10*time.Second), nil
+		return scriptPlanWithoutAlertSuppression(request.Params, `if (params.mode) { app.userInteractionLevel = UserInteractionLevel[params.mode]; } return { mode: String(app.userInteractionLevel) };`, 10*time.Second), nil
 
 	case "document.new":
-		return scriptPlan(request.Params, `var width = params.width || 1920; var height = params.height || 1080; var artboards = params.artboards || 1; var colorSpace = params.colorSpace === "CMYK" ? DocumentColorSpace.CMYK : DocumentColorSpace.RGB; var layoutName = params.artboardLayout || "GridByRow"; var artboardLayout = DocumentArtboardLayout[layoutName]; var artboardSpacing = params.artboardSpacing != null ? params.artboardSpacing : 20; var artboardRowsOrCols = params.artboardRowsOrCols != null ? params.artboardRowsOrCols : 1; var doc; if (params.preset) { var preset = new DocumentPreset(); preset.colorMode = colorSpace; preset.width = width; preset.height = height; preset.numArtboards = artboards; preset.artboardLayout = artboardLayout; preset.artboardSpacing = artboardSpacing; preset.artboardRowsOrCols = artboardRowsOrCols; doc = app.documents.addDocument(params.preset, preset, false); } else { doc = app.documents.add(colorSpace, width, height, artboards, artboardLayout, artboardSpacing, artboardRowsOrCols); } return { name: doc.name, width: width, height: height, colorSpace: params.colorSpace || "RGB", artboards: doc.artboards.length, preset: params.preset || null, artboardLayout: layoutName, artboardSpacing: artboardSpacing, artboardRowsOrCols: artboardRowsOrCols };`, 30*time.Second), nil
+		return scriptPlan(request.Params, `var width = params.width || 1920; var height = params.height || 1080; var artboards = params.artboards || 1; var colorSpace = params.colorSpace === "CMYK" ? DocumentColorSpace.CMYK : DocumentColorSpace.RGB; var layoutName = params.artboardLayout || "GridByRow"; var artboardLayout = DocumentArtboardLayout[layoutName]; var artboardSpacing = params.artboardSpacing != null ? params.artboardSpacing : 20; var artboardRowsOrCols = params.artboardRowsOrCols != null ? params.artboardRowsOrCols : 1; var doc; if (params.preset) { var preset = new DocumentPreset(); preset.colorMode = colorSpace; preset.width = width; preset.height = height; preset.numArtboards = artboards; preset.artboardLayout = artboardLayout; preset.artboardSpacing = artboardSpacing; preset.artboardRowsOrCols = artboardRowsOrCols; doc = app.documents.addDocument(params.preset, preset, false); } else { doc = app.documents.add(colorSpace, width, height, artboards, artboardLayout, artboardSpacing, artboardRowsOrCols); } for (var attempt = 0; attempt < 40; attempt++) { try { if (app.documents.length > 0 && app.activeDocument && app.activeDocument.name === doc.name) break; } catch (waitErr) {} try { $.sleep(100); } catch (sleepErr) {} } app.redraw(); return { name: doc.name, width: width, height: height, colorSpace: params.colorSpace || "RGB", artboards: doc.artboards.length, preset: params.preset || null, artboardLayout: layoutName, artboardSpacing: artboardSpacing, artboardRowsOrCols: artboardRowsOrCols };`, 30*time.Second), nil
 	case "document.open":
 		return scriptPlan(request.Params, `var file = new File(params.filePath); var doc = app.open(file); return { name: doc.name, path: file.fsName };`, 20*time.Second), nil
 	case "document.save":
@@ -384,13 +575,13 @@ func buildPlan(request Request) (executionPlan, error) {
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var item = ahdPageItem(doc, params.itemId); var duplicate = item.duplicate(); if (params.destinationLayerId) { duplicate.move(ahdLayer(doc, params.destinationLayerId), ElementPlacement.INSIDE); } return { source: params.itemId, name: duplicate.name || params.itemId };`, 20*time.Second), nil
 
 	case "text.create":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); var layer = ahdLayer(doc, params.layerId); var text = layer.textFrames.add(); text.name = params.name; text.contents = params.contents; text.position = [params.left, params.top]; return { name: text.name, contents: text.contents };`, 20*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var layer = ahdLayer(doc, params.layerId); var text = layer.textFrames.add(); text.name = params.name; text.contents = params.contents; text.position = [params.left, params.top]; return { name: text.name, contents: text.contents };`, 30*time.Second), nil
 	case "text.set_contents":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); var text = ahdPageItem(doc, params.itemId); text.contents = params.contents; return { itemId: params.itemId, contents: text.contents };`, 20*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var text = ahdPageItem(doc, params.itemId); text.contents = params.contents; return { itemId: params.itemId, contents: text.contents };`, 30*time.Second), nil
 	case "text.set_style":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); var text = ahdPageItem(doc, params.itemId); var attrs = text.textRange.characterAttributes; if (params.fontFamily) { attrs.textFont = textFonts.getByName(params.fontFamily); } if (params.fontSize) { attrs.size = params.fontSize; } if (params.tracking != null) { attrs.tracking = params.tracking; } if (params.leading != null) { attrs.leading = params.leading; } if (params.fillColor) { attrs.fillColor = ahdRGB(params.fillColor).color; } return { itemId: params.itemId, styled: true };`, 20*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var text = ahdPageItem(doc, params.itemId); var attrs = text.textRange.characterAttributes; if (params.fontFamily) { attrs.textFont = textFonts.getByName(params.fontFamily); } if (params.fontSize) { attrs.size = params.fontSize; } if (params.tracking != null) { attrs.tracking = params.tracking; } if (params.leading != null) { attrs.leading = params.leading; } if (params.fillColor) { attrs.fillColor = ahdRGB(params.fillColor).color; } return { itemId: params.itemId, styled: true };`, 30*time.Second), nil
 	case "text.outline":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); var text = ahdPageItem(doc, params.itemId); var outlined = text.createOutline(); return { itemId: params.itemId, outlinedName: outlined.name || params.itemId };`, 20*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var text = ahdPageItem(doc, params.itemId); var outlined = text.createOutline(); return { itemId: params.itemId, outlinedName: outlined.name || params.itemId };`, 30*time.Second), nil
 
 	case "appearance.set_fill":
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var item = ahdPageItem(doc, params.itemId); var fill = ahdRGB(params.color, params.opacity); item.filled = true; item.fillColor = fill.color; item.opacity = fill.opacity; return { itemId: params.itemId, fill: params.color };`, 20*time.Second), nil
@@ -409,15 +600,15 @@ func buildPlan(request Request) (executionPlan, error) {
 		return scriptPlan(request.Params, `app.unloadAction(params.setName, ""); return { setName: params.setName, unloaded: true };`, 20*time.Second), nil
 
 	case "export.png":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new ExportOptionsPNG24(); if (params.scale) { options.horizontalScale = params.scale * 100; options.verticalScale = params.scale * 100; } if (params.artboardId) { doc.artboards.setActiveArtboardIndex(ahdArtboardIndex(doc, params.artboardId)); options.artBoardClipping = true; } doc.exportFile(file, ExportType.PNG24, options); return { outputPath: file.fsName, format: "png", artboardId: params.artboardId || null };`, 30*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new ExportOptionsPNG24(); if (params.scale) { options.horizontalScale = params.scale * 100; options.verticalScale = params.scale * 100; } if (params.artboardId) { doc.artboards.setActiveArtboardIndex(ahdArtboardIndex(doc, params.artboardId)); options.artBoardClipping = true; } doc.exportFile(file, ExportType.PNG24, options); return { outputPath: ahdResolvedOutputPath(file, [".png"]), format: "png", artboardId: params.artboardId || null };`, 30*time.Second), nil
 	case "export.jpg":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new ExportOptionsJPEG(); if (params.scale) { options.horizontalScale = params.scale * 100; options.verticalScale = params.scale * 100; } if (params.quality) { options.qualitySetting = params.quality; } if (params.artboardId) { doc.artboards.setActiveArtboardIndex(ahdArtboardIndex(doc, params.artboardId)); options.artBoardClipping = true; } doc.exportFile(file, ExportType.JPEG, options); return { outputPath: file.fsName, format: "jpg", artboardId: params.artboardId || null };`, 30*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new ExportOptionsJPEG(); if (params.scale) { options.horizontalScale = params.scale * 100; options.verticalScale = params.scale * 100; } if (params.quality) { options.qualitySetting = params.quality; } if (params.artboardId) { doc.artboards.setActiveArtboardIndex(ahdArtboardIndex(doc, params.artboardId)); options.artBoardClipping = true; } doc.exportFile(file, ExportType.JPEG, options); return { outputPath: ahdResolvedOutputPath(file, [".jpg", ".jpeg"]), format: "jpg", artboardId: params.artboardId || null };`, 30*time.Second), nil
 	case "export.svg":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new ExportOptionsSVG(); var outputPath = file.fsName; if (params.artboardId) { options.saveMultipleArtboards = true; options.artboardRange = String(ahdArtboardIndex(doc, params.artboardId) + 1); outputPath = ahdPathWithSuffix(file.fsName, "_" + params.artboardId, "svg"); } doc.exportFile(file, ExportType.SVG, options); return { outputPath: outputPath, format: "svg", artboardId: params.artboardId || null };`, 30*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new ExportOptionsSVG(); var outputPath = file.fsName; if (params.artboardId) { options.saveMultipleArtboards = true; options.artboardRange = String(ahdArtboardIndex(doc, params.artboardId) + 1); outputPath = ahdPathWithSuffix(file.fsName, "_" + params.artboardId, "svg"); } doc.exportFile(file, ExportType.SVG, options); return { outputPath: ahdResolvedOutputPath(new File(outputPath), [".svg"]), format: "svg", artboardId: params.artboardId || null };`, 30*time.Second), nil
 	case "export.pdf":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new PDFSaveOptions(); if (params.preset) { options.pDFPreset = params.preset; } doc.saveAs(file, options); return { outputPath: file.fsName, format: "pdf" };`, 30*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new PDFSaveOptions(); if (params.preset) { options.pDFPreset = params.preset; } doc.saveAs(file, options); return { outputPath: ahdResolvedOutputPath(file, [".pdf"]), format: "pdf" };`, 30*time.Second), nil
 	case "export.ai":
-		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new IllustratorSaveOptions(); doc.saveAs(file, options); return { outputPath: file.fsName, format: "ai" };`, 30*time.Second), nil
+		return scriptPlan(request.Params, `var doc = ahdDoc(); var file = new File(params.outputPath); var options = new IllustratorSaveOptions(); doc.saveAs(file, options); return { outputPath: ahdResolvedOutputPath(file, [".ai"]), format: "ai" };`, 30*time.Second), nil
 
 	case "inspect.tree":
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var tree = []; for (var i = 0; i < doc.layers.length; i++) { tree.push(ahdLayerTree(doc.layers[i])); } return { document: doc.name, layers: tree };`, 20*time.Second), nil
@@ -430,7 +621,7 @@ func buildPlan(request Request) (executionPlan, error) {
 	case "inspect.summary":
 		return scriptPlan(request.Params, `var doc = ahdDoc(); var styles = ahdCollectStyles(doc); return { name: doc.name, artboards: doc.artboards.length, layers: doc.layers.length, pageItems: doc.pageItems.length, selectionCount: ahdSelectionItems().length, fonts: ahdCollectFonts(doc), fills: styles.fills, strokes: styles.strokes, graphicStyles: styles.graphicStyles };`, 20*time.Second), nil
 	default:
-		return executionPlan{}, fmt.Errorf("%s execution is not wired yet", request.Command.Name)
+		return buildPhase1Plan(request)
 	}
 }
 
@@ -438,8 +629,22 @@ func scriptPlan(params map[string]any, body string, timeout time.Duration) execu
 	return executionPlan{
 		mode:    "script",
 		timeout: timeout,
-		script:  wrapScript(params, body),
+		script:  wrapScript(params, body, true),
 	}
+}
+
+func scriptPlanWithoutAlertSuppression(params map[string]any, body string, timeout time.Duration) executionPlan {
+	return executionPlan{
+		mode:    "script",
+		timeout: timeout,
+		script:  wrapScript(params, body, false),
+	}
+}
+
+func scriptPlanActivated(params map[string]any, body string, timeout time.Duration) executionPlan {
+	plan := scriptPlan(params, body, timeout)
+	plan.activate = true
+	return plan
 }
 
 func selectorPlan(selector string, timeout time.Duration) executionPlan {
@@ -450,7 +655,7 @@ func selectorPlan(selector string, timeout time.Duration) executionPlan {
 	}
 }
 
-func wrapScript(params map[string]any, body string) string {
+func wrapScript(params map[string]any, body string, suppressAlerts bool) string {
 	payload, err := json.Marshal(params)
 	if err != nil {
 		payload = []byte("{}")
@@ -459,5 +664,21 @@ func wrapScript(params map[string]any, body string) string {
 var params = %s;
 %s
 %s
-}())`, string(payload), scriptPrelude, body)
+var __ahdPrevUserInteractionLevel = null;
+try {
+  if (%t && typeof UserInteractionLevel !== "undefined") {
+    try {
+      __ahdPrevUserInteractionLevel = app.userInteractionLevel;
+      app.userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
+    } catch (__ahdInteractionErr) {}
+  }
+%s
+} finally {
+  if (%t && __ahdPrevUserInteractionLevel != null) {
+    try {
+      app.userInteractionLevel = __ahdPrevUserInteractionLevel;
+    } catch (__ahdRestoreInteractionErr) {}
+  }
+}
+}())`, string(payload), scriptPrelude, phase1ScriptPrelude, suppressAlerts, body, suppressAlerts)
 }

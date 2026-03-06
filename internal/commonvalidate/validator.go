@@ -91,6 +91,10 @@ func applyCommandSpecificRules(command *commonschema.Command, out *Result) {
 	switch command.Name {
 	case "document.new":
 		validateDocumentNewRules(out)
+	case "preference.set":
+		validatePreferenceSetRules(out)
+	case "swatch.create", "spot.create":
+		validateIllustratorColorCreationRules(out)
 	}
 }
 

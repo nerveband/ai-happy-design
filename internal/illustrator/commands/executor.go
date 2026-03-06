@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"strings"
 	"time"
 
 	"github.com/nerveband/ai-happy-design/internal/commoncli"
@@ -27,6 +28,7 @@ type executionPlan struct {
 	script   string
 	selector string
 	timeout  time.Duration
+	activate bool
 }
 
 // NewExecutor returns a command executor.
@@ -82,20 +84,14 @@ func (e *Executor) Execute(request Request) (any, []commoncli.Warning, *commoncl
 		}
 	}
 
-	var (
-		response *bridge.Response
-		cmdErr   *commoncli.CommandError
-	)
-	if plan.mode == "selector" {
-		response, cmdErr = e.bridge.ExecuteSelector(plan.selector, bridge.Request{
-			V:         "1.0",
-			Command:   request.Command.Name,
-			Params:    request.Params,
-			DryRun:    request.DryRun,
-			TimeoutMs: int(plan.timeout / time.Millisecond),
-		}, plan.timeout)
-	} else {
-		response, cmdErr = e.bridge.ExecuteScript(plan.script, plan.timeout)
+	response, cmdErr := e.executePlan(plan, request)
+	for attempt := 0; attempt < 2 && shouldRetryScriptError(plan, cmdErr); attempt++ {
+		if err := e.host.Activate(); err == nil {
+			time.Sleep(2 * time.Second)
+		} else {
+			time.Sleep(2 * time.Second)
+		}
+		response, cmdErr = e.executePlan(plan, request)
 	}
 	if cmdErr != nil {
 		return nil, nil, cmdErr
@@ -108,4 +104,40 @@ func (e *Executor) Execute(request Request) (any, []commoncli.Warning, *commoncl
 		})
 	}
 	return response.Result, warnings, nil
+}
+
+func (e *Executor) executePlan(plan executionPlan, request Request) (*bridge.Response, *commoncli.CommandError) {
+	if plan.activate {
+		if err := e.host.Activate(); err != nil {
+			return nil, &commoncli.CommandError{
+				Code:    "HOST_EXEC_ERROR",
+				Message: err.Error(),
+			}
+		}
+	}
+
+	if plan.mode == "selector" {
+		return e.bridge.ExecuteSelector(plan.selector, bridge.Request{
+			V:         "1.0",
+			Command:   request.Command.Name,
+			Params:    request.Params,
+			DryRun:    request.DryRun,
+			TimeoutMs: int(plan.timeout / time.Millisecond),
+		}, plan.timeout)
+	}
+
+	return e.bridge.ExecuteScript(plan.script, plan.timeout)
+}
+
+func shouldRetryScriptError(plan executionPlan, cmdErr *commoncli.CommandError) bool {
+	if cmdErr == nil || plan.mode != "script" || plan.activate {
+		return false
+	}
+	if cmdErr.Code != "HOST_EXEC_ERROR" {
+		return false
+	}
+	message := strings.ToLower(cmdErr.Message)
+	return strings.Contains(message, "timed out") ||
+		strings.Contains(message, "connection is invalid") ||
+		strings.Contains(message, "(-609)")
 }

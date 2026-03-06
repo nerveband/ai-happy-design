@@ -110,6 +110,20 @@ func (a *Adapter) Open() error {
 	return nil
 }
 
+// Activate brings Illustrator to the foreground.
+func (a *Adapter) Activate() error {
+	if runtime.GOOS != "darwin" {
+		return fmt.Errorf("ILLUSTRATOR_NOT_RUNNING: Illustrator host is only supported on macOS")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, err := runCommand(ctx, "osascript", "-e", fmt.Sprintf(`tell application "%s" to activate`, a.AppName))
+	if err != nil {
+		return fmt.Errorf("HOST_EXEC_ERROR: failed to activate Illustrator: %w", err)
+	}
+	return nil
+}
+
 // Quit exits Illustrator gracefully.
 func (a *Adapter) Quit() error {
 	if runtime.GOOS != "darwin" {
@@ -145,7 +159,13 @@ func (a *Adapter) ExecuteJavaScript(script string, timeout time.Duration) (strin
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	out, err := runCommand(ctx, "osascript", "-e", fmt.Sprintf(`tell application "%s" to do javascript POSIX file "%s"`, a.AppName, scriptPath))
+	command := []string{"osascript", "-e", fmt.Sprintf(`tell application "%s" to do javascript POSIX file "%s"`, a.AppName, scriptPath)}
+	out, err := runCommand(ctx, command[0], command[1:]...)
+	if err != nil && ctx.Err() == nil && isRetryableAppleScriptConnection(err) {
+		_ = a.Activate()
+		time.Sleep(500 * time.Millisecond)
+		out, err = runCommand(ctx, command[0], command[1:]...)
+	}
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
 			return "", fmt.Errorf("HOST_EXEC_ERROR: Illustrator script timed out after %s", timeout)
@@ -167,6 +187,14 @@ func runCommandImpl(ctx context.Context, name string, args ...string) (string, e
 func hasCommand(name string) bool {
 	_, err := lookPathFunc(name)
 	return err == nil
+}
+
+func isRetryableAppleScriptConnection(err error) bool {
+	if err == nil {
+		return false
+	}
+	text := strings.ToLower(err.Error())
+	return strings.Contains(text, "connection is invalid") || strings.Contains(text, "(-609)")
 }
 
 func fallbackAppPath() string {

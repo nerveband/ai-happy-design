@@ -106,13 +106,15 @@ skills/ahd-illustrator/   Agent skill bundle
 - `ahd-illustrator`: v0.1 scope is macOS-only, CLI-only, with live-validated script mode plus plugin capability mode
 - `host status` and `doctor` report resolved Illustrator app path, version, and plugin probe status
 - the current Illustrator CLI surface no longer depends on the native plugin for `inspect.*`, gradients, or graphic styles
+- unstable reference-documented script calls such as `document.write_as_library`, `page_item.bring_in_perspective`, and `trace.preset.store` are intentionally excluded from the shipped schema until they pass live runtime validation
 
 ## Illustrator Without Plugin Or SDK
 
 - End users only need Adobe Illustrator plus the `ahd-illustrator` binary for the current CLI surface.
-- The current script-backed surface includes discovery commands plus `app.*`, `document.*`, `artboard.*`, `layer.*`, `selection.*`, `path.*`, `text.*`, `appearance.*`, `action.*`, `export.*`, and `inspect.*`.
+- The current script-backed surface includes discovery commands plus `app.*`, `document.*`, `artboard.*`, `layer.*`, `selection.*`, `page_item.*`, `path.*`, `text.*`, `appearance.*`, `action.*`, `export.*`, `inspect.*`, `workspace.*`, `preference.*`, `view.*`, `matrix.*`, `perspective.*`, `style.*`, `swatch.*`, `spot.*`, `symbol.*`, `placed.*`, `raster.*`, `repeat.*`, `dataset.*`, `variable.*`, `trace.preset.list`, `capture.*`, and `print.*`.
 - `app.info` now exposes runtime-ready discovery fields including `scriptingVersion` and the installed Illustrator startup preset list.
 - Live script validation on March 5, 2026 covered multi-artboard document creation, rounded rectangles, save/open roundtrips, and artboard-targeted PNG/JPG/SVG export behavior.
+- Live runtime learnings and Adobe reference mismatches are documented in [docs/illustrator/live-script-runtime-learnings.md](docs/illustrator/live-script-runtime-learnings.md).
 - The native plugin is optional and currently diagnostic-only for future native-only capabilities.
 - The Adobe Illustrator SDK is only needed by maintainers who want to build the native plugin from source.
 

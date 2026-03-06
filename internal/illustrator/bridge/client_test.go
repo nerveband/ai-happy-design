@@ -2,6 +2,9 @@ package bridge
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -92,5 +95,23 @@ func TestClassifyHostExecutionErrorKeepsScriptFailuresAsHostErrors(t *testing.T)
 	err := classifyHostExecutionError(errors.New("HOST_EXEC_ERROR: some script issue"), false, "")
 	if got, want := err.Code, "HOST_EXEC_ERROR"; got != want {
 		t.Fatalf("unexpected code %q, want %q", got, want)
+	}
+}
+
+func TestCheckedInBridgeAssetMatchesEmbeddedTemplate(t *testing.T) {
+	t.Parallel()
+
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("failed to locate current test file")
+	}
+	assetPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "..", "tools", "illustrator", "bridge", "ahd_bridge.jsx")
+	body, err := os.ReadFile(assetPath)
+	if err != nil {
+		t.Fatalf("read bridge asset: %v", err)
+	}
+
+	if got, want := strings.TrimSpace(string(body)), strings.TrimSpace(bridgeTemplate); got != want {
+		t.Fatalf("checked-in bridge asset drifted from embedded runtime template")
 	}
 }

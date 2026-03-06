@@ -17,8 +17,9 @@ Use this skill when an agent needs to inspect, validate, or automate Adobe Illus
 - Default to raw JSON payloads, not bespoke flag sets.
 - Prefer `schema` over guessing field names.
 - Keep output constrained with `--fields` or `--output ndjson` when the calling agent has tight context limits.
-- Treat `PLUGIN_REQUIRED` as a bridge capability issue, not a generic command failure.
 - Do not write output paths outside the working directory unless a future CLI flag explicitly allows it.
+- Treat `PLUGIN_REQUIRED` as a diagnostic bridge capability issue, not a blocker for the current script-first Illustrator command surface.
+- Use scratch documents and disposable export paths when validating live Illustrator flows.
 
 ## Notable Commands
 
@@ -28,16 +29,37 @@ Use this skill when an agent needs to inspect, validate, or automate Adobe Illus
 - `ahd-illustrator batch --ops ops.json --dry-run`
 - `ahd-illustrator host status`
 
-## Plugin Bridge
+## Script-First Surface
 
-These commands rely on the plugin bridge path:
+The current Phase 1 command surface is script-backed and works without the native plugin or SDK, including:
 
-- `inspect.tree`
-- `inspect.styles`
-- `inspect.bounds`
-- `inspect.fonts`
-- `inspect.summary`
-- `appearance.set_gradient`
-- `appearance.apply_graphic_style`
+- `inspect.*`
+- `appearance.*`
+- `page_item.*`
+- `workspace.*`
+- `preference.*`
+- `view.*`
+- `matrix.*`
+- `perspective.*`
+- `style.*`
+- `swatch.*`
+- `spot.*`
+- `symbol.*`
+- `placed.*`
+- `raster.*`
+- `repeat.*`
+- `dataset.*`
+- `variable.*`
+- `trace.preset.list`
+- `capture.*`
+- `print.*`
+
+Known script-first exclusions are:
+
+- `workspace.list`
+- `export.for_screens`
+- `document.write_as_library`
+- `page_item.bring_in_perspective`
+- `trace.preset.store`
 
 Adobe Illustrator is a trademark of Adobe. This project is unaffiliated.
