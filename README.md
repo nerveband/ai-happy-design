@@ -122,6 +122,7 @@ skills/ahd-illustrator/   Agent skill bundle
 
 - [Docs index](docs/README.md)
 - [Illustrator overview](docs/illustrator/README.md)
+- [Illustrator local CLI usage](docs/illustrator/local-cli-usage.md)
 - [Illustrator architecture](docs/illustrator/architecture.md)
 - [Illustrator commands](docs/illustrator/commands.md)
 - [Illustrator plugin build](docs/illustrator/plugin-build.md)

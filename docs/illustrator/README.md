@@ -85,10 +85,11 @@
 
 ## Start Here
 
-1. Read [architecture.md](architecture.md)
-2. Use [commands.md](commands.md) for the public CLI surface and output contract
-3. Follow [plugin-build.md](plugin-build.md) if you need the plugin capability path
-4. Review [release-notes-v0.1.md](release-notes-v0.1.md) for the shipped surface area
+1. Read [local-cli-usage.md](local-cli-usage.md) for the installed-command workflow on this Mac
+2. Read [architecture.md](architecture.md)
+3. Use [commands.md](commands.md) for the public CLI surface and output contract
+4. Follow [plugin-build.md](plugin-build.md) if you need the plugin capability path
+5. Review [release-notes-v0.1.md](release-notes-v0.1.md) for the shipped surface area
 
 ## Current Caveats
 
