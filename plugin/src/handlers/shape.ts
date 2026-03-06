@@ -70,6 +70,19 @@ function applyGeometryStyle(node: GeometryMixin & SceneNode, params: any) {
 }
 
 export async function handleShape(action: string, params: any): Promise<any> {
+  // Generic "create" dispatches based on params.type
+  if (action === 'create' || action === 'add') {
+    var shapeType = (params.type || 'RECTANGLE').toUpperCase();
+    if (shapeType === 'RECTANGLE' || shapeType === 'RECT') return createRectangle(params);
+    if (shapeType === 'ELLIPSE' || shapeType === 'CIRCLE') return createEllipse(params);
+    if (shapeType === 'POLYGON') return createPolygon(params);
+    if (shapeType === 'STAR') return createStar(params);
+    if (shapeType === 'LINE') return createLine(params);
+    if (shapeType === 'VECTOR') return createVector(params);
+    if (shapeType === 'SVG') return createFromSvg(params);
+    if (shapeType === 'IMAGE') return createImage(params);
+    throw new Error('Unknown shape type: ' + params.type + '. Available: RECTANGLE, ELLIPSE, POLYGON, STAR, LINE, VECTOR, SVG, IMAGE');
+  }
   switch (action) {
     case 'rectangle':
     case 'rect':
@@ -100,7 +113,7 @@ export async function handleShape(action: string, params: any): Promise<any> {
     case 'vector':
     case 'add_vector':
     case 'create_vector': return createVector(params);
-    default: throw new Error('Unknown shape action: ' + action + '. Available: create_rectangle, create_ellipse, create_polygon, create_star, create_line, create_from_svg, create_image, create_vector');
+    default: throw new Error('Unknown shape action: ' + action + '. Available: create, create_rectangle, create_ellipse, create_polygon, create_star, create_line, create_from_svg, create_image, create_vector');
   }
 }
 

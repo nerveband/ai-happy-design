@@ -48,6 +48,7 @@ func Check(ops []map[string]interface{}) Result {
 	// Always run structural and radius checks regardless of canvas
 	checkRadiusOverflow(ops, &result)
 	checkStructural(ops, &result)
+	checkSizingTypes(ops, &result)
 
 	if canvasW <= 0 || canvasH <= 0 {
 		// No canvas detected — skip canvas-dependent checks
@@ -259,6 +260,123 @@ func checkStructural(ops []map[string]interface{}, result *Result) {
 	}
 }
 
+// checkSizingTypes enforces sizing type constraints:
+// - FILL requires parent to have auto-layout (layoutMode != NONE)
+// - Auto-fixes FILL → HUG when parent is not auto-layout
+func checkSizingTypes(ops []map[string]interface{}, result *Result) {
+	// Build parent map: step name → layoutMode (from create_frame or set_auto_layout)
+	parentLayout := map[string]string{} // step name → layoutMode
+	for _, op := range ops {
+		cmd, _ := op["command"].(string)
+		params, _ := op["params"].(map[string]interface{})
+		if params == nil {
+			continue
+		}
+		name, _ := op["name"].(string)
+
+		if cmd == "node.create_frame" || cmd == "frame" {
+			mode, _ := params["layoutMode"].(string)
+			if name != "" && mode != "" {
+				parentLayout[name] = mode
+			}
+		}
+		if cmd == "layout.set_auto_layout" || cmd == "layout.auto_layout" {
+			// Find the step name for this nodeId
+			nodeId, _ := params["nodeId"].(string)
+			dir, _ := params["direction"].(string)
+			if dir == "" {
+				dir, _ = params["layoutMode"].(string)
+			}
+			if dir != "" && dir != "NONE" {
+				// Map from interpolation ref to step name
+				targetName := extractStepNameFromRef(nodeId)
+				if targetName != "" {
+					parentLayout[targetName] = dir
+				}
+			}
+			if name != "" && dir != "" && dir != "NONE" {
+				parentLayout[name] = dir
+			}
+		}
+	}
+
+	// Check sizing operations for FILL on non-auto-layout parents
+	for i, op := range ops {
+		cmd, _ := op["command"].(string)
+		params, _ := op["params"].(map[string]interface{})
+		if params == nil {
+			continue
+		}
+		name, _ := op["name"].(string)
+
+		if cmd != "layout.set_sizing" && cmd != "layout.sizing" {
+			continue
+		}
+
+		nodeRef, _ := params["nodeId"].(string)
+		targetName := extractStepNameFromRef(nodeRef)
+		h, _ := params["horizontal"].(string)
+		v, _ := params["vertical"].(string)
+
+		// Check if target's parent has auto-layout
+		// Look up what step created the target and find its parentId
+		parentName := findParentStepName(ops, targetName)
+		parentMode := parentLayout[parentName]
+
+		if parentMode == "" || parentMode == "NONE" {
+			if h == "FILL" {
+				result.Warnings = append(result.Warnings, Issue{
+					Step: i, Name: name, Phase: "designLint", Code: "FILL_NO_AUTOLAYOUT",
+					Message: fmt.Sprintf("FILL sizing requires auto-layout parent. Parent '%s' has no auto-layout. Auto-fixed to HUG.", parentName),
+					Got: "FILL", Fix: "HUG", Applied: true,
+				})
+				params["horizontal"] = "HUG"
+				result.Fixed++
+			}
+			if v == "FILL" {
+				result.Warnings = append(result.Warnings, Issue{
+					Step: i, Name: name, Phase: "designLint", Code: "FILL_NO_AUTOLAYOUT",
+					Message: fmt.Sprintf("FILL vertical sizing requires auto-layout parent. Parent '%s' has no auto-layout. Auto-fixed to HUG.", parentName),
+					Got: "FILL", Fix: "HUG", Applied: true,
+				})
+				params["vertical"] = "HUG"
+				result.Fixed++
+			}
+		}
+	}
+}
+
+// extractStepNameFromRef extracts step name from interpolation like "${{steps.foo.result.id}}"
+func extractStepNameFromRef(ref string) string {
+	if !strings.HasPrefix(ref, "${{steps.") {
+		return ""
+	}
+	// ${{steps.NAME.result.id}}
+	trimmed := strings.TrimPrefix(ref, "${{steps.")
+	idx := strings.Index(trimmed, ".")
+	if idx < 0 {
+		return ""
+	}
+	return trimmed[:idx]
+}
+
+// findParentStepName finds the step name of the parent frame for a given step
+func findParentStepName(ops []map[string]interface{}, targetName string) string {
+	for _, op := range ops {
+		name, _ := op["name"].(string)
+		if name != targetName {
+			continue
+		}
+		params, _ := op["params"].(map[string]interface{})
+		if params == nil {
+			return ""
+		}
+		parentRef, _ := params["parentId"].(string)
+		return extractStepNameFromRef(parentRef)
+	}
+	return ""
+}
+
 func computeScore(result *Result) {
 	scores := map[string]float64{
 		"readability": 10, "contrast": 10, "spacing": 10, "hierarchy": 10,
@@ -281,6 +399,8 @@ func computeScore(result *Result) {
 			scores["spacing"] -= 1
 		case "ELEMENT_DENSITY":
 			scores["spacing"] -= 1
+		case "FILL_NO_AUTOLAYOUT":
+			scores["spacing"] -= 2
 		}
 	}
 	for k, v := range scores {

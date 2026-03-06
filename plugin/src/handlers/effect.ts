@@ -28,6 +28,17 @@ function parseHexColor(color: any, fallback = { r: 0, g: 0, b: 0, a: 0.25 }) {
 }
 
 export async function handleEffect(action: string, params: any): Promise<any> {
+  // Generic "add" dispatches based on params.type
+  if (action === 'add') {
+    var effectType = (params.type || 'DROP_SHADOW').toUpperCase();
+    if (effectType === 'DROP_SHADOW' || effectType === 'SHADOW') return addShadow(params);
+    if (effectType === 'INNER_SHADOW') return addShadow(Object.assign({}, params, { inner: true }));
+    if (effectType === 'LAYER_BLUR' || effectType === 'BACKGROUND_BLUR' || effectType === 'BLUR') return addBlur(params);
+    if (effectType === 'NOISE') return addNoise(params);
+    if (effectType === 'TEXTURE') return addTexture(params);
+    if (effectType === 'GLASS') return applyGlass(params);
+    throw new Error('Unknown effect type: ' + params.type + '. Available: DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR, NOISE, TEXTURE, GLASS');
+  }
   switch (action) {
     case 'set':
     case 'set_effect':
@@ -55,7 +66,7 @@ export async function handleEffect(action: string, params: any): Promise<any> {
     case 'add_glass': return addNativeGlass(params);
     case 'apply_glass':
     case 'glass': return applyGlass(params);
-    default: throw new Error('Unknown effect action: ' + action + '. Available: set_effects, add_shadow, add_blur, apply_style, remove, remove_effect, get_effects, add_noise, add_texture, apply_glass, add_glass');
+    default: throw new Error('Unknown effect action: ' + action + '. Available: add, set_effects, add_shadow, add_blur, apply_style, remove, remove_effect, get_effects, add_noise, add_texture, apply_glass, add_glass');
   }
 }
 

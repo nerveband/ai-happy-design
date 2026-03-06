@@ -56,17 +56,17 @@ var legacyCommandRoutes = map[string]commandRoute{
 	"get_opentype_features":      {Domain: "text", Action: "get_opentype_features"},
 
 	// Layout
-	"set_auto_layout":   {Domain: "layout", Action: "set_auto_layout"},
-	"set_padding":       {Domain: "layout", Action: "set_padding"},
-	"set_item_spacing":  {Domain: "layout", Action: "set_spacing"},
-	"set_layout_align":  {Domain: "layout", Action: "set_alignment"},
-	"set_layout_sizing": {Domain: "layout", Action: "set_sizing"},
-	"set_layout_wrap":   {Domain: "layout", Action: "set_layout_wrap"},
-	"set_constraints":   {Domain: "layout", Action: "set_constraints"},
-	"check_overlaps":    {Domain: "layout", Action: "check_overlaps"},
-	"set_grid":          {Domain: "layout", Action: "set_grid"},
-	"set_layout_grid":   {Domain: "layout", Action: "set_grid"},
-	"get_layout_grids":  {Domain: "layout", Action: "get_grids"},
+	"set_auto_layout":     {Domain: "layout", Action: "set_auto_layout"},
+	"set_padding":         {Domain: "layout", Action: "set_padding"},
+	"set_item_spacing":    {Domain: "layout", Action: "set_spacing"},
+	"set_layout_align":    {Domain: "layout", Action: "set_alignment"},
+	"set_layout_sizing":   {Domain: "layout", Action: "set_sizing"},
+	"set_layout_wrap":     {Domain: "layout", Action: "set_layout_wrap"},
+	"set_constraints":     {Domain: "layout", Action: "set_constraints"},
+	"check_overlaps":      {Domain: "layout", Action: "check_overlaps"},
+	"set_grid":            {Domain: "layout", Action: "set_grid"},
+	"set_layout_grid":     {Domain: "layout", Action: "set_grid"},
+	"get_layout_grids":    {Domain: "layout", Action: "get_grids"},
 	"remove_layout_grids": {Domain: "layout", Action: "remove_grids"},
 
 	// Node
@@ -256,22 +256,6 @@ func resolveCommandRoute(command string, params map[string]interface{}) (string,
 		return route.Domain, route.Action, nil
 	}
 
-	if dot := strings.Index(command, "."); dot > 0 && dot < len(command)-1 {
-		return command[:dot], command[dot+1:], nil
-	}
-
-	if command == "export_node_as_image" {
-		format := strings.ToUpper(stringArg(params, "format"))
-		switch format {
-		case "SVG":
-			return "export", "svg", nil
-		case "PDF":
-			return "export", "pdf", nil
-		default:
-			return "export", "image", nil
-		}
-	}
-
 	// shape.create with type param → route to specific sub-command.
 	// LLMs frequently guess shape.create {type:"RECTANGLE"} instead of shape.create_rectangle.
 	if command == "shape.create" {
@@ -295,6 +279,22 @@ func resolveCommandRoute(command string, params map[string]interface{}) (string,
 			return "shape", "create_vector", nil
 		default:
 			return "shape", "create_rectangle", nil // sensible default
+		}
+	}
+
+	if dot := strings.Index(command, "."); dot > 0 && dot < len(command)-1 {
+		return command[:dot], command[dot+1:], nil
+	}
+
+	if command == "export_node_as_image" {
+		format := strings.ToUpper(stringArg(params, "format"))
+		switch format {
+		case "SVG":
+			return "export", "svg", nil
+		case "PDF":
+			return "export", "pdf", nil
+		default:
+			return "export", "image", nil
 		}
 	}
 

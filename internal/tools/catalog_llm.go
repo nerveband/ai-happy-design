@@ -227,6 +227,15 @@ func LLMCatalog() map[string]interface{} {
 				"After creating, call layout.check_overlaps. Export with export.batch at scale:2.",
 			},
 		},
+		"layoutTypes": map[string]interface{}{
+			"_rule": "Sizing is enforced. FILL requires auto-layout parent. HUG for content-driven containers. FIXED for root frames.",
+			"FILL":  "Only valid on children of auto-layout frames. Stretches to fill parent. Use for: content wrappers, full-width text, section backgrounds.",
+			"HUG":   "Shrink-wraps to content. Default for: buttons, badges, nav items, terminals, cards. Prevents empty whitespace.",
+			"FIXED": "Exact pixel dimensions. Use for: root frames, images, icons. Not for text containers.",
+			"rootFrame":   "Root frames: FIXED width, HUG height (auto-expands to content). Never guess height — let auto-layout calculate it.",
+			"navBar":      "HORIZONTAL + SPACE_BETWEEN + HUG height. Children: logo(HUG), links(HUG), cta(HUG). Padding provides edge spacing.",
+			"heroSection": "VERTICAL auto-layout, HUG height, CENTER/CENTER. Stack: badge → title → subtitle → CTAs → preview. No manual y needed.",
+		},
 		"compositeCommands": map[string]interface{}{
 			"slide":  "Full social slide. Params: canvas (WxH), bg, gradient, elements[] (eyebrow/headline/body/counter/cta/stats).",
 			"banner": "Email banner. Params: canvas (WxH), bg, gradient, dividerX, elements[] (headline/subtitle).",

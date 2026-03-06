@@ -54,9 +54,11 @@ func TestResolveCommandRoute_DotNotationVariants(t *testing.T) {
 		{"text.create", "text", "create"},
 		{"document.find_free_space", "document", "find_free_space"},
 		{"shape.create_rectangle", "shape", "create_rectangle"},
+		{"shape.create", "shape", "create_rectangle"},
 		{"export.image", "export", "image"},
 		{"layout.set_auto_layout", "layout", "set_auto_layout"},
 		{"page.set_current", "page", "set_current"},
+		{"effect.add", "effect", "add"},
 		{"effect.add_shadow", "effect", "add_shadow"},
 		{"boolean.union", "boolean", "union"},
 		{"variable.create", "variable", "create"},
@@ -75,6 +77,32 @@ func TestResolveCommandRoute_DotNotationVariants(t *testing.T) {
 		if domain != tt.domain || action != tt.action {
 			t.Errorf("dot-notation %q: expected %s.%s, got %s.%s",
 				tt.command, tt.domain, tt.action, domain, action)
+		}
+	}
+}
+
+func TestResolveCommandRoute_ShapeCreateByType(t *testing.T) {
+	tests := []struct {
+		shapeType string
+		action    string
+	}{
+		{shapeType: "RECTANGLE", action: "create_rectangle"},
+		{shapeType: "ELLIPSE", action: "create_ellipse"},
+		{shapeType: "POLYGON", action: "create_polygon"},
+		{shapeType: "STAR", action: "create_star"},
+		{shapeType: "LINE", action: "create_line"},
+		{shapeType: "SVG", action: "create_from_svg"},
+		{shapeType: "IMAGE", action: "create_image"},
+		{shapeType: "VECTOR", action: "create_vector"},
+	}
+
+	for _, tt := range tests {
+		domain, action, err := resolveCommandRoute("shape.create", map[string]interface{}{"type": tt.shapeType})
+		if err != nil {
+			t.Fatalf("shape.create(%s): unexpected error: %v", tt.shapeType, err)
+		}
+		if domain != "shape" || action != tt.action {
+			t.Fatalf("shape.create(%s): expected shape.%s, got %s.%s", tt.shapeType, tt.action, domain, action)
 		}
 	}
 }

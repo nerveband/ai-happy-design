@@ -2,6 +2,28 @@ package schema
 
 func init() {
 	Register(Schema{
+		Command:     "effect.add",
+		Description: "Add an effect by type. Agent-friendly wrapper around the specific effect.add_* commands.",
+		Params: []Param{
+			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "type", Type: "string", Enum: []string{"DROP_SHADOW", "SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR", "BLUR", "NOISE", "TEXTURE", "GLASS"}, Default: "DROP_SHADOW"},
+			{Name: "color", Type: "string", Desc: "Effect color hex", Pattern: `^#[0-9A-Fa-f]{3,8}$`, Default: "#00000040"},
+			{Name: "offsetX", Type: "number", Desc: "Horizontal offset", Default: 0.0},
+			{Name: "offsetY", Type: "number", Desc: "Vertical offset", Default: 4.0},
+			{Name: "radius", Type: "number", Min: Ptr(0), Max: Ptr(200), Default: 4.0},
+			{Name: "spread", Type: "number", Min: Ptr(-100), Max: Ptr(100), Default: 0.0},
+			{Name: "noiseType", Type: "string", Enum: []string{"MONOTONE", "DUOTONE", "MULTITONE"}},
+			{Name: "secondaryColor", Type: "string", Pattern: `^#[0-9A-Fa-f]{3,8}$`},
+			{Name: "noiseSize", Type: "number", Min: Ptr(0), Max: Ptr(1000)},
+			{Name: "density", Type: "number", Min: Ptr(0), Max: Ptr(1)},
+			{Name: "opacity", Type: "number", Min: Ptr(0), Max: Ptr(1)},
+			{Name: "blendMode", Type: "string"},
+			{Name: "visible", Type: "boolean"},
+			{Name: "intensity", Type: "string", Enum: []string{"light", "medium", "heavy"}},
+		},
+	})
+
+	Register(Schema{
 		Command:     "effect.add_shadow",
 		Aliases:     []string{"shadow"},
 		Description: "Add a drop shadow to a node",
