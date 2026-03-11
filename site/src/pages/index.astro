@@ -1,0 +1,34 @@
+---
+import HomepageLayout from '../layouts/HomepageLayout.astro';
+import Header from '../components/home/Header.astro';
+import HeroSection from '../components/home/HeroSection.astro';
+import PainPoints from '../components/home/PainPoints.astro';
+import HowItWorks from '../components/home/HowItWorks.astro';
+import FeaturePillars from '../components/home/FeaturePillars.astro';
+import UseCases from '../components/home/UseCases.astro';
+import GetStarted from '../components/home/GetStarted.astro';
+import FounderNote from '../components/home/FounderNote.astro';
+import Footer from '../components/home/Footer.astro';
+---
+
+<HomepageLayout
+  title="AI Happy Design — Give AI Agents Full Figma Canvas Access"
+  description="One CLI. 130+ schema-validated commands. Your AI agent designs directly on the Figma canvas. Open source, local-only, works with any AI agent."
+>
+  <Header />
+  <main>
+    <HeroSection />
+    <hr class="section-divider" />
+    <PainPoints />
+    <hr class="section-divider" />
+    <HowItWorks />
+    <hr class="section-divider" />
+    <FeaturePillars />
+    <hr class="section-divider" />
+    <UseCases />
+    <hr class="section-divider" />
+    <GetStarted />
+    <FounderNote />
+  </main>
+  <Footer />
+</HomepageLayout>

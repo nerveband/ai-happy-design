@@ -1,0 +1,205 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html 
+xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<script src="../js/CSInterface.js"></script>
+	<script src="../js/jquery-1.9.1.min.js"></script>
+	<script src="http://code.jquery.com/ui/1.9.1/jquery-ui.min.js"></script>
+	<script src="../js/main.js"></script>
+	<link href="../css/fly_out_menu.css" rel="stylesheet" type="text/css"/>
+	<link href="../css/marked_objects.css" rel="stylesheet" type="text/css"/>
+	<link rel="stylesheet" href="../css/jquery-ui-1.9.1.css">
+</head>
+<body>
+	<div id="fly_out_menu">
+		<ul>
+			<li id="menu_icon"><img src="../img/fly_out_menu_icon.png"></img><a href="#"></a>
+				<ul>
+					<li><a href="#" id="save_menu"><span>Save</span></a></li>
+					<li><a href="#" id="renumber_menu"><span>Renumber IDs</span></a></li>
+					<li><a href="#" id="preferences_menu"><span>Preferences</span></a></li>
+				</ul>
+			</li>
+		</ul>
+	</div>
+
+	<div id="home">
+		<form id="homeForm">
+			<div class="row">
+				<div class="col">
+					<label>Location: </label>
+				</div>
+				<div class="col">
+					<label for="homeX">X</label>
+					<input type="number" id="homeX">
+				</div>
+				<div class="col">
+					<label for="homeY">Y</label>
+					<input type="number" id="homeY">
+				</div>
+			</div>
+			<div class="row">
+				<div class="col">
+					<label>ID: </label>
+				</div>
+				<div class="col">
+					<input type="text" id="id">
+				</div>
+			</div>
+			<div class="row">
+				<div class="col">
+					<label>Label: </label>
+				</div>
+				<div class="col">
+					<input type="text" id="label">
+				</div>
+			</div>
+			<div class="row">
+				<div class="col">
+					<div class="row">
+						<input type="submit" name="submit" id="updateBtn" value="Update" disabled/>
+						<input type="submit" name="hide" id="hideShowBtn" value="Hide All" disabled/>
+					</div>
+				</div>
+			</div>
+		</form>
+		
+		<div class="table">
+			<div class="row">
+				<div class="col">
+					<label>Bounding Box: </label>
+					<label id="width">0</label>
+					<label id="height">0</label>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col">
+					<ol id="list">
+					</ol>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<div id="preferences">
+		<form id="preferencesForm">
+			<div class="row">
+				<div class="col">
+					<fieldset>
+						<legend>Subscript</legend>
+						<div class="row">
+							<div class="col">
+								<label for="fontSize">Font Size: </label>
+							</div>
+							<div class="col">
+								<input type="number" id="fontSize">
+							</div>
+						</div>
+			
+						<div class="row">
+							<div class="col">
+								<label for="fontName">Font Name: </label>
+							</div>
+							<div class="col">
+								<select id="fontName" name="fontName">
+								</select>
+							</div>
+						</div>
+		
+						<div class="row">
+							<div class="col">
+								<label for="x">X: </label>
+							</div>
+							<div class="col">
+								<input type="number" id="x">
+							</div>
+						</div>
+			
+						<div class="row">
+							<div class="col">
+								<label for="y">Y: </label>
+							</div>
+							<div class="col">
+								<input type="number" id="y">
+							</div>
+						</div>
+					</fieldset>
+					<fieldset>
+						<legend>Default Text</legend>
+						<div class="row">
+							<div class="col">
+								<label for="defaultFontSize">Font Size: </label>
+							</div>
+							<div class="col">
+								<input type="number" id="defaultFontSize">
+							</div>
+						</div>
+		
+						<div class="row">
+							<div class="col">
+								<label for="defaultFontName">Font Name: </label>
+							</div>
+							<div class="col">
+								<select id="defaultFontName" name="defaultFontName">
+								</select>
+							</div>
+						</div>
+	
+						<div class="row">
+							<div class="col">
+								<label for="defaultX">X: </label>
+							</div>
+							<div class="col">
+								<input type="number" id="defaultX">
+							</div>
+						</div>
+		
+						<div class="row">
+							<div class="col">
+								<label for="defaultY">Y: </label>
+							</div>
+							<div class="col">
+								<input type="number" id="defaultY">
+							</div>
+						</div>
+			
+						<div class="row">
+							<div class="col">
+								<label for="defaultText">Default Text: </label>
+							</div>
+							<div class="col">
+								<input type="text" id="defaultText">
+							</div>
+						</div>
+					</fieldset>
+				</div>
+				<div class="col">
+					<fieldset>
+						<div class="row">
+							<div class="col">
+								<div class="row">
+									<button type="submit" class="btn btn-default">OK</button>
+								</div>
+								<div class="row">
+									<button type="cancel" class="btn btn-default">Cancel</button>
+								</div>
+								<div class="row">
+									<label for="pointPrecision">Point Precision</label>
+								</div>
+								<div class="row">
+									<input type="number" id="pointPrecision">
+								</div>
+								<div class="row">
+									<label><input type="checkbox" id="autoSort" name="autoSort" value="AutoSort">Auto Sort</label>
+								</div>
+							</div>
+						</div>
+					</fieldset>
+				</div>
+			</div>
+		</form>
+	</div>
+	
+</body>
+</html>

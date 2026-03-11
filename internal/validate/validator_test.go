@@ -100,6 +100,74 @@ func TestUnknownCommand(t *testing.T) {
 	}
 }
 
+func TestControlChars(t *testing.T) {
+	ops := []map[string]interface{}{
+		{"command": "text.create", "params": map[string]interface{}{
+			"text": "Hello\x00World", "parentId": "1:23",
+		}},
+	}
+	result := ValidateBatch(ops)
+	found := false
+	for _, w := range result.Warnings {
+		if w.Code == "CONTROL_CHARS" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected CONTROL_CHARS warning for null byte in text")
+	}
+}
+
+func TestControlCharsAllowsNewlines(t *testing.T) {
+	ops := []map[string]interface{}{
+		{"command": "text.create", "params": map[string]interface{}{
+			"text": "Hello\nWorld\ttab", "parentId": "1:23",
+		}},
+	}
+	result := ValidateBatch(ops)
+	for _, w := range result.Warnings {
+		if w.Code == "CONTROL_CHARS" {
+			t.Fatal("should not flag newlines/tabs as control chars")
+		}
+	}
+}
+
+func TestPathTraversal(t *testing.T) {
+	ops := []map[string]interface{}{
+		{"command": "text.create", "params": map[string]interface{}{
+			"text": "../../etc/passwd", "parentId": "1:23",
+		}},
+	}
+	result := ValidateBatch(ops)
+	found := false
+	for _, w := range result.Warnings {
+		if w.Code == "PATH_TRAVERSAL" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected PATH_TRAVERSAL warning for .. sequence")
+	}
+}
+
+func TestPathTraversalPercentEncoded(t *testing.T) {
+	ops := []map[string]interface{}{
+		{"command": "text.create", "params": map[string]interface{}{
+			"text": "%2e%2e%2fetc%2fpasswd", "parentId": "1:23",
+		}},
+	}
+	result := ValidateBatch(ops)
+	found := false
+	for _, w := range result.Warnings {
+		if w.Code == "PATH_TRAVERSAL" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected PATH_TRAVERSAL warning for percent-encoded traversal")
+	}
+}
+
 func TestDependencyAutoFix(t *testing.T) {
 	ops := []map[string]interface{}{
 		{"command": "text.create", "params": map[string]interface{}{

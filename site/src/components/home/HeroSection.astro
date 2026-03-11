@@ -1,0 +1,253 @@
+---
+---
+
+<section class="hero-section">
+  <div class="container hero-container">
+    <div class="hero-text">
+      <h1 class="hero-headline">
+        Give AI Agents<br/>
+        <span class="text-glow">Full Design Canvas Access</span>
+      </h1>
+      <p class="hero-subhead">
+        Figma's MCP turns screenshots into layers. AI Happy Design gives your agent structured, programmatic canvas control. 130+ schema-validated commands. 27 ops/sec batch throughput. Built-in design intelligence.
+      </p>
+      <div class="hero-ctas">
+        <a href="/getting-started/installation/" class="btn btn-primary">
+          Get Started
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="https://github.com/nerveband/ai-happy-design" class="btn btn-ghost" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          Star on GitHub
+          <img src="https://img.shields.io/github/stars/nerveband/ai-happy-design?style=flat&color=FFD600&labelColor=1a1a1a&label=" alt="GitHub stars" style="height: 20px; vertical-align: middle;" loading="lazy" />
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-panes">
+      <div class="pane pane-manual">
+        <div class="pane-label">The Manual Way</div>
+        <div class="pane-content">
+          <div class="pane-line">1. Open Figma</div>
+          <div class="pane-line">2. Create frame manually</div>
+          <div class="pane-line">3. Add text layer</div>
+          <div class="pane-line">4. Set font, size, color</div>
+          <div class="pane-line">5. Add background</div>
+          <div class="pane-line">6. Align everything</div>
+          <div class="pane-line pane-time">~15 minutes per screen</div>
+        </div>
+      </div>
+
+      <div class="pane pane-auto">
+        <div class="pane-label pane-label-accent">With AI Happy Design</div>
+        <div class="pane-content pane-terminal">
+          <div class="terminal-line"><span class="t-prompt">$</span> <span class="t-cmd">ahd-figma batch</span> <span class="t-arg">carousel.json</span></div>
+          <div class="terminal-line t-muted">Batch: 51 operations across 5 steps</div>
+          <div class="terminal-line t-step"><span class="t-check">&#10003;</span> slide_1  - frame + text + background</div>
+          <div class="terminal-line t-step"><span class="t-check">&#10003;</span> slide_2  - frame + text + background</div>
+          <div class="terminal-line t-step"><span class="t-check">&#10003;</span> slide_3  - frame + text + background</div>
+          <div class="terminal-line t-step"><span class="t-check">&#10003;</span> slide_4  - frame + text + background</div>
+          <div class="terminal-line t-step"><span class="t-check">&#10003;</span> slide_5  - frame + text + background</div>
+          <div class="terminal-line t-result"><span class="t-check">&#10003;</span> <strong>5 slides created. 51 operations. 13 seconds.</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero-section {
+    padding: 10rem 2rem 6rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Subtle radial glow behind hero */
+  .hero-section::before {
+    content: '';
+    position: absolute;
+    top: -20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1000px;
+    height: 800px;
+    background: radial-gradient(ellipse at center, rgba(255, 214, 0, 0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .hero-container {
+    position: relative;
+    z-index: 1;
+    max-width: var(--max-width);
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .hero-text {
+    margin-bottom: 4rem;
+  }
+
+  .hero-headline {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.03em;
+  }
+
+  .hero-subhead {
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    color: var(--color-text-muted);
+    max-width: 640px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.7;
+  }
+
+  .hero-ctas {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* Two-pane mockup */
+  .hero-panes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .pane {
+    border-radius: var(--radius);
+    overflow: hidden;
+    text-align: left;
+    min-width: 0;
+  }
+
+  .pane-label {
+    padding: 0.75rem 1.25rem;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .pane-content {
+    padding: 1.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.9;
+    overflow-x: auto;
+    word-break: break-word;
+  }
+
+  /* Manual (left) — faded */
+  .pane-manual {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    opacity: 0.5;
+    filter: grayscale(100%);
+  }
+
+  .pane-manual .pane-label {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--color-text-muted);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .pane-line {
+    color: #666;
+  }
+
+  .pane-time {
+    color: #cc4444;
+    margin-top: 0.75rem;
+    font-weight: 500;
+  }
+
+  /* Auto (right) — vivid with scanline */
+  .pane-auto {
+    background: rgba(255, 214, 0, 0.03);
+    border: 1px solid rgba(255, 214, 0, 0.12);
+    position: relative;
+  }
+
+  /* Scanline overlay */
+  .pane-auto::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 214, 0, 0.015) 2px,
+      rgba(255, 214, 0, 0.015) 4px
+    );
+    pointer-events: none;
+  }
+
+  .pane-label-accent {
+    background: rgba(255, 214, 0, 0.08);
+    color: var(--color-accent);
+    border-bottom: 1px solid rgba(255, 214, 0, 0.1);
+  }
+
+  .pane-terminal {
+    position: relative;
+    z-index: 1;
+  }
+
+  .terminal-line {
+    color: #c0c0c0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .t-prompt {
+    color: var(--color-accent);
+  }
+
+  .t-cmd {
+    color: #ffffff;
+  }
+
+  .t-arg {
+    color: #a5d6a7;
+  }
+
+  .t-muted {
+    color: #555;
+  }
+
+  .t-step {
+    color: #999;
+  }
+
+  .t-check {
+    color: #66bb6a;
+  }
+
+  .t-result {
+    color: var(--color-accent);
+    margin-top: 0.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .hero-section {
+      padding: 8rem 1.25rem 4rem;
+    }
+
+    .hero-panes {
+      grid-template-columns: 1fr;
+    }
+
+    .pane-manual {
+      display: none;
+    }
+  }
+</style>

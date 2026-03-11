@@ -1,0 +1,89 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+#include "AnnotatorID.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
+LANGUAGE 9, 2
+#pragma code_page(1252)
+
+#define kMySDKPluginName "Annotator"
+#define PIPL_PLUGIN_NAME kMySDKPluginName
+#define kMySDKPluginNameLen 12L
+#define PLUGIN_NAME_LEN kMySDKPluginNameLen
+#define kMySDKPluginNamePadding "\0\0\0"
+#define PLUGIN_NAME_PADDING kMySDKPluginNamePadding
+
+/////////////////////////////////////////////////////////////////////////////
+// VersionInfo
+//
+
+#include "VersionInfo.rc"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// PIPL
+//
+
+plugin pipl "plugin.pipl"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icons
+//
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE  
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE  
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE  
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+IDToFile txt   IDToFile.txt	// Maps IDs to names
+S_SDKAnnotatorTool_Lg_N_at_2x svg "S_SDKAnnotatorTool_Lg_N@2x.svg"
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED

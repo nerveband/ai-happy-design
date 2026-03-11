@@ -7,10 +7,22 @@ import (
 	"strings"
 )
 
-// WriteJSON writes a single JSON payload.
+// stdoutIsTTY returns true when stdout is connected to a terminal (not piped).
+func stdoutIsTTY() bool {
+	fi, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+	return (fi.Mode() & os.ModeCharDevice) != 0
+}
+
+// WriteJSON writes a single JSON payload to stdout.
+// Uses indented formatting when stdout is a TTY, compact when piped.
 func WriteJSON(value any) error {
 	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
+	if stdoutIsTTY() {
+		enc.SetIndent("", "  ")
+	}
 	return enc.Encode(value)
 }
 

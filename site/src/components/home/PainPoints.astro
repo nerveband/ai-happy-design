@@ -1,0 +1,81 @@
+---
+const points = [
+  {
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><polyline points="176 152 224 152 224 104"/><polyline points="80 104 32 104 32 152"/><path d="M65.8,65.8a88,88,0,0,1,124.4,0l33.8,38.2" fill="none"/><path d="M190.2,190.2a88,88,0,0,1-124.4,0L32,152" fill="none"/></svg>',
+    title: 'Manual repetition',
+    desc: 'Need 10 social media posts? That means 10 frames, 30+ text layers, 10 backgrounds, all by hand. An hour of clicking for content that should take seconds.'
+  },
+  {
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><line x1="48" y1="40" x2="208" y2="216"/><path d="M154.9,157.6A39.6,39.6,0,0,1,128,168a40,40,0,0,1-26.9-69.6" fill="none"/><path d="M74,68.6C33.2,89.2,16,128,16,128s32,72,112,72a117.9,117.9,0,0,0,54-12.6" fill="none"/><path d="M208.6,169.1C230.4,149.6,240,128,240,128S208,56,128,56a123.9,123.9,0,0,0-20.7,1.7" fill="none"/><path d="M135.5,88.7a40,40,0,0,1,32.3,35.5" fill="none"/></svg>',
+    title: 'No structured canvas control',
+    desc: 'Figma\'s MCP captures rendered UI as layers. That helps with design-to-code. But no agent can programmatically create a frame, set a font, or compose a layout from scratch.'
+  },
+  {
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><polyline points="80 96 120 128 80 160"/><line x1="136" y1="160" x2="176" y2="160"/><rect x="32" y="48" width="192" height="160" rx="8"/></svg>',
+    title: 'No CLI for programmatic design',
+    desc: 'Figma has a REST API and Plugin API, but no CLI for structured canvas operations. No schema validation. No batch mode. No design intelligence baked in.'
+  },
+  {
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><path d="M128,24,26.4,220H229.6Z" fill="none"/><line x1="128" y1="144" x2="128" y2="104"/><circle cx="128" cy="180" r="4" fill="#FFD600" stroke="none"/></svg>',
+    title: 'Design quality is a gamble',
+    desc: 'Even when you automate, there\'s no validation layer. Overlapping elements, wrong font sizes, broken layouts. You only find out after export.'
+  }
+];
+---
+
+<section class="section section-spotlight" id="pain-points">
+  <div class="container">
+    <div class="reveal">
+      <h2 class="section-headline">
+        Figma is powerful.<br/>
+        <span class="text-accent">Automating it at scale isn't.</span>
+      </h2>
+    </div>
+
+    <div class="grid-4 stagger-grid pain-grid">
+      {points.map((point) => (
+        <div class="glass-card tilt-card pain-card">
+          <div class="pain-icon" set:html={point.icon} />
+          <h3 class="pain-title">{point.title}</h3>
+          <p class="pain-desc">{point.desc}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .pain-grid {
+    margin-top: 4rem;
+  }
+
+  .pain-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .pain-icon {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+    filter: grayscale(0);
+  }
+
+  .pain-title {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #ffffff;
+  }
+
+  .pain-desc {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    line-height: 1.65;
+  }
+
+  @media (max-width: 768px) {
+    .pain-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

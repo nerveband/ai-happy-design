@@ -1,0 +1,117 @@
+---
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><rect width='28' height='28' rx='6' fill='%23FFD600'/><path d='M15.5 4L8 15h5l-1.5 9L20 13h-5l1.5-9z' fill='%230a0a0a'/></svg>" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://aihappydesign.com" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
+    <!-- Analytics -->
+    <script is:inline defer src="https://stats.wavedepth.com/script.js" data-website-id="fe025f86-6bfb-4fa1-9d4a-eb344b55037b"></script>
+
+    <!-- GSAP -->
+    <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+    <!-- Homepage Styles -->
+    <style is:global>
+      @import '../styles/homepage.css';
+    </style>
+  </head>
+  <body class="homepage">
+    <slot />
+
+    <script is:inline>
+      // GSAP ScrollTrigger animations (respect reduced motion)
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Reveal animations for all .reveal elements
+        gsap.utils.toArray('.reveal').forEach(function(el) {
+          gsap.fromTo(el,
+            { opacity: 0, y: 40 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.8,
+              ease: 'power2.out',
+              scrollTrigger: {
+                trigger: el,
+                start: 'top 85%',
+                once: true
+              }
+            }
+          );
+        });
+
+        // Stagger animations for card grids
+        gsap.utils.toArray('.stagger-grid').forEach(function(grid) {
+          var children = grid.children;
+          gsap.fromTo(children,
+            { opacity: 0, y: 30 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.6,
+              stagger: 0.12,
+              ease: 'power2.out',
+              scrollTrigger: {
+                trigger: grid,
+                start: 'top 85%',
+                once: true
+              }
+            }
+          );
+        });
+
+        // Header glass effect on scroll
+        ScrollTrigger.create({
+          start: 'top -80',
+          onUpdate: function(self) {
+            var header = document.querySelector('.site-header');
+            if (header) {
+              if (self.direction === 1 && self.scroll() > 80) {
+                header.classList.add('scrolled');
+              } else if (self.scroll() <= 80) {
+                header.classList.remove('scrolled');
+              }
+            }
+          }
+        });
+      } else {
+        // No animation: make everything visible
+        var reveals = document.querySelectorAll('.reveal');
+        for (var i = 0; i < reveals.length; i++) {
+          reveals[i].classList.add('active');
+        }
+      }
+    </script>
+  </body>
+</html>

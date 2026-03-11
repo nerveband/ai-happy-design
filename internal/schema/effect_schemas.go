@@ -58,4 +58,71 @@ func init() {
 			{Name: "intensity", Type: "string", Enum: []string{"light", "medium", "heavy"}, Default: "medium"},
 		},
 	})
+
+	Register(Schema{
+		Command:     "effect.set_effects",
+		Description: "Set all effects on a node (replaces existing effects)",
+		Params: []Param{
+			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "effects", Type: "string", Required: true, Desc: "JSON array of effect objects (or actual array). Each: {type, color, offset, radius, spread, visible, blendMode}"},
+		},
+	})
+
+	Register(Schema{
+		Command:     "effect.apply_style",
+		Description: "Apply an effect style to a node by style ID",
+		Params: []Param{
+			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "styleId", Type: "string", Required: true, Desc: "Effect style ID to apply"},
+		},
+	})
+
+	Register(Schema{
+		Command:     "effect.remove",
+		Aliases:     []string{"effect.clear_effects", "effect.remove_all"},
+		Description: "Remove effects from a node. If index specified, removes only that effect; otherwise removes all.",
+		Params: []Param{
+			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "index", Type: "number", Desc: "Index of specific effect to remove (omit to remove all)"},
+		},
+	})
+
+	Register(Schema{
+		Command:     "effect.get_effects",
+		Aliases:     []string{"effect.list"},
+		Description: "Get all effects on a node",
+		Params: []Param{
+			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
+		},
+	})
+
+	Register(Schema{
+		Command:     "effect.add_noise",
+		Aliases:     []string{"noise"},
+		Description: "Add a noise overlay effect (requires Figma Beta API)",
+		Params: []Param{
+			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "noiseType", Type: "string", Desc: "Noise type", Enum: []string{"MONOTONE", "DUOTONE", "MULTITONE"}, Default: "MONOTONE"},
+			{Name: "color", Type: "string", Desc: "Noise color hex", Pattern: `^#[0-9A-Fa-f]{3,8}$`},
+			{Name: "secondaryColor", Type: "string", Desc: "Secondary color for DUOTONE", Pattern: `^#[0-9A-Fa-f]{3,8}$`},
+			{Name: "noiseSize", Type: "number", Desc: "Noise grain size", Min: Ptr(0), Max: Ptr(1000), Default: 100.0},
+			{Name: "density", Type: "number", Desc: "Noise density", Min: Ptr(0), Max: Ptr(1), Default: 0.3},
+			{Name: "opacity", Type: "number", Desc: "Noise opacity (MULTITONE only)", Min: Ptr(0), Max: Ptr(1)},
+			{Name: "blendMode", Type: "string", Desc: "Blend mode for noise", Default: "SOFT_LIGHT"},
+			{Name: "visible", Type: "boolean", Default: true},
+		},
+	})
+
+	Register(Schema{
+		Command:     "effect.add_texture",
+		Aliases:     []string{"texture"},
+		Description: "Add a texture effect (requires Figma Beta API)",
+		Params: []Param{
+			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "noiseSize", Type: "number", Desc: "Texture size", Default: 100.0},
+			{Name: "radius", Type: "number", Desc: "Texture radius", Default: 0.0},
+			{Name: "clipToShape", Type: "boolean", Desc: "Clip texture to shape bounds", Default: true},
+			{Name: "visible", Type: "boolean", Default: true},
+		},
+	})
 }

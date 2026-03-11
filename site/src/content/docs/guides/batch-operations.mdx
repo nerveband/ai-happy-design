@@ -1,0 +1,350 @@
+---
+title: Batch Operations
+description: Create complex multi-step Figma designs with batch JSON operations, interpolation, composites, and quality gates.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Batch mode is the fastest way to use AI Happy Design. Compose an entire design as a JSON array and execute it in one shot at **27 ops/sec**.
+
+## Batch JSON Format
+
+A batch is a plain JSON array of operation objects:
+
+```json
+[
+  {
+    "name": "step_name",
+    "command": "domain.action",
+    "params": { }
+  }
+]
+```
+
+Each operation has:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | No (recommended) | Step name for interpolation references |
+| `command` | Yes | The command to execute (full or alias) |
+| `params` | Yes | Command parameters as a JSON object |
+
+<Aside type="caution">
+The batch payload must be a **plain array** `[{...}]`, NOT wrapped in `{"operations":[...]}`. The engine expects a top-level array.
+</Aside>
+
+## Step Naming and Interpolation
+
+Name your steps and reference their results in subsequent steps using `${{steps.NAME.result.FIELD}}`:
+
+```json
+[
+  {
+    "name": "hero_frame",
+    "command": "node.create_frame",
+    "params": {
+      "name": "Hero Section",
+      "width": 1080,
+      "height": 1920,
+      "color": "#0C1E2C"
+    }
+  },
+  {
+    "name": "hero_title",
+    "command": "text.create",
+    "params": {
+      "parentId": "${{steps.hero_frame.result.id}}",
+      "text": "Welcome",
+      "fontSize": 84,
+      "fontFamily": "Space Grotesk",
+      "fontStyle": "Bold",
+      "color": "#FFFFFF",
+      "x": 80,
+      "y": 200
+    }
+  },
+  {
+    "name": "hero_subtitle",
+    "command": "text.create",
+    "params": {
+      "parentId": "${{steps.hero_frame.result.id}}",
+      "text": "Build beautiful designs with code",
+      "fontSize": 36,
+      "fontFamily": "Inter",
+      "color": "#888888",
+      "x": 80,
+      "y": 300,
+      "width": 920
+    }
+  }
+]
+```
+
+The most commonly interpolated field is `id` for parent-child relationships. Any field from the step result can be referenced: `name`, `type`, `width`, `height`, etc.
+
+<Aside type="tip">
+Use `snake_case` for step names. Names are auto-sanitized, but clean names prevent interpolation issues.
+</Aside>
+
+## Command Aliases
+
+Batch mode supports compact aliases to reduce payload size. These work only in batch `command` fields:
+
+```json
+[
+  {"name": "bg",    "command": "frame",  "params": {"name": "BG", "w": 1080, "h": 1920}},
+  {"name": "title", "command": "text",   "params": {"pid": "${{steps.bg.result.id}}", "text": "Hello", "sz": 48}},
+  {"name": "box",   "command": "rect",   "params": {"pid": "${{steps.bg.result.id}}", "w": 400, "h": 200}},
+  {"name": "color", "command": "fill",   "params": {"nodeId": "${{steps.box.result.id}}", "color": "#FFD600"}},
+  {"name": "glow",  "command": "shadow", "params": {"nodeId": "${{steps.box.result.id}}"}}
+]
+```
+
+Full alias table:
+
+| Alias | Command | Alias | Command |
+|-------|---------|-------|---------|
+| `frame` | `node.create_frame` | `shadow` | `effect.add_shadow` |
+| `rect` | `shape.create_rectangle` | `blur` | `effect.add_blur` |
+| `text` | `text.create` | `glass` | `effect.apply_glass` |
+| `fill` | `paint.set_solid` | `noise` | `effect.add_noise` |
+| `stroke` | `paint.set_stroke` | `texture` | `effect.add_texture` |
+| `gradient` | `paint.set_gradient` | `modify` | `node.modify` |
+| `mask` | `node.set_mask` | `find` | `document.find_nodes` |
+
+## Parameter Shorthands
+
+Batch auto-expands shorthand parameter names within `params`:
+
+| Short | Full | Example |
+|-------|------|---------|
+| `pid` | `parentId` | `"pid": "1:2"` |
+| `w` | `width` | `"w": 400` |
+| `h` | `height` | `"h": 300` |
+| `sz` | `fontSize` | `"sz": 24` |
+| `ff` | `fontFamily` | `"ff": "Inter"` |
+| `lh` | `lineHeight` | `"lh": 140` |
+| `bg` | `color` | `"bg": "#1a1a1a"` |
+| `r` | `cornerRadius` | `"r": 16` |
+
+## Auto-Placement
+
+By default, batch mode calls `document.find_free_space` before creating root-level frames. This prevents overlapping existing work on the canvas. Positions are snapped to an 8px grid.
+
+To disable auto-placement and control positions manually:
+
+```bash
+ai-happy-design batch ops.json --allow-overlap
+```
+
+## Design Lint and Quality Gates
+
+Validate your design after creation:
+
+```bash
+# Run with lint checks
+ai-happy-design batch ops.json --lint
+
+# Fail on any lint warning or error
+ai-happy-design batch ops.json --lint --strict-quality
+```
+
+### Lint Checks
+
+| Check | What it catches |
+|-------|----------------|
+| `overflow` | Children extending beyond parent frame bounds |
+| `overlap` | Sibling elements overlapping each other |
+| `text_too_large` | `fontSize` exceeds 50% of parent height |
+| `text_too_small` | `fontSize` below 12px (unreadable) |
+| `default_name` | Nodes with Figma default names ("Frame 47") |
+| `oversized_child` | Child larger than parent by 10%+ |
+| `absolute_child_non_autolayout` | `layoutPositioning:ABSOLUTE` under a non-auto-layout parent |
+| `absolute_overflow` | Absolute-positioned child exceeds auto-layout parent bounds |
+
+When `--strict-quality` is set, the batch output includes a `qualityGate` field in the summary.
+
+## Running Batch Operations
+
+### From a File
+
+```bash
+ai-happy-design batch design.json
+```
+
+### From Inline JSON
+
+```bash
+ai-happy-design batch '[{"command":"node.create_frame","params":{"width":400,"height":300}}]'
+```
+
+### From Stdin
+
+```bash
+cat design.json | ai-happy-design batch
+```
+
+### With All Flags
+
+```bash
+ai-happy-design batch design.json \
+  --lint \
+  --strict-quality \
+  --fail-fast \
+  --live \
+  --parallel
+```
+
+### Flags Reference
+
+| Flag | Description |
+|------|-------------|
+| `--lint` | Run design lint checks after batch completes |
+| `--strict-quality` | Fail the run if any lint warning/error is found |
+| `--fail-fast` | Stop on first operation failure (default: continue) |
+| `--parallel` | Execute independent operations in parallel |
+| `--live` | Stream operation results as they complete |
+| `--allow-overlap` | Skip auto-placement |
+| `--no-lint` | Explicitly skip lint |
+| `--compress-images` | Compress images via ImageMagick before sending |
+
+## Batch Output
+
+The batch command returns structured output:
+
+```json
+{
+  "ok": true,
+  "steps": [
+    {
+      "index": 0,
+      "name": "hero_frame",
+      "command": "node.create_frame",
+      "ok": true,
+      "result": {"id": "42:248", "name": "Hero Section", "type": "FRAME"},
+      "attempts": 1,
+      "elapsedMs": 38
+    },
+    {
+      "index": 1,
+      "name": "hero_title",
+      "command": "text.create",
+      "ok": true,
+      "result": {"id": "42:249", "name": "Welcome", "type": "TEXT"},
+      "attempts": 1,
+      "elapsedMs": 31
+    }
+  ],
+  "summary": {"total": 12, "succeeded": 12, "failed": 0},
+  "timing": {"totalMs": 440, "avgMs": 37}
+}
+```
+
+Each step's `result` contains the full Figma plugin response. The `attempts` field shows retries if the first attempt failed.
+
+## Composite Commands
+
+Batch includes high-level composite commands that auto-expand into multiple primitives. These generate entire layouts in a single operation.
+
+### Slide
+
+Creates a complete social media slide with background, gradient, and text elements:
+
+```json
+[
+  {
+    "command": "bulk.slide",
+    "params": {
+      "canvas": "1080x1920",
+      "bg": "#0C1E2C",
+      "gradient": {"from": "#0C1E2C", "to": "#1a3a5c"},
+      "elements": [
+        {"type": "eyebrow", "text": "Design Tip #1"},
+        {"type": "headline", "text": "Use Auto-Layout"},
+        {"type": "body", "text": "Auto-layout in Figma works like CSS flexbox."},
+        {"type": "cta", "text": "Learn More"}
+      ]
+    }
+  }
+]
+```
+
+Supported element types: `eyebrow`, `headline`, `body`, `bar`, `counter`, `cta`, `url`, `stats`, `progress`, `arabic`.
+
+### Banner
+
+Creates an email banner:
+
+```json
+[
+  {
+    "command": "bulk.banner",
+    "params": {
+      "canvas": "600x200",
+      "bg": "#FFD600",
+      "elements": [
+        {"type": "headline", "text": "New Feature Launch"},
+        {"type": "subtitle", "text": "Try it today"}
+      ]
+    }
+  }
+]
+```
+
+## Multi-File Batch
+
+You can chain batch files by piping them sequentially:
+
+```bash
+# Create the base layout, then add content
+ai-happy-design batch layout.json
+ai-happy-design batch content.json
+```
+
+Or use `bulk.execute` within a batch for nested execution:
+
+```json
+[
+  {
+    "command": "bulk.execute",
+    "params": {
+      "operations": [
+        {"name": "card", "command": "rect", "params": {"w": 220, "h": 120, "bg": "#2563EB"}},
+        {"name": "label", "command": "text", "params": {"text": "Fast", "pid": "$card", "sz": 28}}
+      ],
+      "failFast": false,
+      "retries": 1,
+      "retryDelayMs": 250,
+      "interpolate": true
+    }
+  }
+]
+```
+
+## Performance
+
+Batch mode processes operations at approximately **27 ops/sec** over a single WebSocket connection. This is significantly faster than individual MCP tool calls, which incur protocol overhead per operation.
+
+| Payload Size | Approximate Time |
+|-------------|-----------------|
+| 5 operations | ~0.2 seconds |
+| 20 operations | ~0.7 seconds |
+| 50 operations | ~1.9 seconds |
+| 100 operations | ~3.7 seconds |
+
+For a typical social media post with 20-30 operations, batch completes in under 1 second.
+
+## Best Practices
+
+1. **Always name steps.** Unnamed steps cannot be referenced via interpolation.
+2. **Use `snake_case`** for step names to avoid interpolation issues.
+3. **Use aliases and shorthands** for compact payloads. The engine expands them automatically.
+4. **Call `find_free_space` first**, or let auto-placement handle it (default behavior).
+5. **Name every Figma layer.** Never leave Figma defaults like "Frame 47".
+6. **Set text `width`.** Text nodes default to "hug contents"; set width for wrapping.
+7. **Use `--lint --strict-quality`** on first runs to catch issues early.
+8. **Export and verify.** Always `export.image` at scale 2 to visually check the result.
+
+---
+
+Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveband/ai-happy-design) | License: GPL-3.0

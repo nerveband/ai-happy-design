@@ -1,0 +1,14 @@
+<svg id="S_PL_Artboards_N_2x" data-name="S_PL_Artboards_N@2x" xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46">
+  <defs>
+    <style>
+      .fill {
+        fill-rule: evenodd;
+        opacity: 0.65;
+      }
+
+      
+    </style>
+  </defs>
+  <title>S_PL_Artboards_N@2x</title>
+  <path class="fill" d="M26,18V5a1,1,0,0,0-1-1H5A1,1,0,0,0,4,5V31a1,1,0,0,0,1,1h7v7a1,1,0,0,0,1,1H39a1,1,0,0,0,1-1V19a1,1,0,0,0-1-1H26ZM6,30V6H24V18H13a1,1,0,0,0-1,1V30H6Zm32,8H14V20H38V38Z"/>
+  </svg>

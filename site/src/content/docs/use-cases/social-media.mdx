@@ -1,0 +1,349 @@
+---
+title: Social Media
+description: Create Instagram posts, carousels, stories, LinkedIn banners, Twitter/X cards, and more with AI Happy Design.
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+Social media is one of the most common use cases for AI Happy Design. It handles consistent, on-brand content at scale, from single posts to entire content calendars.
+
+## Canvas Sizes
+
+| Format | Size (px) | Aspect Ratio |
+|--------|----------|-------------|
+| Instagram Post | 1080 x 1080 | 1:1 |
+| Instagram Carousel | 1080 x 1350 | 4:5 |
+| Instagram Story | 1080 x 1920 | 9:16 |
+| LinkedIn Post | 1200 x 628 | ~1.91:1 |
+| LinkedIn Banner | 1584 x 396 | 4:1 |
+| Twitter/X Card | 1200 x 675 | 16:9 |
+| Facebook Post | 1200 x 630 | ~1.9:1 |
+| YouTube Thumbnail | 1280 x 720 | 16:9 |
+| TikTok | 1080 x 1920 | 9:16 |
+| Pinterest Pin | 1000 x 1500 | 2:3 |
+
+## Getting Started: Compute Tokens First
+
+Always start by computing design tokens for your canvas size:
+
+```bash
+ai-happy-design command design.compute_tokens \
+  '{"width": 1080, "height": 1350}'
+```
+
+This returns exact font sizes, spacing, padding, and card dimensions optimized for the canvas. For a 1080px canvas: body = 48px, heading = 84px, hero = 152px.
+
+## Instagram Post (1080 x 1080)
+
+```json
+[
+  {
+    "name": "post",
+    "command": "frame",
+    "params": {"name": "IG Post", "w": 1080, "h": 1080, "bg": "#0C1E2C"}
+  },
+  {
+    "name": "headline",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.post.result.id}}",
+      "text": "5 Design Tips for Better UI",
+      "sz": 64, "ff": "Space Grotesk", "fontStyle": "Bold",
+      "color": "#FFFFFF",
+      "x": 80, "y": 280, "w": 920,
+      "lh": 120, "lineHeightUnit": "PERCENT"
+    }
+  },
+  {
+    "name": "body",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.post.result.id}}",
+      "text": "Simple rules that make every interface feel polished and professional.",
+      "sz": 36, "ff": "Inter",
+      "color": "#888888",
+      "x": 80, "y": 520, "w": 920,
+      "lh": 150, "lineHeightUnit": "PERCENT"
+    }
+  },
+  {
+    "name": "cta",
+    "command": "frame",
+    "params": {
+      "pid": "${{steps.post.result.id}}",
+      "name": "CTA Button",
+      "layoutMode": "HORIZONTAL", "padding": 20,
+      "bg": "#FFD600", "r": 12,
+      "x": 80, "y": 720
+    }
+  },
+  {
+    "name": "cta_text",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.cta.result.id}}",
+      "text": "Save for later",
+      "sz": 28, "ff": "Inter", "fontStyle": "SemiBold",
+      "color": "#0a0a0a"
+    }
+  }
+]
+```
+
+## Instagram Carousel (Multi-Slide)
+
+Create a multi-slide carousel post:
+
+```json
+[
+  {
+    "name": "slide_1",
+    "command": "frame",
+    "params": {"name": "Slide 1 - Cover", "w": 1080, "h": 1350, "bg": "#0C1E2C"}
+  },
+  {
+    "name": "slide_1_title",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.slide_1.result.id}}",
+      "text": "5 Design Tips for Better UI",
+      "sz": 84, "ff": "Space Grotesk", "fontStyle": "Bold",
+      "color": "#FFFFFF",
+      "x": 80, "y": 400, "w": 920,
+      "lh": 110, "lineHeightUnit": "PERCENT"
+    }
+  },
+  {
+    "name": "slide_1_counter",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.slide_1.result.id}}",
+      "text": "Swipe to read all 5 tips",
+      "sz": 28, "ff": "Inter",
+      "color": "#888888",
+      "x": 80, "y": 1200
+    }
+  },
+  {
+    "name": "slide_2",
+    "command": "frame",
+    "params": {"name": "Slide 2 - Tip 1", "w": 1080, "h": 1350, "bg": "#0C1E2C"}
+  },
+  {
+    "name": "slide_2_number",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.slide_2.result.id}}",
+      "text": "01",
+      "sz": 152, "ff": "Space Grotesk", "fontStyle": "Bold",
+      "color": "#FFD600",
+      "x": 80, "y": 120
+    }
+  },
+  {
+    "name": "slide_2_title",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.slide_2.result.id}}",
+      "text": "Use Auto-Layout",
+      "sz": 64, "ff": "Space Grotesk", "fontStyle": "Bold",
+      "color": "#FFFFFF",
+      "x": 80, "y": 320, "w": 920
+    }
+  },
+  {
+    "name": "slide_2_body",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.slide_2.result.id}}",
+      "text": "Auto-layout in Figma works exactly like CSS flexbox. Set direction, spacing, and padding on any frame to create responsive layouts.",
+      "sz": 36, "ff": "Inter",
+      "color": "#888888",
+      "x": 80, "y": 420, "w": 920,
+      "lh": 150, "lineHeightUnit": "PERCENT"
+    }
+  }
+]
+```
+
+## Using the Slide Composite
+
+For faster single-slide creation, use the built-in composite command:
+
+```json
+[
+  {
+    "command": "bulk.slide",
+    "params": {
+      "canvas": "1080x1350",
+      "bg": "#0C1E2C",
+      "gradient": {"from": "#0C1E2C", "to": "#1a3a5c"},
+      "elements": [
+        {"type": "eyebrow", "text": "Design Tip #1"},
+        {"type": "headline", "text": "Use Auto-Layout for Everything"},
+        {"type": "body", "text": "It works exactly like CSS flexbox."},
+        {"type": "counter", "text": "1/5"},
+        {"type": "cta", "text": "Save for later"}
+      ]
+    }
+  }
+]
+```
+
+Supported element types: `eyebrow`, `headline`, `body`, `bar`, `counter`, `cta`, `url`, `stats`, `progress`.
+
+## Twitter/X Card (1200 x 675)
+
+```json
+[
+  {
+    "name": "card",
+    "command": "frame",
+    "params": {"name": "Twitter Card", "w": 1200, "h": 675, "bg": "#0C1E2C"}
+  },
+  {
+    "name": "title",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.card.result.id}}",
+      "text": "AI Happy Design",
+      "sz": 56, "ff": "Space Grotesk", "fontStyle": "Bold",
+      "color": "#FFFFFF",
+      "x": 80, "y": 180, "w": 700
+    }
+  },
+  {
+    "name": "subtitle",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.card.result.id}}",
+      "text": "Give LLMs full Figma canvas access. 150+ commands. 27 ops/sec. No API keys.",
+      "sz": 28, "ff": "Inter",
+      "color": "#888888",
+      "x": 80, "y": 280, "w": 700,
+      "lh": 150, "lineHeightUnit": "PERCENT"
+    }
+  },
+  {
+    "name": "url",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.card.result.id}}",
+      "text": "aihappydesign.com",
+      "sz": 24, "ff": "JetBrains Mono",
+      "color": "#FFD600",
+      "x": 80, "y": 560
+    }
+  }
+]
+```
+
+## Instagram Story (1080 x 1920)
+
+```json
+[
+  {
+    "name": "story",
+    "command": "frame",
+    "params": {"name": "IG Story", "w": 1080, "h": 1920, "bg": "#0C1E2C"}
+  },
+  {
+    "name": "gradient_bg",
+    "command": "gradient",
+    "params": {
+      "nodeId": "${{steps.story.result.id}}",
+      "gradientType": "LINEAR",
+      "stops": [
+        {"position": 0, "color": "#0C1E2C"},
+        {"position": 1, "color": "#1a3a5c"}
+      ]
+    }
+  },
+  {
+    "name": "headline",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.story.result.id}}",
+      "text": "Quick Tip",
+      "sz": 112, "ff": "Space Grotesk", "fontStyle": "Bold",
+      "color": "#FFFFFF",
+      "x": 80, "y": 600, "w": 920,
+      "lh": 110, "lineHeightUnit": "PERCENT"
+    }
+  },
+  {
+    "name": "body",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.story.result.id}}",
+      "text": "Always call design.compute_tokens before creating any design. It returns exact pixel values for fonts, spacing, and padding.",
+      "sz": 36, "ff": "Inter",
+      "color": "#CCCCCC",
+      "x": 80, "y": 800, "w": 920,
+      "lh": 150, "lineHeightUnit": "PERCENT"
+    }
+  }
+]
+```
+
+## Content Calendar Workflow
+
+For producing a full week of social content:
+
+### 1. Create a batch file for each post
+
+Organize your batch files in a `content/` directory:
+
+```
+content/
+  monday-post.json
+  tuesday-carousel.json
+  wednesday-story.json
+  thursday-post.json
+  friday-carousel.json
+```
+
+### 2. Use consistent design tokens
+
+Call `design.compute_tokens` once per canvas size and reuse the values across all batches.
+
+### 3. Run all batches
+
+```bash
+for file in content/*.json; do
+  ai-happy-design batch "$file" --lint
+done
+```
+
+### 4. Batch export all frames
+
+```bash
+ai-happy-design command export.batch \
+  '{"nodeIds":"1:2,1:3,1:4,1:5,1:6,1:7,1:8","format":"PNG","scale":2}'
+```
+
+## Tips for Social Media Designs
+
+<CardGrid>
+  <Card title="Compute tokens first">
+    Always call `design.compute_tokens` to get proper font sizes for the canvas. Do not guess.
+  </Card>
+  <Card title="Minimum readable text">
+    Caption text should be 36px minimum at 1080px width (renders as ~12px on phone screens).
+  </Card>
+  <Card title="Use the right tier">
+    Short headlines (1-3 words): hero/title tier. Medium (4-10 words): heading. Long paragraphs: body tier.
+  </Card>
+  <Card title="Export at 2x">
+    Always export at scale 2 for crisp output on retina displays. This is the default.
+  </Card>
+</CardGrid>
+
+- **All text must be readable at a glance.** Social content has no room for fine print
+- **Name every slide** ("Slide 1 - Cover", "Slide 2 - Tip 1") for easy navigation in Figma
+- **Use gradient backgrounds** for visual depth on dark themes
+- **Use fully opaque hex colors** for gradient stops to avoid washed-out results
+
+---
+
+Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveband/ai-happy-design) | License: GPL-3.0

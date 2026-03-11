@@ -1,0 +1,102 @@
+---
+const steps = [
+  {
+    num: '1',
+    title: 'Clone and build',
+    code: 'git clone https://github.com/nerveband/ai-happy-design.git\ncd ai-happy-design && make build'
+  },
+  {
+    num: '2',
+    title: 'Load Figma plugin',
+    desc: 'Figma \u2192 Plugins \u2192 Development \u2192 Import from manifest',
+    code: null
+  },
+  {
+    num: '3',
+    title: 'Start the relay',
+    code: 'ahd-figma ws'
+  },
+  {
+    num: '4',
+    title: 'Register MCP',
+    code: 'ahd-figma register'
+  },
+  {
+    num: '5',
+    title: 'Create your first frame',
+    code: "ahd-figma command node.create_frame \\\n  '{\"name\":\"Hello\",\"width\":400,\"height\":300}'"
+  }
+];
+---
+
+<section class="section section-spotlight" id="get-started">
+  <div class="container">
+    <div class="reveal">
+      <h2 class="section-headline">Five steps. <span class="text-accent">Five minutes.</span></h2>
+    </div>
+
+    <div class="steps-list">
+      {steps.map((step) => (
+        <div class="step-item reveal">
+          <div class="step-number">{step.num}</div>
+          <div class="step-content">
+            <h3 class="step-title">{step.title}</h3>
+            {step.desc && <p class="step-desc">{step.desc}</p>}
+            {step.code && (
+              <pre class="code-block step-code">{step.code}</pre>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .steps-list {
+    max-width: 700px;
+    margin: 4rem auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .step-item {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .step-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .step-title {
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+  }
+
+  .step-desc {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+
+  .step-code {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    padding: 1rem 1.25rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  @media (max-width: 768px) {
+    .step-item {
+      gap: 1rem;
+    }
+  }
+</style>

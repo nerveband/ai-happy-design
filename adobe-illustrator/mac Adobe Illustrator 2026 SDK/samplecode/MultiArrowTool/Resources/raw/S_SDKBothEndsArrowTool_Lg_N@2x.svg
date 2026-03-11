@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" data-name="S_SDKBothEndsArrowTool_Lg_N@2x" height="36" id="S_SDKBothEndsArrowTool_Lg_N_2x" viewBox="0 0 44 36" width="44">
+  <defs>
+    <style>
+      .fill {
+        opacity: 0.65;
+      }
+
+      
+    </style>
+  </defs>
+  <title>S_SDKBothEndsArrowTool_Lg_N@2x</title>
+  <path class="fill" d="M37.153,32.535c-1.774-3.758-2.819-10.4-3.52-15.172a.5.5,0,0,0-.834-.216l-4.765,4.765-9.946-9.945L22.653,7.4a.5.5,0,0,0-.216-.834c-4.77-.7-11.214-1.946-14.972-3.72a.5.5,0,0,0-.618.618c1.774,3.758,2.819,10.4,3.52,15.172a.5.5,0,0,0,.834.216l4.766-4.765,9.945,9.945L21.347,28.6a.5.5,0,0,0,.216.834c4.77.7,11.214,1.946,14.972,3.72A.5.5,0,0,0,37.153,32.535Z" />
+  </svg>

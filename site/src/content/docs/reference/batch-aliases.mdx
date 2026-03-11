@@ -1,0 +1,297 @@
+---
+title: Batch Aliases
+description: Complete alias table, parameter shorthands, compact references, and semantic tokens for batch operations.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Batch mode supports compact aliases for both command names and parameters. These reduce payload size and make batch JSON faster to write, especially for LLM agents generating operations.
+
+## Command Aliases
+
+Use these short names in the `command` field of batch operations:
+
+### Creation Aliases
+
+| Alias | Full Command | Domain |
+|-------|-------------|--------|
+| `frame` | `node.create_frame` | node |
+| `rect` | `shape.create_rectangle` | shape |
+| `ellipse` | `shape.create_ellipse` | shape |
+| `polygon` | `shape.create_polygon` | shape |
+| `star` | `shape.create_star` | shape |
+| `line` | `shape.create_line` | shape |
+| `svg` | `shape.create_from_svg` | shape |
+| `image` | `shape.create_image` | shape |
+| `text` | `text.create` | text |
+
+### Styling Aliases
+
+| Alias | Full Command | Domain |
+|-------|-------------|--------|
+| `fill` | `paint.set_solid` | paint |
+| `stroke` | `paint.set_stroke` | paint |
+| `gradient` | `paint.set_gradient` | paint |
+
+### Effect Aliases
+
+| Alias | Full Command | Domain |
+|-------|-------------|--------|
+| `shadow` | `effect.add_shadow` | effect |
+| `blur` | `effect.add_blur` | effect |
+| `glass` | `effect.apply_glass` | effect |
+| `noise` | `effect.add_noise` | effect |
+| `texture` | `effect.add_texture` | effect |
+
+### Utility Aliases
+
+| Alias | Full Command | Domain |
+|-------|-------------|--------|
+| `modify` | `node.modify` | node |
+| `mask` | `node.set_mask` | node |
+| `find` | `document.find_nodes` | document |
+
+### Side-by-Side Example
+
+Without aliases:
+```json
+{"command": "node.create_frame", "params": {"name": "Card", "width": 400, "height": 300}}
+```
+
+With alias:
+```json
+{"command": "frame", "params": {"name": "Card", "width": 400, "height": 300}}
+```
+
+## Parameter Shorthands
+
+Use these short parameter names anywhere in batch `params`:
+
+| Short | Full Parameter | Type | Example |
+|-------|---------------|------|---------|
+| `pid` | `parentId` | string | `"pid": "42:248"` |
+| `w` | `width` | number | `"w": 400` |
+| `h` | `height` | number | `"h": 300` |
+| `sz` | `fontSize` | number | `"sz": 24` |
+| `ff` | `fontFamily` | string | `"ff": "Inter"` |
+| `lh` | `lineHeight` | number | `"lh": 140` |
+| `bg` | `color` | string | `"bg": "#1a1a1a"` |
+| `r` | `cornerRadius` | number | `"r": 16` |
+| `fillColor` | `color` | string | `"fillColor": "#FF0000"` |
+
+<Aside type="tip">
+The `fillColor` to `color` alias is especially important. LLMs trained on other tools often emit `fillColor` instead of Figma's `color`. The system resolves this automatically. It is the number one silent failure from cross-tool training data.
+</Aside>
+
+### Side-by-Side Example
+
+Without shorthands:
+```json
+{
+  "command": "text.create",
+  "params": {
+    "parentId": "42:248",
+    "text": "Hello World",
+    "fontSize": 24,
+    "fontFamily": "Inter",
+    "width": 300,
+    "cornerRadius": 8
+  }
+}
+```
+
+With shorthands:
+```json
+{
+  "command": "text",
+  "params": {
+    "pid": "42:248",
+    "text": "Hello World",
+    "sz": 24,
+    "ff": "Inter",
+    "w": 300,
+    "r": 8
+  }
+}
+```
+
+## Step Interpolation
+
+Reference results from earlier steps using `${{steps.NAME.result.FIELD}}`:
+
+| Reference | Meaning |
+|-----------|---------|
+| `${{steps.NAME.result.id}}` | Node ID from step NAME |
+| `${{steps.NAME.result.width}}` | Width from step NAME |
+| `${{steps.NAME.result.height}}` | Height from step NAME |
+| `${{steps.NAME.result.x}}` | X position from step NAME |
+| `${{steps.NAME.result.y}}` | Y position from step NAME |
+| `${{steps.NAME.result.name}}` | Node name from step NAME |
+| `${{steps.NAME.result.type}}` | Node type from step NAME |
+
+The most common use is `${{steps.NAME.result.id}}` for `parentId`, wiring child elements to their parent frame.
+
+```json
+[
+  {"name": "card", "command": "frame", "params": {"name": "Card", "w": 400, "h": 300}},
+  {"name": "title", "command": "text", "params": {
+    "pid": "${{steps.card.result.id}}",
+    "text": "Card Title",
+    "sz": 24
+  }}
+]
+```
+
+<Aside type="tip">
+Step names should use `snake_case`. Names are auto-sanitized, but clean names prevent interpolation issues.
+</Aside>
+
+## Semantic Font Size Tokens
+
+When `semanticTokens` is enabled on a parameter (like `fontSize`), you can use token names instead of pixel values:
+
+| Token | Description | Value at 1080px | Value at 600px |
+|-------|------------|----------------|----------------|
+| `caption` | Smallest readable text | 36px | 20px |
+| `body` | Base body text | 48px | 28px |
+| `subheading` | Section subheadings | 64px | 36px |
+| `heading` | Section headings | 84px | 48px |
+| `title` | Page/card titles | 112px | 64px |
+| `hero` | Hero display text | 152px | 88px |
+| `display` | Largest display text | 200px | 116px |
+
+These values are computed from canvas dimensions using the modular type scale (base = width * 0.044, ratio = 1.333).
+
+```json
+{"command": "text", "params": {"text": "Big Title", "sz": "hero"}}
+```
+
+<Aside type="note">
+Semantic tokens require a canvas context. They work in batch mode (where canvas size is known) but may not resolve in standalone single-command mode.
+</Aside>
+
+## Full Compact Batch Example
+
+Here is a complete social media card using all available aliases and shorthands:
+
+```json
+[
+  {
+    "name": "slide",
+    "command": "frame",
+    "params": {"name": "Social Post", "w": 1080, "h": 1350, "bg": "#0C1E2C", "r": 0}
+  },
+  {
+    "name": "badge",
+    "command": "frame",
+    "params": {
+      "pid": "${{steps.slide.result.id}}",
+      "name": "Badge",
+      "layoutMode": "HORIZONTAL",
+      "padding": 12, "itemSpacing": 8,
+      "bg": {"r": 1, "g": 0.84, "b": 0, "a": 0.15},
+      "r": 100,
+      "x": 80, "y": 120
+    }
+  },
+  {
+    "name": "badge_text",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.badge.result.id}}",
+      "text": "Design Tip",
+      "sz": 24, "ff": "Inter", "fontStyle": "SemiBold",
+      "color": "#FFD600"
+    }
+  },
+  {
+    "name": "headline",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.slide.result.id}}",
+      "text": "Use Auto-Layout for Everything",
+      "sz": 84, "ff": "Space Grotesk", "fontStyle": "Bold",
+      "color": "#FFFFFF",
+      "x": 80, "y": 200, "w": 920,
+      "lh": 110, "lineHeightUnit": "PERCENT"
+    }
+  },
+  {
+    "name": "body_text",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.slide.result.id}}",
+      "text": "Auto-layout in Figma works exactly like CSS flexbox. Set layoutMode, itemSpacing, and padding on any frame.",
+      "sz": 36, "ff": "Inter",
+      "color": "#888888",
+      "x": 80, "y": 500, "w": 920,
+      "lh": 150, "lineHeightUnit": "PERCENT"
+    }
+  },
+  {
+    "name": "card",
+    "command": "frame",
+    "params": {
+      "pid": "${{steps.slide.result.id}}",
+      "name": "Code Card",
+      "w": 920, "h": 280,
+      "x": 80, "y": 720,
+      "bg": {"r": 1, "g": 1, "b": 1, "a": 0.04},
+      "r": 16
+    }
+  },
+  {
+    "name": "card_stroke",
+    "command": "stroke",
+    "params": {
+      "nodeId": "${{steps.card.result.id}}",
+      "color": {"r": 1, "g": 1, "b": 1, "a": 0.07},
+      "strokeWeight": 1, "strokeAlign": "INSIDE"
+    }
+  },
+  {
+    "name": "cta",
+    "command": "frame",
+    "params": {
+      "pid": "${{steps.slide.result.id}}",
+      "name": "CTA Button",
+      "layoutMode": "HORIZONTAL",
+      "padding": 20, "bg": "#FFD600", "r": 12,
+      "x": 80, "y": 1100
+    }
+  },
+  {
+    "name": "cta_text",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.cta.result.id}}",
+      "text": "Learn More",
+      "sz": 28, "ff": "Inter", "fontStyle": "SemiBold",
+      "color": "#0a0a0a"
+    }
+  }
+]
+```
+
+Run with quality gates:
+
+```bash
+ai-happy-design batch social-post.json --lint --strict-quality
+```
+
+## Alias Expansion Order
+
+When a batch operation is processed:
+
+1. **Command alias** expanded (`frame` becomes `node.create_frame`)
+2. **Parameter shorthands** expanded (`pid` becomes `parentId`, `w` becomes `width`)
+3. **fillColor alias** resolved to `color`
+4. **Semantic tokens** resolved to pixel values (if canvas context available)
+5. **Step interpolation** resolved (`${{steps.NAME.result.id}}` becomes actual node ID)
+6. **Schema validation** runs on the fully expanded parameters
+
+All expansion happens automatically. You never need to manually expand aliases.
+
+---
+
+Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveband/ai-happy-design) | License: GPL-3.0

@@ -1,0 +1,16 @@
+body {
+	font-size: 13px;
+}
+
+form {
+	display: table;
+}
+
+.row {
+	display: table-row;
+}
+
+.col {
+	display: table-cell;
+	padding: 3px;
+}

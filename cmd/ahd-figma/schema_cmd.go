@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -42,9 +41,7 @@ var schemaCmd = &cobra.Command{
 		}
 
 		if schemaJSON {
-			out, _ := json.MarshalIndent(s, "", "  ")
-			fmt.Println(string(out))
-			return nil
+			return printJSON(s)
 		}
 
 		// Human-readable table

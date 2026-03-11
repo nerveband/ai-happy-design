@@ -1,0 +1,200 @@
+---
+title: Installation
+description: Install AI Happy Design. Covers the Go binary, Figma plugin, and editor configuration.
+---
+
+import { Aside, Tabs, TabItem, Card, CardGrid } from '@astrojs/starlight/components';
+
+AI Happy Design is a single Go binary that provides CLI commands, MCP tools, and a WebSocket relay to a Figma plugin. Here's how to install it.
+
+## Prerequisites
+
+- **Figma desktop app** (plugins require the desktop app, not the web version)
+- **Go 1.21+** (only needed if installing via `go install` or building from source)
+- **Node.js 18+** (only needed if building the Figma plugin from source)
+
+## Install the Binary
+
+<Tabs>
+  <TabItem label="go install">
+
+The fastest way if you have Go installed:
+
+```bash
+go install github.com/nerveband/ai-happy-design/cmd/ai-happy-design@latest
+```
+
+This places the `ai-happy-design` binary in your `$GOPATH/bin` directory. Make sure `$GOPATH/bin` is in your `$PATH`.
+
+  </TabItem>
+  <TabItem label="Binary Download">
+
+Pre-built binaries for macOS, Linux, and Windows are available on [GitHub Releases](https://github.com/nerveband/ai-happy-design/releases).
+
+**macOS (Apple Silicon):**
+
+```bash
+curl -LO https://github.com/nerveband/ai-happy-design/releases/latest/download/ai-happy-design_darwin_arm64.tar.gz
+tar xzf ai-happy-design_darwin_arm64.tar.gz
+mv ai-happy-design ~/bin/
+```
+
+**macOS (Intel):**
+
+```bash
+curl -LO https://github.com/nerveband/ai-happy-design/releases/latest/download/ai-happy-design_darwin_amd64.tar.gz
+tar xzf ai-happy-design_darwin_amd64.tar.gz
+mv ai-happy-design ~/bin/
+```
+
+**Linux (amd64):**
+
+```bash
+curl -LO https://github.com/nerveband/ai-happy-design/releases/latest/download/ai-happy-design_linux_amd64.tar.gz
+tar xzf ai-happy-design_linux_amd64.tar.gz
+sudo mv ai-happy-design /usr/local/bin/
+```
+
+**Windows (amd64):**
+
+Download `ai-happy-design_windows_amd64.zip` from [Releases](https://github.com/nerveband/ai-happy-design/releases) and add the binary to your `PATH`.
+
+  </TabItem>
+  <TabItem label="Build from Source">
+
+```bash
+git clone https://github.com/nerveband/ai-happy-design.git
+cd ai-happy-design
+make build
+```
+
+The binary is at `./bin/ai-happy-design`. To also rebuild the Figma plugin:
+
+```bash
+cd plugin && npm install && npm run build && cd ..
+make sync-plugin   # embeds plugin files into the Go binary
+make build
+```
+
+  </TabItem>
+</Tabs>
+
+## Verify the Binary
+
+```bash
+# Check version
+ai-happy-design --version
+
+# List all available tools
+ai-happy-design tools --llm --json
+
+# Check schema for a specific command
+ai-happy-design schema text.create --json
+
+# Verify the validation pipeline
+ai-happy-design validate
+```
+
+You should see version output and a JSON list of 150+ tool actions across 14+ domains.
+
+## Install the Figma Plugin
+
+The Figma plugin is the bridge between the CLI and the Figma canvas.
+
+1. Open the **Figma desktop app**
+2. Go to **Plugins > Development > Import plugin from manifest**
+3. Browse to `plugin/manifest.json` in the project directory
+4. Click **Import**
+5. Run the plugin: **Plugins > AI Happy Design**
+
+The plugin shows a small UI panel with connection status. It auto-connects to the local relay on `ws://127.0.0.1:3055`.
+
+<Aside type="tip">
+If you installed via `go install` or binary download, the plugin files are embedded in the binary. Run `ai-happy-design plugin extract` to extract them to a directory, then import the manifest from there.
+</Aside>
+
+## Register with AI Editors
+
+AI Happy Design auto-detects installed editors and configures MCP:
+
+```bash
+ai-happy-design register
+```
+
+Supported editors:
+
+| Editor | Config Method |
+|--------|--------------|
+| **Claude Code** | `claude mcp add-json` |
+| **Claude Desktop** | `claude_desktop_config.json` |
+| **Cursor** | `mcp.json` |
+| **Windsurf** | `mcp_config.json` |
+| **VS Code** | `settings.json` (via Copilot) |
+| **Zed** | `settings.json` (JSONC) |
+
+### Manual MCP Configuration
+
+If you prefer manual setup, add this to your editor's MCP config:
+
+```json
+{
+  "mcpServers": {
+    "ai-happy-design": {
+      "command": "ai-happy-design",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Replace `ai-happy-design` with the full path to the binary if it is not in your `$PATH`.
+
+<Aside type="caution">
+Zed uses JSONC format (JSON with comments). The `register` command handles this automatically, but if configuring manually, strip any comments before editing.
+</Aside>
+
+## Self-Update
+
+The binary can update itself to the latest release:
+
+```bash
+ai-happy-design upgrade
+```
+
+## macOS Code Signing
+
+If you build from source on macOS, the binary must be ad-hoc signed to avoid Gatekeeper blocking:
+
+```bash
+# Sign from a simple path (Dropbox paths with spaces break codesign -v)
+cp ai-happy-design /tmp/ai-happy-design
+codesign -f -s - /tmp/ai-happy-design
+cp /tmp/ai-happy-design ~/bin/ai-happy-design
+```
+
+Pre-built releases from GitHub are already signed via goreleaser.
+
+## Troubleshooting
+
+<CardGrid>
+  <Card title="Binary not found">
+    Make sure `~/bin` or `$GOPATH/bin` is in your `$PATH`. Run `which ai-happy-design` to verify.
+  </Card>
+  <Card title="Gatekeeper blocks binary">
+    On macOS, run `codesign -f -s - /path/to/ai-happy-design` to ad-hoc sign it.
+  </Card>
+  <Card title="Plugin won't load">
+    Rebuild the plugin: `cd plugin && npm run build`. Re-import the manifest in Figma.
+  </Card>
+  <Card title="MCP not detected">
+    Run `ai-happy-design register` again, or configure manually using the JSON snippet above.
+  </Card>
+</CardGrid>
+
+## Next Steps
+
+Once installed, proceed to the [Quick Start](/getting-started/quickstart/) to connect to Figma and create your first design.
+
+---
+
+Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveband/ai-happy-design) | License: GPL-3.0

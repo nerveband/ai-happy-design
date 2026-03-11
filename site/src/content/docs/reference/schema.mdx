@@ -1,0 +1,300 @@
+---
+title: Schema System
+description: How AI Happy Design validates commands with typed schemas, auto-correction, fuzzy matching, and named colors.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Every command in AI Happy Design is backed by a **typed schema** that defines its parameters, types, constraints, and aliases. The schema system validates input before execution and auto-corrects common mistakes.
+
+## Schema Structure
+
+Each schema defines:
+
+```go
+type Schema struct {
+    Command     string   // "text.create"
+    Aliases     []string // ["text.add", "create_text"]
+    Description string   // Human-readable description
+    Params      []Param  // Parameter definitions
+}
+
+type Param struct {
+    Name           string   // "fontSize"
+    Type           string   // "string", "number", "boolean", "array", "object"
+    Required       bool     // Must be provided
+    Aliases        []string // ["sz", "size"]
+    Desc           string   // Description
+    Enum           []string // Allowed values
+    Min, Max       *float64 // Numeric bounds
+    Default        any      // Default value
+    Pattern        string   // Regex pattern
+    SemanticTokens bool     // Allows token names like "hero", "body"
+    AutoFix        string   // Auto-correction rule
+}
+```
+
+Schemas are organized into domain files (`node_schemas.go`, `text_schemas.go`, etc.) and registered at startup.
+
+## Discovering Schemas
+
+```bash
+# List all commands with descriptions
+ai-happy-design schema
+
+# Get schema for a specific command
+ai-happy-design schema text.create
+
+# Get as JSON (for LLM consumption)
+ai-happy-design schema text.create --json
+
+# Get ALL schemas (full reference dump)
+ai-happy-design schema --all
+```
+
+### Example Schema Output
+
+```json
+{
+  "command": "text.create",
+  "aliases": ["text.add", "create_text"],
+  "description": "Create a text node",
+  "params": [
+    {
+      "name": "text",
+      "type": "string",
+      "required": true,
+      "aliases": ["content"],
+      "description": "The text content"
+    },
+    {
+      "name": "fontSize",
+      "type": "number",
+      "aliases": ["sz", "size"],
+      "minimum": 1,
+      "maximum": 1000,
+      "default": 16,
+      "semanticTokens": true
+    },
+    {
+      "name": "lineHeight",
+      "type": "number",
+      "autoFix": "lineHeightUnit:PERCENT"
+    }
+  ]
+}
+```
+
+## Validation Pipeline
+
+When a command is executed, it passes through this pipeline:
+
+1. **Schema lookup**: find the schema by command name or alias
+2. **Parameter resolution**: resolve aliases (`sz` to `fontSize`, `pid` to `parentId`)
+3. **Type validation**: check types match (string, number, boolean, array, object)
+4. **Constraint validation**: check min/max bounds, enum values, required fields
+5. **Auto-correction**: apply auto-fix rules (e.g., add `lineHeightUnit: PERCENT`)
+6. **Fuzzy matching**: suggest corrections for unknown parameter names
+7. **Named color resolution**: convert named colors to hex (e.g., "red" to "#FF0000")
+8. **Design lint**: optionally run lint checks post-execution
+
+### Dry-Run Validation
+
+Validate your parameters without executing against Figma:
+
+```bash
+ai-happy-design validate
+```
+
+This runs the full validation pipeline and reports any issues. Useful for debugging batch payloads before execution.
+
+## Auto-Correction
+
+The schema system automatically fixes common mistakes rather than rejecting them.
+
+### lineHeight Auto-Fix
+
+When `lineHeight` is set without `lineHeightUnit`, the system automatically adds `lineHeightUnit: "PERCENT"`. Without this, Figma interprets the value as pixels instead of percent, causing massive text overflow.
+
+```json
+// Input (missing lineHeightUnit):
+{"lineHeight": 130}
+
+// Auto-corrected to:
+{"lineHeight": 130, "lineHeightUnit": "PERCENT"}
+```
+
+### fillColor to color
+
+The `fillColor` parameter is automatically resolved to `color` everywhere. This is the **number one silent failure** from cross-tool training data. LLMs trained on other design tools often use `fillColor` instead of Figma's `color` param.
+
+```json
+// Input:
+{"fillColor": "#FF0000"}
+
+// Auto-corrected to:
+{"color": "#FF0000"}
+```
+
+### Parameter Alias Resolution
+
+Shorthand parameters are expanded before validation:
+
+| Input | Resolved |
+|-------|----------|
+| `pid` | `parentId` |
+| `w` | `width` |
+| `h` | `height` |
+| `sz` | `fontSize` |
+| `ff` | `fontFamily` |
+| `lh` | `lineHeight` |
+| `bg` | `color` |
+| `r` | `cornerRadius` |
+
+## Named Color Resolution
+
+The system resolves CSS named colors to hex values:
+
+| Name | Hex | Name | Hex |
+|------|-----|------|-----|
+| `red` | `#FF0000` | `blue` | `#0000FF` |
+| `green` | `#008000` | `white` | `#FFFFFF` |
+| `black` | `#000000` | `yellow` | `#FFFF00` |
+| `orange` | `#FFA500` | `purple` | `#800080` |
+| `pink` | `#FFC0CB` | `gray` | `#808080` |
+
+All standard CSS named colors are supported. This allows natural language color specification:
+
+```bash
+ai-happy-design command paint.set_solid '{"nodeId":"42:248","color":"coral"}'
+```
+
+## Fuzzy Matching
+
+If an unknown parameter name is provided, the schema system suggests the closest match instead of silently ignoring it:
+
+```
+Unknown parameter "fontsize" — did you mean "fontSize"?
+Unknown parameter "parent" — did you mean "parentId"?
+Unknown parameter "bgcolor" — did you mean "color"?
+```
+
+This helps LLMs self-correct without failing the entire operation. The fuzzy matcher uses Levenshtein distance to find the best candidate.
+
+## Semantic Tokens
+
+Some parameters support semantic token names instead of raw pixel values:
+
+```json
+{
+  "fontSize": "hero"
+}
+```
+
+The token is resolved to the actual pixel value using the design token system:
+
+| Token | Typical Value (1080px canvas) |
+|-------|-------------------------------|
+| `caption` | 36px |
+| `body` | 48px |
+| `subheading` | 64px |
+| `heading` | 84px |
+| `title` | 112px |
+| `hero` | 152px |
+| `display` | 200px |
+
+Values are computed from the canvas dimensions using the modular type scale (base = width * 0.044, ratio = 1.333). Text sizes snap to a 4px grid.
+
+<Aside type="note">
+Semantic tokens require a canvas context. They work in batch mode (where canvas size is known) but may not resolve in standalone single-command mode.
+</Aside>
+
+## Schema Domains
+
+Schemas are organized into domain files in `internal/schema/`:
+
+| File | Domain |
+|------|--------|
+| `node_schemas.go` | node commands |
+| `text_schemas.go` | text commands |
+| `shape_schemas.go` | shape commands |
+| `paint_schemas.go` | paint commands |
+| `effect_schemas.go` | effect commands |
+| `layout_schemas.go` | layout commands |
+| `layer_schemas.go` | layer commands |
+| `component_schemas.go` | component commands |
+| `style_schemas.go` | style commands |
+| `variable_schemas.go` | variable commands |
+
+Each domain registers its schemas in an `init()` function that runs at startup. The registry is accessible via `schema.Get(commandName)`.
+
+## Design Lint Integration
+
+The schema system integrates with design lint checks. When batch runs with `--lint`:
+
+1. Operations are validated against schemas (pre-execution)
+2. Commands execute in Figma
+3. The resulting design is analyzed for quality issues (post-execution)
+4. Lint warnings/errors are included in the output
+
+```bash
+# Validate + lint
+ai-happy-design batch design.json --lint
+
+# Fail on any lint issue
+ai-happy-design batch design.json --lint --strict-quality
+```
+
+With `--strict-quality`, any lint issue fails the entire batch and the output includes a `qualityGate` summary:
+
+```json
+{
+  "summary": {
+    "qualityGate": {
+      "passed": false,
+      "warnings": 2,
+      "errors": 1,
+      "issues": [
+        {"check": "default_name", "nodeId": "42:250", "message": "Node has default name 'Frame 47'"}
+      ]
+    }
+  }
+}
+```
+
+### Lint Checks
+
+| Check | What it catches |
+|-------|----------------|
+| `overflow` | Children extending beyond parent bounds |
+| `overlap` | Sibling elements overlapping |
+| `text_too_large` | fontSize > 50% of parent height |
+| `text_too_small` | fontSize < 12px |
+| `default_name` | Figma default names ("Frame 47") |
+| `oversized_child` | Child > 110% of parent |
+| `absolute_child_non_autolayout` | ABSOLUTE in non-auto-layout parent |
+| `absolute_overflow` | Absolute child exceeds parent bounds |
+
+## Validator Architecture
+
+The validator (`internal/validate/validator.go`) processes input through multiple stages:
+
+```
+Input JSON
+  -> Schema Lookup (by name or alias)
+  -> Parameter Alias Expansion (pid -> parentId)
+  -> Type Coercion (string "42" -> number 42 where schema expects number)
+  -> Required Field Check
+  -> Enum Validation
+  -> Range Validation (min/max)
+  -> Named Color Resolution
+  -> Auto-Fix Application
+  -> Fuzzy Match Suggestions (for unknowns)
+  -> Validated Output
+```
+
+Each stage enriches or corrects the input. The validator prefers fixing over rejecting. The goal is to make every reasonable input succeed.
+
+---
+
+Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveband/ai-happy-design) | License: GPL-3.0

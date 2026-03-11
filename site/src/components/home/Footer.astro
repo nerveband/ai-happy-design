@@ -1,0 +1,148 @@
+---
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <a href="/" class="footer-logo" aria-label="AI Happy Design home">
+        <svg width="24" height="24" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="28" height="28" rx="6" fill="#FFD600"/>
+          <path d="M15.5 4L8 15h5l-1.5 9L20 13h-5l1.5-9z" fill="#0a0a0a"/>
+        </svg>
+        <span>AI Happy Design</span>
+      </a>
+      <p class="footer-tagline">Give AI agents full Figma canvas access.</p>
+      <p class="footer-tagline">Open source. Local-only. Free forever.</p>
+      <a href="https://github.com/nerveband/ai-happy-design" target="_blank" rel="noopener" class="footer-stars">
+        <img src="https://img.shields.io/github/stars/nerveband/ai-happy-design?style=flat&color=FFD600&labelColor=1a1a1a" alt="GitHub stars" loading="lazy" />
+      </a>
+    </div>
+
+    <div class="footer-col">
+      <h4 class="footer-col-title">Product</h4>
+      <ul>
+        <li><a href="/getting-started/installation/">Installation</a></li>
+        <li><a href="/getting-started/quickstart/">Quick Start</a></li>
+        <li><a href="/reference/commands/">Commands</a></li>
+        <li><a href="/guides/batch-operations/">Batch Operations</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h4 class="footer-col-title">Resources</h4>
+      <ul>
+        <li><a href="https://github.com/nerveband/ai-happy-design" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="https://github.com/nerveband/ai-happy-design/releases" target="_blank" rel="noopener">Releases</a></li>
+        <li><a href="https://x.com/workandpromise" target="_blank" rel="noopener">X / Twitter</a></li>
+        <li><a href="/architecture/overview/">Architecture</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="container footer-bottom">
+    <p>&copy; {currentYear} AI Happy Design. Made by <a href="https://ashrafali.net" target="_blank" rel="noopener">Ashraf Ali</a>.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    padding: 4rem 2rem 2rem;
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 3rem;
+    margin-bottom: 3rem;
+  }
+
+  .footer-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: #ffffff;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .footer-tagline {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .footer-stars {
+    display: inline-block;
+    margin-top: 0.75rem;
+  }
+
+  .footer-stars img {
+    height: 20px;
+  }
+
+  .footer-col-title {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 1rem;
+  }
+
+  .footer-col ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .footer-col li {
+    margin-bottom: 0.5rem;
+  }
+
+  .footer-col a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+  }
+
+  .footer-col a:hover {
+    color: var(--color-accent);
+  }
+
+  .footer-bottom {
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    text-align: center;
+  }
+
+  .footer-bottom p {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    margin: 0;
+  }
+
+  .footer-bottom a {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+
+  .footer-bottom a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .footer-grid {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+  }
+</style>

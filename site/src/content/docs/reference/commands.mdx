@@ -1,0 +1,556 @@
+---
+title: Command Reference
+description: Complete reference for all 150+ AI Happy Design commands, organized by domain.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+AI Happy Design exposes **150+ commands** across **14+ tool domains**. Every command follows the `domain.action` naming pattern and can be invoked via CLI, MCP, or batch mode.
+
+## Discovery
+
+```bash
+# List all tools with descriptions
+ai-happy-design tools --llm --json
+
+# List actions for a specific domain
+ai-happy-design actions paint
+
+# Get JSON schema for a command
+ai-happy-design schema text.create --json
+
+# Get all schemas (for LLM context)
+ai-happy-design schema --all
+
+# Get design guide
+ai-happy-design guide --topic all
+```
+
+## Command Syntax
+
+<Tabs>
+  <TabItem label="CLI">
+
+```bash
+ai-happy-design command <domain.action> '<json_params>'
+```
+
+  </TabItem>
+  <TabItem label="Batch">
+
+```json
+{"name": "step", "command": "domain.action", "params": {...}}
+```
+
+  </TabItem>
+  <TabItem label="MCP">
+
+```json
+{"tool": "domain", "arguments": {"action": "action_name", ...params}}
+```
+
+  </TabItem>
+</Tabs>
+
+---
+
+## node
+
+Create, modify, and manage Figma nodes.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `node.create_frame` | Create a frame | name, x, y, width, height, parentId, color, cornerRadius, layoutMode, itemSpacing, padding, paddingTop/Right/Bottom/Left, primaryAxisAlign, counterAxisAlign, primaryAxisSizing, counterAxisSizing, layoutWrap, clipsContent, noFill |
+| `node.get_info` | Get node information | nodeId |
+| `node.get_tree` | Get node tree (add `compact:true` for flat array) | nodeId, depth, compact |
+| `node.move` | Move a node | nodeId, x, y |
+| `node.resize` | Resize a node | nodeId, width, height |
+| `node.rotate` | Rotate a node | nodeId, rotation (degrees) |
+| `node.set_opacity` | Set opacity | nodeId, opacity (0-1) |
+| `node.set_blend_mode` | Set blend mode | nodeId, blendMode |
+| `node.set_visibility` | Show/hide | nodeId, visible |
+| `node.set_locked` | Lock/unlock | nodeId, locked |
+| `node.rename` | Rename a node | nodeId, name |
+| `node.delete` | Delete a node | nodeId |
+| `node.clone` | Clone a node | nodeId |
+| `node.modify` | Unified update (any props) | nodeId + any of: x, y, width, height, color, opacity, cornerRadius, rotation, text, fontSize, visible, name, isMask, etc. |
+| `node.set_mask` | Create mask group | nodeId (mask shape), targetIds |
+
+### node.create_frame: Full Options
+
+```json
+{
+  "name": "Hero Section",
+  "x": 0, "y": 0,
+  "width": 1080, "height": 1920,
+  "color": "#0a0a0a",
+  "cornerRadius": 0,
+  "layoutMode": "VERTICAL",
+  "itemSpacing": 24,
+  "padding": 32,
+  "paddingTop": 48, "paddingRight": 32,
+  "paddingBottom": 48, "paddingLeft": 32,
+  "primaryAxisAlign": "CENTER",
+  "counterAxisAlign": "CENTER",
+  "primaryAxisSizing": "AUTO",
+  "counterAxisSizing": "FIXED",
+  "layoutWrap": "NO_WRAP",
+  "clipsContent": true,
+  "parentId": "optional_parent_id",
+  "noFill": false
+}
+```
+
+### node.modify: Unified Update
+
+`node.modify` is the Swiss Army knife. Update any node property in a single call:
+
+```bash
+ai-happy-design command node.modify \
+  '{"nodeId":"42:248","x":100,"y":200,"width":500,"opacity":0.8,"cornerRadius":16,"name":"Updated Frame"}'
+```
+
+### node.get_tree: Compact Mode
+
+Add `compact: true` for a flat summary array that uses 3-5x fewer tokens than nested tree output:
+
+```bash
+ai-happy-design command node.get_tree '{"nodeId":"42:248","compact":true}'
+```
+
+Returns: `[{id, type, name, x, y, w, h, childCount, parentId, depth}]`
+
+---
+
+## text
+
+Create and style text nodes.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `text.create` | Create text node | text, x, y, fontFamily, fontStyle, fontSize, parentId, name, color, width, textAlign, lineHeight, lineHeightUnit, layoutSizingHorizontal, layoutSizingVertical, layoutGrow, layoutAlign |
+| `text.set_content` | Set text content | nodeId, text |
+| `text.set_font` | Set font family/style | nodeId, fontFamily, fontStyle |
+| `text.set_size` | Set font size | nodeId, fontSize |
+| `text.set_weight` | Set font weight | nodeId, fontWeight |
+| `text.set_color` | Set text color | nodeId, color |
+| `text.set_align` | Set alignment | nodeId, textAlign (LEFT, CENTER, RIGHT, JUSTIFIED) |
+| `text.set_spacing` | Set spacing | nodeId, letterSpacing, lineHeight, paragraphSpacing |
+| `text.set_case` | Set text case | nodeId, textCase (ORIGINAL, UPPER, LOWER, TITLE) |
+| `text.set_decoration` | Set decoration | nodeId, textDecoration (NONE, UNDERLINE, STRIKETHROUGH) |
+| `text.get_segments` | Get styled segments | nodeId |
+| `text.load_font` | Load a font | fontFamily, fontStyle |
+| `text.list_fonts` | List available fonts | fontFamily (optional filter substring) |
+| `text.set_style_id` | Apply text style | nodeId, styleId |
+| `text.set_range_style` | Style character ranges | nodeId, ranges (array of objects with match or start+end, bold, italic, color, fontSize, fontFamily, fontStyle, letterSpacing, lineHeight, textDecoration, textCase, hyperlink) |
+
+### text.create: Important Notes
+
+- Use **`color`** (not `fillColor`) for text color
+- Use **`fontStyle`** (not `fontWeight`). Values: "Regular", "Bold", "Medium", "SemiBold", etc.
+- Set **`width`** to enable text wrapping
+- Always specify **`lineHeightUnit: "PERCENT"`** with `lineHeight`
+
+```bash
+ai-happy-design command text.create '{
+  "parentId": "42:248",
+  "text": "Hello World",
+  "fontSize": 28,
+  "fontFamily": "Inter",
+  "fontStyle": "Bold",
+  "color": "#FFFFFF",
+  "x": 32, "y": 32,
+  "width": 400,
+  "lineHeight": 130,
+  "lineHeightUnit": "PERCENT"
+}'
+```
+
+### text.set_range_style: Styled Ranges
+
+Apply different styles to specific parts of text:
+
+```json
+{
+  "nodeId": "42:249",
+  "ranges": [
+    {"match": "bold text", "bold": true, "color": "#FFD600"},
+    {"start": 0, "end": 5, "fontSize": 24, "italic": true},
+    {"match": "link text", "hyperlink": "https://example.com", "textDecoration": "UNDERLINE"}
+  ]
+}
+```
+
+---
+
+## shape
+
+Create geometric shapes and images.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `shape.create_rectangle` | Create rectangle | name, x, y, width, height, parentId, color, cornerRadius |
+| `shape.create_ellipse` | Create ellipse | name, x, y, width, height, parentId, color |
+| `shape.create_polygon` | Create polygon | name, x, y, width, height, parentId, color, pointCount |
+| `shape.create_star` | Create star | name, x, y, width, height, parentId, color, pointCount, innerRadius |
+| `shape.create_line` | Create line | name, x, y, width, parentId, color |
+| `shape.create_from_svg` | Create shape from SVG | name, x, y, svgPath, parentId, width, height |
+| `shape.create_image` | Place an image (one-step) | imageData, x, y, width, height, parentId, scaleMode, name, cornerRadius |
+
+### Image Data Formats
+
+The `imageData` parameter accepts:
+- **Base64**: raw base64 encoded string
+- **Data URL**: `data:image/png;base64,...`
+- **File path**: `/tmp/photo.jpg`, `~/images/logo.png`
+- **HTTP URL**: `https://example.com/image.jpg`
+
+### Image Scale Modes
+
+| Mode | Behavior |
+|------|----------|
+| `FILL` | Crop to fit container (most common) |
+| `FIT` | Preserve aspect ratio, may letterbox |
+| `CROP` | Manual crop region |
+| `TILE` | Repeat pattern |
+
+---
+
+## paint
+
+Set fills, gradients, image fills, and strokes.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `paint.set_solid` | Set solid fill | nodeId, color, opacity |
+| `paint.set_gradient` | Set gradient fill | nodeId, gradientType (LINEAR, RADIAL, ANGULAR, DIAMOND), stops |
+| `paint.set_image` | Set image fill (base64/path) | nodeId, imageData, scaleMode |
+| `paint.set_image_fill` | Alias of set_image | nodeId, imageData, scaleMode |
+| `paint.set_image_url` | Set image fill (URL) | nodeId, url, scaleMode |
+| `paint.set_image_fill_from_url` | Alias of set_image_url | nodeId, url, scaleMode |
+| `paint.add_fill` | Add fill to existing fills | nodeId, color, opacity |
+| `paint.remove_fill` | Remove fill by index | nodeId, fillIndex |
+| `paint.get_fills` | Get all fills | nodeId |
+| `paint.set_stroke` | Set stroke | nodeId, color, opacity, strokeWeight, strokeAlign (INSIDE, OUTSIDE, CENTER) |
+
+### Gradient Example
+
+```json
+{
+  "nodeId": "42:248",
+  "gradientType": "LINEAR",
+  "stops": [
+    {"position": 0, "color": "#0C1E2C"},
+    {"position": 1, "color": "#1a3a5c"}
+  ]
+}
+```
+
+### Stroke Example
+
+```json
+{
+  "nodeId": "42:248",
+  "color": {"r": 1, "g": 1, "b": 1, "a": 0.07},
+  "strokeWeight": 1,
+  "strokeAlign": "INSIDE"
+}
+```
+
+---
+
+## effect
+
+Add shadows, blurs, glass morphism, noise, and textures.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `effect.set_effects` | Set all effects (replaces existing) | nodeId, effects (JSON array) |
+| `effect.add_shadow` | Add shadow | nodeId, shadowType (DROP_SHADOW, INNER_SHADOW), color, offsetX, offsetY, radius, spread |
+| `effect.add_blur` | Add blur | nodeId, blurType (LAYER_BLUR, BACKGROUND_BLUR), radius |
+| `effect.apply_glass` | One-call glass morphism | nodeId, intensity (light, medium, heavy) |
+| `effect.add_noise` | Add noise texture (Beta API) | nodeId, noiseType (monotone, duotone, multitone), density, blendMode |
+| `effect.add_texture` | Add texture (Beta API) | nodeId, textureType |
+| `effect.apply_style` | Apply effect style | nodeId, styleId |
+| `effect.remove` | Remove all effects | nodeId |
+
+### Shadow Recipes
+
+```bash
+# Subtle (cards, inputs)
+ai-happy-design command effect.add_shadow \
+  '{"nodeId":"ID","shadowType":"DROP_SHADOW","color":{"r":0,"g":0,"b":0,"a":0.1},"offsetX":0,"offsetY":2,"radius":8}'
+
+# Elevated (modals)
+ai-happy-design command effect.add_shadow \
+  '{"nodeId":"ID","shadowType":"DROP_SHADOW","color":{"r":0,"g":0,"b":0,"a":0.3},"offsetX":0,"offsetY":8,"radius":32}'
+
+# Accent glow
+ai-happy-design command effect.add_shadow \
+  '{"nodeId":"ID","shadowType":"DROP_SHADOW","color":{"r":1,"g":0.84,"b":0,"a":0.15},"offsetX":0,"offsetY":4,"radius":24}'
+```
+
+---
+
+## layout
+
+Auto-layout, padding, spacing, sizing, and constraints.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `layout.set_auto_layout` | Enable auto-layout | nodeId, direction (VERTICAL, HORIZONTAL), itemSpacing, padding, paddingTop/Right/Bottom/Left, primaryAxisAlign, counterAxisAlign |
+| `layout.set_padding` | Set padding | nodeId, padding (uniform) or paddingTop/Right/Bottom/Left |
+| `layout.set_spacing` | Set item spacing | nodeId, itemSpacing |
+| `layout.set_alignment` | Set axis alignment | nodeId, primaryAxisAlign, counterAxisAlign |
+| `layout.set_sizing` | Set sizing mode | nodeId, primaryAxisSizing (FIXED, HUG, FILL), counterAxisSizing |
+| `layout.set_wrap` | Set layout wrap | nodeId, layoutWrap (WRAP, NO_WRAP) |
+| `layout.set_constraints` | Set constraints | nodeId, constraintHorizontal, constraintVertical |
+| `layout.check_overlaps` | Check for overlapping children | nodeId |
+
+### Alignment Values
+
+- **primaryAxisAlignItems**: `MIN`, `CENTER`, `MAX`, `SPACE_BETWEEN`
+- **counterAxisAlignItems**: `MIN`, `CENTER`, `MAX`, `BASELINE`
+
+---
+
+## layer
+
+Z-ordering, grouping, and child management.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `layer.set_order` | Set layer index | nodeId, index |
+| `layer.bring_forward` | Move one layer up | nodeId |
+| `layer.send_backward` | Move one layer down | nodeId |
+| `layer.bring_to_front` | Bring to front (top) | nodeId |
+| `layer.send_to_back` | Send to back (bottom) | nodeId |
+| `layer.group` | Group nodes | nodeIds (comma-separated) |
+| `layer.ungroup` | Ungroup a group | nodeId |
+| `layer.insert_child` | Insert child into parent | parentId, childId, index |
+
+---
+
+## boolean
+
+Boolean operations on shapes.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `boolean.union` | Boolean union | nodeIds (comma-separated) |
+| `boolean.subtract` | Boolean subtract | nodeIds (comma-separated) |
+| `boolean.intersect` | Boolean intersect | nodeIds (comma-separated) |
+| `boolean.exclude` | Boolean exclude | nodeIds (comma-separated) |
+| `boolean.flatten` | Flatten a node | nodeId |
+
+All boolean operations take a comma-separated list of node IDs. The first node is the base shape.
+
+---
+
+## component
+
+Components, instances, and variant sets.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `component.create` | Create component from node | nodeId, name |
+| `component.create_instance` | Create component instance | componentKey, x, y, parentId |
+| `component.create_set` | Create variant set | nodeIds (comma-separated), name |
+| `component.get_local` | Get local components | (none) |
+| `component.get_remote` | Get remote components | (none) |
+| `component.get_overrides` | Get instance overrides | nodeId |
+| `component.set_overrides` | Set instance overrides | nodeId, overrides (JSON) |
+
+Components must be created from existing nodes. Create the frame first, then convert it.
+
+---
+
+## style
+
+Paint, text, and effect styles.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `style.create_paint` | Create paint style | name, color, description |
+| `style.create_text` | Create text style | name, description |
+| `style.create_effect` | Create effect style | name, description |
+| `style.apply` | Apply style to node | nodeId, styleId, styleType (PAINT, TEXT, EFFECT, GRID) |
+| `style.get_all` | Get all styles | (none) |
+| `style.remove` | Remove style from node | nodeId, styleType |
+
+Use `/` in style names for grouping: `Brand/Primary`, `Typography/Heading`.
+
+---
+
+## variable
+
+Variables and variable collections.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `variable.create` | Create a variable | name, collectionId, resolvedType (COLOR, FLOAT, STRING, BOOLEAN) |
+| `variable.get_all` | Get all variables | (none) |
+| `variable.set_value` | Set variable value | variableId, value, modeId |
+| `variable.bind` | Bind variable to node | nodeId, variableId, field |
+| `variable.unbind` | Unbind variable from node | nodeId, field |
+| `variable.create_collection` | Create variable collection | name |
+
+---
+
+## page
+
+Page management.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `page.create` | Create a page | name |
+| `page.delete` | Delete a page | pageId |
+| `page.rename` | Rename a page | pageId, name |
+| `page.duplicate` | Duplicate a page | pageId |
+| `page.set_current` | Switch to page | pageId |
+| `page.get_all` | Get all pages | (none) |
+
+---
+
+## document
+
+Document-level operations and search.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `document.get_info` | Get document info (name, pages) | (none) |
+| `document.get_selection` | Get current selection | (none) |
+| `document.set_selection` | Set selection | nodeIds (comma-separated) |
+| `document.scan_text` | Scan all text nodes | (none) |
+| `document.scan_by_type` | Scan nodes by type | nodeType (FRAME, TEXT, RECTANGLE, etc.) |
+| `document.get_styles` | Get all document styles | (none) |
+| `document.focus` | Focus viewport on node | nodeId |
+| `document.find_nodes` | Search by name/type/text | query, nodeType, textContent |
+| `document.find_free_space` | Find open canvas area | width, height, gap |
+| `document.lint` | Run design lint on node | nodeId |
+
+### document.find_free_space
+
+Always call this before creating root-level frames to avoid overlapping existing work:
+
+```bash
+ai-happy-design command document.find_free_space \
+  '{"width": 1080, "height": 1920}'
+```
+
+Returns an 8px-grid-snapped `x, y` position plus a list of all existing frames.
+
+### document.find_nodes
+
+Unified search across name, type, and text content:
+
+```bash
+# Find by name
+ai-happy-design command document.find_nodes '{"query": "Hero"}'
+
+# Find by type
+ai-happy-design command document.find_nodes '{"nodeType": "TEXT"}'
+
+# Find by text content
+ai-happy-design command document.find_nodes '{"textContent": "Welcome"}'
+```
+
+<Aside type="note">
+`document.scan_by_type` scans ALL pages in the document, not just the current page. Use `document.find_nodes` with `nodeType` for page-specific scans.
+</Aside>
+
+---
+
+## export
+
+Export frames and nodes to files.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `export.image` | Export as PNG/JPG | nodeId, format (PNG, JPG), scale |
+| `export.svg` | Export as SVG | nodeId, scale |
+| `export.pdf` | Export as PDF | nodeId, scale |
+| `export.batch` | Export multiple frames | nodeIds (comma-separated), format, scale |
+
+Exports auto-save to the OS temp directory (e.g., `/tmp/ahd-export-*`). The response includes the file path so you can open or read the file directly.
+
+Default export scale is **2x** for crisp output on retina displays. Use `scale: 1` for very large frames to avoid memory issues.
+
+```bash
+# Export as 2x PNG
+ai-happy-design command export.image \
+  '{"nodeId":"42:248","format":"PNG","scale":2}'
+
+# Batch export multiple frames
+ai-happy-design command export.batch \
+  '{"nodeIds":"42:248,42:250,42:252","format":"PNG","scale":2}'
+```
+
+<Aside type="note">
+SVG and JSON exports return raw text (not base64). The CLI checks the `format` field to determine encoding.
+</Aside>
+
+---
+
+## design
+
+Design intelligence tools.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `design.compute_tokens` | Compute all design sizing values | width (required), height (required), dpi (optional, default 72) |
+
+This is a pure computation tool. No Figma connection needed. Returns font sizes, spacing, padding, card widths, button sizes, and layout classification for any canvas dimensions.
+
+```bash
+ai-happy-design command design.compute_tokens \
+  '{"width": 1080, "height": 1920}'
+```
+
+---
+
+## design_system
+
+File analysis tools.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `design_system.analyze` | Analyze file styles, variables, components | (none) |
+
+Scans the current Figma file and returns categorized rules for colors, typography, spacing, effects, and components with reuse guidance. Use before creating designs in existing files to maintain consistency.
+
+---
+
+## bulk
+
+High-level composite operations and batch execution.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `bulk.execute` | Execute operations with retry and interpolation | operations (JSON array), failFast, retries, retryDelayMs, interpolate |
+| `bulk.slide` | Create a social media slide | canvas (WxH), bg, gradient, elements[] |
+| `bulk.banner` | Create an email banner | canvas (WxH), bg, gradient, dividerX, elements[] |
+
+### bulk.slide Element Types
+
+`eyebrow`, `headline`, `body`, `bar`, `counter`, `cta`, `url`, `stats`, `progress`, `arabic`
+
+### bulk.banner Element Types
+
+`headline`, `subtitle`
+
+---
+
+## connect
+
+Connection management.
+
+| Command | Description | Key Params |
+|---------|------------|------------|
+| `connect.join` | Join a channel | channelKey |
+| `connect.status` | Get connection status | (none) |
+| `connect.disconnect` | Disconnect from channel | (none) |
+
+---
+
+Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveband/ai-happy-design) | License: GPL-3.0

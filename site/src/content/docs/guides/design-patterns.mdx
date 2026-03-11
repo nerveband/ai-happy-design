@@ -1,0 +1,475 @@
+---
+title: Design Patterns
+description: Proven patterns for coordinates, auto-layout, cards, typography, spacing, effects, and professional Figma design.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+These patterns produce professional Figma designs consistently. They come from the design intelligence catalog and are tested and validated.
+
+## Coordinate System
+
+Figma uses a top-left origin:
+
+- **(0, 0)** is the top-left corner of any frame
+- **X** increases to the right
+- **Y** increases downward
+- All child positions are **relative to their parent frame**
+
+### Centering Formula
+
+```
+x = (parentWidth - elementWidth) / 2
+y = (parentHeight - elementHeight) / 2
+```
+
+### The 8px Grid
+
+Round ALL dimensions to the nearest multiple of 8:
+
+| Value Type | Common Values |
+|-----------|--------------|
+| Spacing | 8, 16, 24, 32, 48, 64, 96, 128 |
+| Padding | 16, 24, 32, 48, 64 |
+| Widths/Heights | 320, 400, 480, 640, 960, 1080 |
+| Corner Radius | 8, 12, 16, 24, 32 |
+
+Use 4 only for tight spacing (e.g., icon-to-text gap). Text sizes use a 4px grid (via the modular type scale).
+
+## Auto-Layout vs Manual Positioning
+
+### Auto-Layout (Recommended Default)
+
+Auto-layout in Figma **is CSS flexbox**. If you know flexbox, you know auto-layout:
+
+| CSS Flexbox | Figma Auto-Layout |
+|------------|-------------------|
+| `display: flex` | `layoutMode: VERTICAL` or `HORIZONTAL` |
+| `gap` | `itemSpacing` |
+| `padding` | `paddingTop/Right/Bottom/Left` or uniform `padding` |
+| `justify-content` | `primaryAxisAlignItems` |
+| `align-items` | `counterAxisAlignItems` |
+| `flex-grow: 1` | `layoutGrow: 1` |
+| `flex-wrap: wrap` | `layoutWrap: WRAP` |
+
+Create auto-layout frames in a single command:
+
+```bash
+ai-happy-design command node.create_frame \
+  '{"name":"Content Stack","width":1080,"layoutMode":"VERTICAL","itemSpacing":24,"padding":32,"primaryAxisAlign":"CENTER","counterAxisAlign":"CENTER","primaryAxisSizing":"AUTO"}'
+```
+
+### Sizing Modes
+
+| Mode | Behavior | Use For |
+|------|----------|---------|
+| **FIXED** | Exact pixel dimensions | Root frames, images, icons |
+| **HUG** | Shrink-wrap to content | Buttons, badges, nav items, cards |
+| **FILL** | Stretch to fill parent | Content wrappers, full-width text |
+
+<Aside type="caution">
+**FILL** is only valid on children of auto-layout frames. Using FILL on a child of a non-auto-layout frame silently does nothing.
+</Aside>
+
+### Common Auto-Layout Patterns
+
+**Centered page:**
+```
+Root Frame (FIXED width, HUG height, bg fill)
+  Content Wrapper (VERTICAL, CENTER/CENTER, no fill)
+    Header
+    Body
+    Footer
+```
+
+**Two-column grid:**
+```
+Row Frame (HORIZONTAL, itemSpacing: 24, no fill)
+  Card A (equal width, FILL)
+  Card B (equal width, FILL)
+```
+
+**Header + Content + Footer:**
+```
+Root (VERTICAL, FIXED)
+  Header (FIXED height, FILL width)
+  Content (layoutGrow: 1, FILL width)
+  Footer (FIXED height, FILL width)
+```
+
+**Nav bar:**
+```
+Nav (HORIZONTAL, SPACE_BETWEEN, HUG height, FILL width)
+  Logo (HUG)
+  Links (HUG)
+  CTA Button (HUG)
+```
+
+### Manual Positioning (When Needed)
+
+Non-auto-layout frames position children by `x` and `y` relative to the parent:
+
+```bash
+ai-happy-design command text.create \
+  '{"parentId":"42:248","text":"Heading","x":80,"y":200,"fontSize":84}'
+```
+
+<Aside type="caution">
+Do NOT set `layoutPositioning: ABSOLUTE` on children of non-auto-layout frames. That property only has meaning inside auto-layout parents. The `absolute_child_non_autolayout` lint check catches this mistake.
+</Aside>
+
+### Absolute Positioning in Auto-Layout
+
+To overlay decorative elements inside an auto-layout frame, use `layoutPositioning: ABSOLUTE` on the child. This takes it out of the flow, just like CSS `position: absolute`:
+
+```json
+{
+  "name": "decoration",
+  "command": "shape.create_ellipse",
+  "params": {
+    "parentId": "${{steps.root.result.id}}",
+    "width": 200, "height": 200,
+    "x": -50, "y": -50,
+    "color": {"r": 1, "g": 0.84, "b": 0, "a": 0.05},
+    "layoutPositioning": "ABSOLUTE"
+  }
+}
+```
+
+### The Hybrid Approach (Tested and Validated)
+
+The most reliable approach combines both positioning modes:
+
+- **Root frame**: manual x/y positioning for major sections
+- **Content sections**: auto-layout for stacking and centering
+- **Badges/buttons**: auto-layout for internal centering
+- **Hero text**: manual x/y with explicit width for wrapping
+- **Cards**: manual x/y for row placement, auto-layout internally
+
+```json
+[
+  {"name": "root", "command": "frame", "params": {"name": "Slide", "w": 1080, "h": 1920, "bg": "#0C1E2C"}},
+  {"name": "content", "command": "frame", "params": {
+    "name": "Content", "pid": "${{steps.root.result.id}}",
+    "w": 936, "x": 72, "y": 200,
+    "layoutMode": "VERTICAL", "itemSpacing": 24,
+    "counterAxisAlign": "CENTER", "noFill": true
+  }},
+  {"name": "heading", "command": "text", "params": {
+    "pid": "${{steps.content.result.id}}", "text": "Welcome",
+    "sz": 84, "ff": "Space Grotesk", "fontStyle": "Bold", "color": "#FFFFFF"
+  }}
+]
+```
+
+## Frames, Not Shapes
+
+Always use frames (`node.create_frame`) as containers, never rectangles. Frames support:
+
+- Auto-layout (flexbox)
+- Clipping (`clipsContent`)
+- Nesting with parent-child relationships
+- Background fills and strokes
+
+A "card" is a **frame with children**, not a rectangle with floating text on top.
+
+### Fill Rules
+
+| Frame Type | Fill Rule |
+|-----------|-----------|
+| **Visual** (slide bg, cards, buttons) | Use `color` param on `create_frame` or `paint.set_solid` after |
+| **Structural** (wrappers, groups) | Use `noFill: true` or `paint.remove_fill` to clear default white |
+
+<Aside type="tip">
+Figma creates frames with a **default white fill**. Structural frames need this removed with `paint.remove_fill {nodeId, index: 0}` or by passing `noFill: true` on creation.
+</Aside>
+
+```bash
+# Visual frame with fill
+ai-happy-design command node.create_frame \
+  '{"name":"Card","width":400,"height":300,"color":"#1a1a1a","cornerRadius":16}'
+
+# Structural frame without fill
+ai-happy-design command node.create_frame \
+  '{"name":"Wrapper","width":400,"layoutMode":"VERTICAL","noFill":true}'
+```
+
+## Building Cards
+
+Cards are the most common design element. Here is the correct pattern:
+
+```json
+[
+  {
+    "name": "card",
+    "command": "node.create_frame",
+    "params": {
+      "name": "Feature Card",
+      "parentId": "${{steps.root.result.id}}",
+      "width": 400, "height": 280,
+      "color": {"r": 1, "g": 1, "b": 1, "a": 0.04},
+      "cornerRadius": 16,
+      "layoutMode": "VERTICAL",
+      "itemSpacing": 16,
+      "padding": 32
+    }
+  },
+  {
+    "name": "card_stroke",
+    "command": "paint.set_stroke",
+    "params": {
+      "nodeId": "${{steps.card.result.id}}",
+      "color": {"r": 1, "g": 1, "b": 1, "a": 0.07},
+      "strokeWeight": 1,
+      "strokeAlign": "INSIDE"
+    }
+  },
+  {
+    "name": "card_title",
+    "command": "text.create",
+    "params": {
+      "parentId": "${{steps.card.result.id}}",
+      "text": "Feature Name",
+      "fontSize": 28, "fontFamily": "Inter", "fontStyle": "Bold",
+      "color": "#FFFFFF"
+    }
+  },
+  {
+    "name": "card_body",
+    "command": "text.create",
+    "params": {
+      "parentId": "${{steps.card.result.id}}",
+      "text": "Description of the feature goes here.",
+      "fontSize": 16, "fontFamily": "Inter",
+      "color": "#888888",
+      "layoutSizingHorizontal": "FILL"
+    }
+  }
+]
+```
+
+### Card Balance Rules
+
+All sibling cards **must match** in:
+
+- **Width and height**: use FIXED sizing, same values
+- **Padding and itemSpacing**: identical across siblings
+- **cornerRadius**: identical across siblings
+- **Text sizing**: titles match, bodies match across all cards
+- **Card width formula**: `cardWidth = (rowWidth - (N-1) * gap) / N`
+
+## Typography
+
+### Font Weights
+
+| Value | Name | Use For |
+|-------|------|---------|
+| 400 | Regular | Body text, descriptions |
+| 500 | Medium | Subtitles, labels |
+| 600 | SemiBold | Subheadings, emphasis |
+| 700 | Bold | Headings, titles |
+| 800 | ExtraBold | Hero text, display |
+
+### Font Pairings
+
+| Style | Headings | Body |
+|-------|----------|------|
+| Modern | Space Grotesk, Outfit | Inter, DM Sans |
+| Elegant | Playfair Display | Source Sans Pro, Lato |
+| Bold | Sora, Manrope | Inter |
+| Tech | JetBrains Mono | Inter, IBM Plex Sans |
+
+Figma includes all Google Fonts by default. Use any Google Font family name directly.
+
+### Line Height
+
+<Aside type="danger">
+**CRITICAL**: You must specify `lineHeightUnit: "PERCENT"` when setting line height. Without it, the value is interpreted as PIXELS (e.g., `130` becomes 130px instead of 130%), causing massive text overflow.
+</Aside>
+
+| Element | Line Height | Unit |
+|---------|------------|------|
+| Hero | 110% | PERCENT |
+| Heading | 120% | PERCENT |
+| Body | 140% | PERCENT |
+| Caption | 130% | PERCENT |
+
+```json
+{
+  "command": "text.create",
+  "params": {
+    "text": "Heading Text",
+    "fontSize": 84,
+    "lineHeight": 120,
+    "lineHeightUnit": "PERCENT"
+  }
+}
+```
+
+### Text Width and Wrapping
+
+Text nodes default to "hug contents" and expand horizontally without wrapping. Set `width` on creation for wrapping:
+
+```json
+{
+  "command": "text.create",
+  "params": {
+    "text": "This paragraph will wrap to multiple lines within the specified width.",
+    "width": 600,
+    "fontSize": 16
+  }
+}
+```
+
+In auto-layout frames, use `layoutSizingHorizontal: "FILL"` to stretch text to parent width.
+
+<Aside type="tip">
+Never use `\n` in text content. It creates awkward line gaps. Create separate text nodes for each text block instead.
+</Aside>
+
+### Text Height Planning
+
+Important: text node height is not the same as fontSize. A 152px text node at 150% line height produces a 228px node height. When placing elements below text, account for the computed height, not the fontSize.
+
+## Spacing System
+
+All spacing follows the 8px grid:
+
+| Element | Typical Spacing |
+|---------|----------------|
+| Within a group | 8-16px |
+| Between groups | 24-48px |
+| Section gaps | 48-96px |
+| Side padding | ~6.5% of canvas width |
+| Card padding | ~3.5% of canvas width |
+| Item spacing | ~1.5% of canvas width |
+
+Use `design.compute_tokens` to get exact values for any canvas size.
+
+## Effects
+
+### Shadows
+
+Use shadows on cards, buttons, modals, and elevated surfaces. Do not shadow everything.
+
+```json
+[
+  {"name": "subtle_shadow", "command": "shadow", "params": {
+    "nodeId": "ID", "shadowType": "DROP_SHADOW",
+    "color": {"r":0,"g":0,"b":0,"a":0.10}, "offsetX": 0, "offsetY": 2, "radius": 8
+  }},
+  {"name": "card_shadow", "command": "shadow", "params": {
+    "nodeId": "ID", "shadowType": "DROP_SHADOW",
+    "color": {"r":0,"g":0,"b":0,"a":0.20}, "offsetX": 0, "offsetY": 4, "radius": 16
+  }},
+  {"name": "elevated_shadow", "command": "shadow", "params": {
+    "nodeId": "ID", "shadowType": "DROP_SHADOW",
+    "color": {"r":0,"g":0,"b":0,"a":0.30}, "offsetX": 0, "offsetY": 8, "radius": 32
+  }},
+  {"name": "accent_glow", "command": "shadow", "params": {
+    "nodeId": "ID", "shadowType": "DROP_SHADOW",
+    "color": {"r":1,"g":0.84,"b":0,"a":0.15}, "offsetX": 0, "offsetY": 4, "radius": 24
+  }}
+]
+```
+
+### Glass Morphism
+
+One-call glass effect with intensity presets:
+
+```bash
+ai-happy-design command effect.apply_glass \
+  '{"nodeId":"42:248","intensity":"medium"}'
+```
+
+Intensities: `light`, `medium`, `heavy`. Applies fill (low opacity) + background blur + stroke automatically.
+
+Manual glass recipe:
+1. Fill with very low opacity white: `{r:1, g:1, b:1, a:0.08}`
+2. Background blur: `effect.add_blur {blurType: "BACKGROUND_BLUR", radius: 16}`
+3. Subtle stroke: `{r:1, g:1, b:1, a:0.1}`, 1px INSIDE
+
+### Gradients
+
+```bash
+ai-happy-design command paint.set_gradient \
+  '{"nodeId":"42:248","gradientType":"LINEAR","stops":[{"position":0,"color":"#0C1E2C"},{"position":1,"color":"#1a3a5c"}]}'
+```
+
+Use gradients for hero backgrounds, CTAs, and accent overlays. Avoid on body text and every surface.
+
+<Aside type="caution">
+**Gradient transparency bug**: Hex colors with alpha suffix (e.g., `#0C1E2C20`) make stops ~12% transparent. The gradient replaces the solid fill, and the result looks washed out against white. Use fully opaque hex stops unless transparency is intentional.
+</Aside>
+
+## Color Strategy (Dark Theme)
+
+| Role | Color |
+|------|-------|
+| Background | `{r:0.1, g:0.1, b:0.1}` / `#1a1a1a` |
+| Surface (cards) | `{r:1, g:1, b:1, a:0.04}` |
+| Border | `{r:1, g:1, b:1, a:0.07}` |
+| Text (primary) | `{r:1, g:1, b:1}` / `#FFFFFF` |
+| Text (muted) | `{r:0.6, g:0.6, b:0.6}` / `#999999` |
+
+For subtle glass/card effects, use low-opacity white fills with a 1px low-opacity white border.
+
+## Visual Hierarchy
+
+Control what viewers see first using size, weight, color, and contrast:
+
+| Level | Treatment | Example |
+|-------|----------|---------|
+| **Primary** | Largest, boldest, accent color | Hero headline |
+| **Secondary** | Medium size, white/slightly muted | Subheadings |
+| **Tertiary** | Smaller, muted gray | Body text, captions |
+| **Ambient** | Very low opacity (0.05-0.15) | Decorative shapes |
+
+The primary element is the **one focal point**. Everything else supports it.
+
+## Layer Organization
+
+### Naming
+
+Name every element by its role:
+
+- "Hero Section", "Card - Feature", "CTA Button" (descriptive)
+- NOT "Frame 47", "Rectangle 12", "Text 5" (defaults)
+
+### Layer Order
+
+Back-to-front stacking:
+
+1. **Background fills** via `layer.send_to_back`
+2. **Decorative shapes**, low-opacity ambient elements
+3. **Content frame** with auto-layout, text, and cards
+4. **Foreground overlays** like badges and floating CTAs
+
+```bash
+ai-happy-design command layer.send_to_back '{"nodeId":"BG_NODE_ID"}'
+ai-happy-design command layer.bring_to_front '{"nodeId":"CTA_NODE_ID"}'
+```
+
+## Images
+
+Images in Figma are fills on shapes, not standalone nodes:
+
+| Method | Use Case |
+|--------|----------|
+| `shape.create_image` | One-step: creates rect + applies image fill |
+| `paint.set_image` | Two-step: apply image fill to existing node |
+| `paint.set_image_url` | URL-based (requires manifest allowedDomains) |
+
+```bash
+# One-step image placement
+ai-happy-design command shape.create_image \
+  '{"imageData":"/tmp/photo.jpg","x":0,"y":0,"width":400,"height":300,"scaleMode":"FILL"}'
+```
+
+Scale modes: `FILL` (crop to fit), `FIT` (preserve aspect), `CROP`, `TILE`.
+
+The `imageData` parameter accepts: base64, data URL, file path (`/tmp/img.png`), or HTTP URL. The CLI auto-resolves and encodes.
+
+---
+
+Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveband/ai-happy-design) | License: GPL-3.0

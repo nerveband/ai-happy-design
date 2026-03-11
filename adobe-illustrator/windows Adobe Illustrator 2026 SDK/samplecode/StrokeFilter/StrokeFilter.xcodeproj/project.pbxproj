@@ -1,0 +1,373 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		2AF5F7100CF5E6010091D961 /* AppContext.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F7090CF5E6010091D961 /* AppContext.cpp */; };
+		2AF5F7110CF5E6010091D961 /* IllustratorSDK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F70A0CF5E6010091D961 /* IllustratorSDK.cpp */; };
+		2AF5F7120CF5E6010091D961 /* Main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F70B0CF5E6010091D961 /* Main.cpp */; };
+		2AF5F7130CF5E6010091D961 /* Plugin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F70C0CF5E6010091D961 /* Plugin.cpp */; };
+		2AF5F7140CF5E6010091D961 /* SDKAboutPluginsHelper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F70D0CF5E6010091D961 /* SDKAboutPluginsHelper.cpp */; };
+		2AF5F7160CF5E6010091D961 /* Suites.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F70F0CF5E6010091D961 /* Suites.cpp */; };
+		2AF5F71B0CF5E6240091D961 /* IText.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F7190CF5E6240091D961 /* IText.cpp */; };
+		2AF5F71C0CF5E6240091D961 /* IThrowException.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F71A0CF5E6240091D961 /* IThrowException.cpp */; };
+		2AF5F7250CF5EC6E0091D961 /* IAIFilePath.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F7200CF5EC6E0091D961 /* IAIFilePath.cpp */; };
+		2AF5F7260CF5EC6E0091D961 /* IAIUnicodeString.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F7210CF5EC6E0091D961 /* IAIUnicodeString.cpp */; };
+		A182A74F25E4E87C00DF8D21 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A182A74E25E4E87C00DF8D21 /* Cocoa.framework */; };
+		C43697EB10FC884A00DD402C /* StrokeFilterFlashController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C43697E710FC884A00DD402C /* StrokeFilterFlashController.cpp */; };
+		C43697EC10FC884A00DD402C /* StrokeFilterFlashController.h in Headers */ = {isa = PBXBuildFile; fileRef = C43697E810FC884A00DD402C /* StrokeFilterFlashController.h */; };
+		C43697F010FC885500DD402C /* SDKPlugPlug.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C43697EF10FC885500DD402C /* SDKPlugPlug.cpp */; };
+		C43697F210FC886B00DD402C /* IAIStringFormatUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C43697F110FC886B00DD402C /* IAIStringFormatUtils.cpp */; };
+		C4B1642213063AFE007644F6 /* FlashUIController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C4B1642113063AFE007644F6 /* FlashUIController.cpp */; };
+		C4CA4FA110FDD89E005A3363 /* StrokeFileterParams.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C4CA4F9F10FDD89E005A3363 /* StrokeFileterParams.cpp */; };
+		C4CA4FA210FDD89E005A3363 /* StrokeFileterParams.h in Headers */ = {isa = PBXBuildFile; fileRef = C4CA4FA010FDD89E005A3363 /* StrokeFileterParams.h */; };
+		E80A46681014B59300046BC6 /* StrokeFilterPlugin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E80A46651014B59300046BC6 /* StrokeFilterPlugin.cpp */; };
+		E80A46691014B59300046BC6 /* StrokeFilters.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E80A46661014B59300046BC6 /* StrokeFilters.cpp */; };
+		E80A466A1014B59300046BC6 /* StrokeFilterSuites.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E80A46671014B59300046BC6 /* StrokeFilterSuites.cpp */; };
+		E80A466D1014B5BE00046BC6 /* StrokeFilter.r in Rez */ = {isa = PBXBuildFile; fileRef = E80A466C1014B5BE00046BC6 /* StrokeFilter.r */; };
+		E80A469A1014BB5D00046BC6 /* StrokeFilterID.h in Headers */ = {isa = PBXBuildFile; fileRef = E80A46961014BB5D00046BC6 /* StrokeFilterID.h */; };
+		E80A469B1014BB5D00046BC6 /* StrokeFilterPlugin.h in Headers */ = {isa = PBXBuildFile; fileRef = E80A46971014BB5D00046BC6 /* StrokeFilterPlugin.h */; };
+		E80A469C1014BB5D00046BC6 /* StrokeFilters.h in Headers */ = {isa = PBXBuildFile; fileRef = E80A46981014BB5D00046BC6 /* StrokeFilters.h */; };
+		E80A469D1014BB5D00046BC6 /* StrokeFilterSuites.h in Headers */ = {isa = PBXBuildFile; fileRef = E80A46991014BB5D00046BC6 /* StrokeFilterSuites.h */; };
+		E80E77E60FDF610800CE242E /* SDKErrors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E80E77E50FDF610800CE242E /* SDKErrors.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		2AF5F7090CF5E6010091D961 /* AppContext.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = AppContext.cpp; path = ../common/source/AppContext.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F70A0CF5E6010091D961 /* IllustratorSDK.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = IllustratorSDK.cpp; path = ../common/source/IllustratorSDK.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F70B0CF5E6010091D961 /* Main.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = Main.cpp; path = ../common/source/Main.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F70C0CF5E6010091D961 /* Plugin.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = Plugin.cpp; path = ../common/source/Plugin.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F70D0CF5E6010091D961 /* SDKAboutPluginsHelper.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = SDKAboutPluginsHelper.cpp; path = ../common/source/SDKAboutPluginsHelper.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F70F0CF5E6010091D961 /* Suites.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = Suites.cpp; path = ../common/source/Suites.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F7190CF5E6240091D961 /* IText.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = IText.cpp; path = ../../illustratorapi/ate/IText.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F71A0CF5E6240091D961 /* IThrowException.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = IThrowException.cpp; path = ../../illustratorapi/ate/IThrowException.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F7200CF5EC6E0091D961 /* IAIFilePath.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = IAIFilePath.cpp; path = ../../illustratorapi/illustrator/IAIFilePath.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F7210CF5EC6E0091D961 /* IAIUnicodeString.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = IAIUnicodeString.cpp; path = ../../illustratorapi/illustrator/IAIUnicodeString.cpp; sourceTree = SOURCE_ROOT; };
+		6E0C52490A8B762700C9A14A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../common/mac/Info.plist; sourceTree = SOURCE_ROOT; };
+		6EE2BA530A40BB2600CC7CE2 /* StrokeFilter.aip */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StrokeFilter.aip; sourceTree = BUILT_PRODUCTS_DIR; };
+		A182A74A25E4E83400DF8D21 /* AIPluginRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = AIPluginRelease.xcconfig; path = ../common/mac/AIPluginRelease.xcconfig; sourceTree = "<group>"; };
+		A182A74B25E4E83400DF8D21 /* AIPluginCommon.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = AIPluginCommon.xcconfig; path = ../common/mac/AIPluginCommon.xcconfig; sourceTree = "<group>"; };
+		A182A74C25E4E83400DF8D21 /* AIPluginDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = AIPluginDebug.xcconfig; path = ../common/mac/AIPluginDebug.xcconfig; sourceTree = "<group>"; };
+		A182A74E25E4E87C00DF8D21 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		C43697E710FC884A00DD402C /* StrokeFilterFlashController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StrokeFilterFlashController.cpp; path = Source/StrokeFilterFlashController.cpp; sourceTree = "<group>"; };
+		C43697E810FC884A00DD402C /* StrokeFilterFlashController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StrokeFilterFlashController.h; path = Source/StrokeFilterFlashController.h; sourceTree = "<group>"; };
+		C43697EF10FC885500DD402C /* SDKPlugPlug.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDKPlugPlug.cpp; path = ../common/source/SDKPlugPlug.cpp; sourceTree = SOURCE_ROOT; };
+		C43697F110FC886B00DD402C /* IAIStringFormatUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IAIStringFormatUtils.cpp; path = ../../illustratorapi/illustrator/IAIStringFormatUtils.cpp; sourceTree = SOURCE_ROOT; };
+		C4B1642113063AFE007644F6 /* FlashUIController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FlashUIController.cpp; path = ../common/source/FlashUIController.cpp; sourceTree = SOURCE_ROOT; };
+		C4CA4F9F10FDD89E005A3363 /* StrokeFileterParams.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StrokeFileterParams.cpp; path = Source/StrokeFileterParams.cpp; sourceTree = "<group>"; };
+		C4CA4FA010FDD89E005A3363 /* StrokeFileterParams.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StrokeFileterParams.h; path = Source/StrokeFileterParams.h; sourceTree = "<group>"; };
+		E80A46651014B59300046BC6 /* StrokeFilterPlugin.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StrokeFilterPlugin.cpp; path = Source/StrokeFilterPlugin.cpp; sourceTree = "<group>"; };
+		E80A46661014B59300046BC6 /* StrokeFilters.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StrokeFilters.cpp; path = Source/StrokeFilters.cpp; sourceTree = "<group>"; };
+		E80A46671014B59300046BC6 /* StrokeFilterSuites.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StrokeFilterSuites.cpp; path = Source/StrokeFilterSuites.cpp; sourceTree = "<group>"; };
+		E80A466C1014B5BE00046BC6 /* StrokeFilter.r */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.rez; name = StrokeFilter.r; path = Resources/Mac/StrokeFilter.r; sourceTree = "<group>"; };
+		E80A46961014BB5D00046BC6 /* StrokeFilterID.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StrokeFilterID.h; path = Source/StrokeFilterID.h; sourceTree = "<group>"; };
+		E80A46971014BB5D00046BC6 /* StrokeFilterPlugin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StrokeFilterPlugin.h; path = Source/StrokeFilterPlugin.h; sourceTree = "<group>"; };
+		E80A46981014BB5D00046BC6 /* StrokeFilters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StrokeFilters.h; path = Source/StrokeFilters.h; sourceTree = "<group>"; };
+		E80A46991014BB5D00046BC6 /* StrokeFilterSuites.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StrokeFilterSuites.h; path = Source/StrokeFilterSuites.h; sourceTree = "<group>"; };
+		E80E77E50FDF610800CE242E /* SDKErrors.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDKErrors.cpp; path = ../common/source/SDKErrors.cpp; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		508817D209F0C9AD0071BF1A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A182A74F25E4E87C00DF8D21 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		508817C209F0C9740071BF1A = {
+			isa = PBXGroup;
+			children = (
+				A182A74925E4E82300DF8D21 /* xcconfigs */,
+				A182A74D25E4E87C00DF8D21 /* Frameworks */,
+				508817F509F0CAB50071BF1A /* Sources */,
+				6EE2BA590A40BDD300CC7CE2 /* Resources */,
+				508817D509F0C9AD0071BF1A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		508817D509F0C9AD0071BF1A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6EE2BA530A40BB2600CC7CE2 /* StrokeFilter.aip */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		508817F509F0CAB50071BF1A /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				C4CA4F9F10FDD89E005A3363 /* StrokeFileterParams.cpp */,
+				C4CA4FA010FDD89E005A3363 /* StrokeFileterParams.h */,
+				C43697E710FC884A00DD402C /* StrokeFilterFlashController.cpp */,
+				C43697E810FC884A00DD402C /* StrokeFilterFlashController.h */,
+				E80A46961014BB5D00046BC6 /* StrokeFilterID.h */,
+				E80A46971014BB5D00046BC6 /* StrokeFilterPlugin.h */,
+				E80A46981014BB5D00046BC6 /* StrokeFilters.h */,
+				E80A46991014BB5D00046BC6 /* StrokeFilterSuites.h */,
+				E80A46651014B59300046BC6 /* StrokeFilterPlugin.cpp */,
+				E80A46661014B59300046BC6 /* StrokeFilters.cpp */,
+				E80A46671014B59300046BC6 /* StrokeFilterSuites.cpp */,
+				F9C02BF60BA6E9900039151A /* Shared */,
+			);
+			name = Sources;
+			sourceTree = "<group>";
+		};
+		6EE2BA590A40BDD300CC7CE2 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				E80A466C1014B5BE00046BC6 /* StrokeFilter.r */,
+				6E0C52490A8B762700C9A14A /* Info.plist */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+		};
+		A182A74925E4E82300DF8D21 /* xcconfigs */ = {
+			isa = PBXGroup;
+			children = (
+				A182A74B25E4E83400DF8D21 /* AIPluginCommon.xcconfig */,
+				A182A74C25E4E83400DF8D21 /* AIPluginDebug.xcconfig */,
+				A182A74A25E4E83400DF8D21 /* AIPluginRelease.xcconfig */,
+			);
+			name = xcconfigs;
+			sourceTree = "<group>";
+		};
+		A182A74D25E4E87C00DF8D21 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A182A74E25E4E87C00DF8D21 /* Cocoa.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		F9C02BF60BA6E9900039151A /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				C4B1642113063AFE007644F6 /* FlashUIController.cpp */,
+				C43697F110FC886B00DD402C /* IAIStringFormatUtils.cpp */,
+				C43697EF10FC885500DD402C /* SDKPlugPlug.cpp */,
+				E80E77E50FDF610800CE242E /* SDKErrors.cpp */,
+				2AF5F7200CF5EC6E0091D961 /* IAIFilePath.cpp */,
+				2AF5F7210CF5EC6E0091D961 /* IAIUnicodeString.cpp */,
+				2AF5F7190CF5E6240091D961 /* IText.cpp */,
+				2AF5F71A0CF5E6240091D961 /* IThrowException.cpp */,
+				2AF5F7090CF5E6010091D961 /* AppContext.cpp */,
+				2AF5F70A0CF5E6010091D961 /* IllustratorSDK.cpp */,
+				2AF5F70B0CF5E6010091D961 /* Main.cpp */,
+				2AF5F70C0CF5E6010091D961 /* Plugin.cpp */,
+				2AF5F70D0CF5E6010091D961 /* SDKAboutPluginsHelper.cpp */,
+				2AF5F70F0CF5E6010091D961 /* Suites.cpp */,
+			);
+			name = Shared;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		6E03932E0A80D6AF0081CABE /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E80A469A1014BB5D00046BC6 /* StrokeFilterID.h in Headers */,
+				E80A469B1014BB5D00046BC6 /* StrokeFilterPlugin.h in Headers */,
+				E80A469C1014BB5D00046BC6 /* StrokeFilters.h in Headers */,
+				E80A469D1014BB5D00046BC6 /* StrokeFilterSuites.h in Headers */,
+				C43697EC10FC884A00DD402C /* StrokeFilterFlashController.h in Headers */,
+				C4CA4FA210FDD89E005A3363 /* StrokeFileterParams.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		508817D309F0C9AD0071BF1A /* StrokeFilter */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 508817D709F0C9AE0071BF1A /* Build configuration list for PBXNativeTarget "StrokeFilter" */;
+			buildPhases = (
+				FDD9160721AC093D0018B958 /* ShellScript */,
+				6E03932E0A80D6AF0081CABE /* Headers */,
+				508817D109F0C9AD0071BF1A /* Sources */,
+				508817D009F0C9AD0071BF1A /* Resources */,
+				508817D209F0C9AD0071BF1A /* Frameworks */,
+				6EE2BA0C0A40B77400CC7CE2 /* Rez */,
+				FDD9160821AC09410018B958 /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = StrokeFilter;
+			productName = StrokeFilterProject;
+			productReference = 6EE2BA530A40BB2600CC7CE2 /* StrokeFilter.aip */;
+			productType = "com.apple.product-type.bundle";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		508817C409F0C9740071BF1A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+			};
+			buildConfigurationList = 508817C509F0C9740071BF1A /* Build configuration list for PBXProject "StrokeFilter" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
+			mainGroup = 508817C209F0C9740071BF1A;
+			productRefGroup = 508817D509F0C9AD0071BF1A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				508817D309F0C9AD0071BF1A /* StrokeFilter */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		508817D009F0C9AD0071BF1A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXRezBuildPhase section */
+		6EE2BA0C0A40B77400CC7CE2 /* Rez */ = {
+			isa = PBXRezBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E80A466D1014B5BE00046BC6 /* StrokeFilter.r in Rez */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXRezBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		FDD9160721AC093D0018B958 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "python3 ../../tools/pipl/create_pipl.py -input '[{\"name\":\"StrokeFilter\",\"entry_point\" : \"PluginMain\"}]' \n";
+		};
+		FDD9160821AC09410018B958 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "mkdir -p \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/pipl\"\ncp -f \"plugin.pipl\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/pipl/plugin.pipl\"\n\nexit\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		508817D109F0C9AD0071BF1A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2AF5F7100CF5E6010091D961 /* AppContext.cpp in Sources */,
+				2AF5F7110CF5E6010091D961 /* IllustratorSDK.cpp in Sources */,
+				2AF5F7120CF5E6010091D961 /* Main.cpp in Sources */,
+				2AF5F7130CF5E6010091D961 /* Plugin.cpp in Sources */,
+				2AF5F7140CF5E6010091D961 /* SDKAboutPluginsHelper.cpp in Sources */,
+				2AF5F7160CF5E6010091D961 /* Suites.cpp in Sources */,
+				2AF5F71B0CF5E6240091D961 /* IText.cpp in Sources */,
+				2AF5F71C0CF5E6240091D961 /* IThrowException.cpp in Sources */,
+				2AF5F7250CF5EC6E0091D961 /* IAIFilePath.cpp in Sources */,
+				2AF5F7260CF5EC6E0091D961 /* IAIUnicodeString.cpp in Sources */,
+				E80E77E60FDF610800CE242E /* SDKErrors.cpp in Sources */,
+				E80A46681014B59300046BC6 /* StrokeFilterPlugin.cpp in Sources */,
+				E80A46691014B59300046BC6 /* StrokeFilters.cpp in Sources */,
+				E80A466A1014B59300046BC6 /* StrokeFilterSuites.cpp in Sources */,
+				C43697EB10FC884A00DD402C /* StrokeFilterFlashController.cpp in Sources */,
+				C43697F010FC885500DD402C /* SDKPlugPlug.cpp in Sources */,
+				C43697F210FC886B00DD402C /* IAIStringFormatUtils.cpp in Sources */,
+				C4CA4FA110FDD89E005A3363 /* StrokeFileterParams.cpp in Sources */,
+				C4B1642213063AFE007644F6 /* FlashUIController.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		508817C609F0C9740071BF1A /* debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A182A74B25E4E83400DF8D21 /* AIPluginCommon.xcconfig */;
+			buildSettings = {
+				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = SLO_ENABLE_LILO_LINGUISTIC;
+			};
+			name = debug;
+		};
+		508817C709F0C9740071BF1A /* release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A182A74B25E4E83400DF8D21 /* AIPluginCommon.xcconfig */;
+			buildSettings = {
+				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = SLO_ENABLE_LILO_LINGUISTIC;
+			};
+			name = release;
+		};
+		508817D809F0C9AE0071BF1A /* debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A182A74C25E4E83400DF8D21 /* AIPluginDebug.xcconfig */;
+			buildSettings = {
+			};
+			name = debug;
+		};
+		508817D909F0C9AE0071BF1A /* release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A182A74A25E4E83400DF8D21 /* AIPluginRelease.xcconfig */;
+			buildSettings = {
+			};
+			name = release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		508817C509F0C9740071BF1A /* Build configuration list for PBXProject "StrokeFilter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				508817C609F0C9740071BF1A /* debug */,
+				508817C709F0C9740071BF1A /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+		508817D709F0C9AE0071BF1A /* Build configuration list for PBXNativeTarget "StrokeFilter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				508817D809F0C9AE0071BF1A /* debug */,
+				508817D909F0C9AE0071BF1A /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 508817C409F0C9740071BF1A /* Project object */;
+}

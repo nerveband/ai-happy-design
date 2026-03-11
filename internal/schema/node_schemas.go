@@ -112,4 +112,95 @@ func init() {
 			{Name: "compact", Type: "boolean", Desc: "Return flat array instead of nested tree (3-5x fewer tokens)"},
 		},
 	})
+
+	Register(Schema{
+		Command:     "node.rotate",
+		Description: "Rotate a node by a given angle in degrees",
+		Params: []Param{
+			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "rotation", Type: "number", Required: true, Desc: "Rotation angle in degrees"},
+			{Name: "relative", Type: "boolean", Desc: "If true, add to current rotation instead of setting absolute"},
+		},
+	})
+
+	Register(Schema{
+		Command:     "node.set_opacity",
+		Description: "Set the opacity of a node",
+		Params: []Param{
+			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "opacity", Type: "number", Required: true, Desc: "Opacity value", Min: Ptr(0), Max: Ptr(1)},
+		},
+	})
+
+	Register(Schema{
+		Command:     "node.set_blend_mode",
+		Description: "Set the blend mode of a node",
+		Params: []Param{
+			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "blendMode", Type: "string", Required: true, Desc: "Blend mode", Enum: []string{"NORMAL", "MULTIPLY", "SCREEN", "OVERLAY", "DARKEN", "LIGHTEN", "COLOR_DODGE", "COLOR_BURN", "HARD_LIGHT", "SOFT_LIGHT", "DIFFERENCE", "EXCLUSION", "HUE", "SATURATION", "COLOR", "LUMINOSITY"}},
+		},
+	})
+
+	Register(Schema{
+		Command:     "node.set_visibility",
+		Description: "Show or hide a node",
+		Params: []Param{
+			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "visible", Type: "boolean", Required: true, Desc: "True to show, false to hide"},
+		},
+	})
+
+	Register(Schema{
+		Command:     "node.set_locked",
+		Description: "Lock or unlock a node",
+		Params: []Param{
+			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "locked", Type: "boolean", Required: true, Desc: "True to lock, false to unlock"},
+		},
+	})
+
+	Register(Schema{
+		Command:     "node.rename",
+		Description: "Rename a node",
+		Params: []Param{
+			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "name", Type: "string", Required: true, Desc: "New name for the node"},
+		},
+	})
+
+	Register(Schema{
+		Command:     "node.clone",
+		Description: "Clone (duplicate) a node",
+		Params: []Param{
+			{Name: "nodeId", Type: "string", Required: true, Desc: "Node ID to clone", Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "x", Type: "number", Desc: "X position for clone"},
+			{Name: "y", Type: "number", Desc: "Y position for clone"},
+			{Name: "parentId", Type: "string", Aliases: []string{"pid"}, Desc: "Parent for clone (defaults to same parent)", Pattern: `^[0-9]+:[0-9]+$`},
+		},
+	})
+
+	Register(Schema{
+		Command:     "node.set_mask",
+		Description: "Create a mask group from a mask shape and target nodes",
+		Params: []Param{
+			{Name: "nodeId", Type: "string", Required: true, Desc: "Mask shape node ID", Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "targetIds", Type: "array", Required: true, Desc: "Array of node IDs to mask"},
+			{Name: "name", Type: "string", Desc: "Name for the mask group", Default: "Masked Group"},
+		},
+	})
+
+	Register(Schema{
+		Command:     "node.create_section",
+		Aliases:     []string{"section"},
+		Description: "Create a section node (Figma organizational container)",
+		Params: []Param{
+			{Name: "name", Type: "string", Desc: "Section name"},
+			{Name: "x", Type: "number", Desc: "X position"},
+			{Name: "y", Type: "number", Desc: "Y position"},
+			{Name: "width", Type: "number", Desc: "Section width", Min: Ptr(1), Max: Ptr(10000)},
+			{Name: "height", Type: "number", Desc: "Section height", Min: Ptr(1), Max: Ptr(10000)},
+			{Name: "color", Type: "string", Desc: "Fill color hex", Pattern: `^#[0-9A-Fa-f]{3,8}$`},
+			{Name: "parentId", Type: "string", Aliases: []string{"pid"}, Desc: "Parent node ID", Pattern: `^[0-9]+:[0-9]+$`},
+		},
+	})
 }

@@ -1,0 +1,149 @@
+---
+title: AI Happy Design
+description: Give LLMs full Figma canvas access. One Go binary for CLI commands, MCP tools, and a WebSocket relay to Figma.
+template: splash
+hero:
+  tagline: Give LLMs full Figma canvas access. One Go binary that provides CLI commands, MCP tools, and a WebSocket relay to a Figma plugin.
+  actions:
+    - text: Get Started
+      link: /getting-started/installation/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/nerveband/ai-happy-design
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, Aside } from '@astrojs/starlight/components';
+
+## Why AI Happy Design?
+
+AI agents can write code, but they can't design. **AI Happy Design** fixes that. It gives any LLM full control of the Figma canvas through a simple CLI and WebSocket relay.
+
+No API keys. No cloud. Everything runs locally on your machine.
+
+<CardGrid>
+  <Card title="CLI-First Speed" icon="rocket">
+    **27 ops/sec** in batch mode. Chain 150+ Figma operations in a single JSON payload. 9x faster than individual MCP calls.
+  </Card>
+  <Card title="Schema Validation" icon="approve-check">
+    Every command is validated against a typed schema with **auto-correction**, fuzzy matching, and named color support. Bad input gets fixed, not rejected.
+  </Card>
+  <Card title="Design Intelligence" icon="star">
+    Built-in design tokens, modular type scale, quality gates, and lint checks. The tool understands visual hierarchy, spacing, and balance, not just pixels.
+  </Card>
+  <Card title="Multi-Editor Support" icon="laptop">
+    Works with **Claude Code, Cursor, Windsurf, VS Code, Zed**, and any AI editor that speaks MCP. One binary, every editor.
+  </Card>
+</CardGrid>
+
+## Quick Install
+
+```bash
+go install github.com/nerveband/ai-happy-design/cmd/ai-happy-design@latest
+```
+
+Or download a pre-built binary from [GitHub Releases](https://github.com/nerveband/ai-happy-design/releases).
+
+## How It Works
+
+<CardGrid>
+  <Card title="1. Prompt" icon="pencil">
+    Tell your AI what to design. Works in any editor that supports MCP or CLI tools.
+  </Card>
+  <Card title="2. Relay" icon="rocket">
+    Commands flow through a local WebSocket relay to the Figma plugin.
+  </Card>
+  <Card title="3. Canvas" icon="star">
+    Designs appear instantly in Figma. Export, iterate, and ship.
+  </Card>
+</CardGrid>
+
+## 14 Tool Domains
+
+AI Happy Design covers every Figma capability:
+
+| Domain | What it does |
+|--------|-------------|
+| `node` | Create frames, move, resize, rotate, rename, delete |
+| `text` | Create text, set fonts, sizing, color, alignment, styled ranges |
+| `shape` | Rectangles, ellipses, polygons, stars, lines, SVG paths, images |
+| `paint` | Solid fills, gradients, image fills, strokes |
+| `effect` | Shadows, blurs, glass morphism, noise, textures |
+| `layout` | Auto-layout (flexbox), padding, spacing, alignment, constraints |
+| `layer` | Z-ordering, grouping, ungrouping |
+| `boolean` | Union, subtract, intersect, exclude, flatten |
+| `component` | Create components, instances, variant sets |
+| `style` | Paint, text, and effect styles |
+| `variable` | Variables and collections |
+| `page` | Create, delete, rename, navigate pages |
+| `document` | Info, selection, scanning, free space detection |
+| `export` | PNG, JPG, SVG, PDF export, single or batch |
+
+## Dead Simple to Use
+
+### Single Command
+
+```bash
+ai-happy-design command node.create_frame \
+  '{"name":"My Card","width":400,"height":300,"color":"#1a1a1a"}'
+```
+
+### Batch Mode
+
+```json
+[
+  {
+    "name": "card",
+    "command": "node.create_frame",
+    "params": { "name": "Card", "width": 400, "height": 300 }
+  },
+  {
+    "name": "title",
+    "command": "text.create",
+    "params": {
+      "parentId": "${{steps.card.result.id}}",
+      "text": "Hello World",
+      "fontSize": 24
+    }
+  }
+]
+```
+
+```bash
+ai-happy-design batch card.json --lint --strict-quality
+```
+
+### MCP Config
+
+```json
+{
+  "mcpServers": {
+    "ai-happy-design": {
+      "command": "ai-happy-design",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+<Aside type="tip">
+  Run `ai-happy-design register` to auto-configure MCP for your editors. Supports Claude Code, Cursor, Windsurf, VS Code, and Zed.
+</Aside>
+
+## Works With Every AI Editor
+
+- **Claude Code** with full MCP integration
+- **Claude Desktop** via MCP server configuration
+- **Cursor** with MCP and inline commands
+- **Windsurf** with MCP support
+- **VS Code** via MCP through Copilot
+- **Zed** via JSONC configuration
+- **ChatGPT** via CLI piping
+
+## Open Source
+
+AI Happy Design is **free forever**, **GPL-3.0 licensed**, and **local-only**. Nothing leaves your machine.
+
+Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveband/ai-happy-design)

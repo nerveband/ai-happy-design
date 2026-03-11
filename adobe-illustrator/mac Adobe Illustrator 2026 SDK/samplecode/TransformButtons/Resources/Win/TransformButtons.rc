@@ -1,0 +1,150 @@
+//========================================================================================
+//  
+//  $File$
+//
+//  $Revision$
+//
+//  Copyright 1987 Adobe Systems Incorporated. All rights reserved.
+//  
+//  NOTICE:  Adobe permits you to use, modify, and distribute this file in accordance 
+//  with the terms of the Adobe license agreement accompanying it.  If you have received
+//  this file from a source other than Adobe, then your use, modification, or 
+//  distribution of it requires the prior written permission of Adobe.
+//  
+//========================================================================================
+
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "TransformButtonsID.h"
+#include "afxres.h"
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+#define kMySDKPluginName "TransformButtons"
+#define PIPL_PLUGIN_NAME kMySDKPluginName
+
+/////////////////////////////////////////////////////////////////////////////
+// VersionInfo
+//
+
+#include "VersionInfo.rc"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// PIPL
+//
+
+plugin pipl "plugin.pipl"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+kTransformButtonsDialogID DIALOG DISCARDABLE  0, 0, 139, 66
+STYLE DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Transform Buttons"
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "One Click Transforms",9,1,2,87,8
+    CONTROL         "",1,"ADM Picture Push Button Type",0x0,9,14,20,14
+    CONTROL         "",2,"ADM Picture Push Button Type",0x0,35,14,20,14
+    CONTROL         "",3,"ADM Picture Push Button Type",0x0,9,33,20,14
+    CONTROL         "",4,"ADM Picture Push Button Type",0x0,35,33,20,14
+	CONTROL         "",5,"ADM Picture Push Button Type",0x0,92,2,20,14
+    CONTROL         "",6,"ADM Picture Push Button Type",0x0,92,35,20,14
+    CONTROL         "",7,"ADM Picture Push Button Type",0x0,78,18,20,14
+    CONTROL         "",8,"ADM Picture Push Button Type",0x0,104,18,20,14
+END
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+kTransformButtonsDialogMenuID MENU DISCARDABLE 
+BEGIN
+    POPUP "Dialog List"
+    BEGIN
+        MENUITEM "Repeat Transform",     1
+        MENUITEM SEPARATOR
+        MENUITEM "Options...",           2
+    END
+END
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    kTransformButtonsDialogID, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 132
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 59
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+
+IDToFile txt IDToFile.txt
+TransformButtonsRotateCCWIcon	png		TransformButtonsRotateCCWIcon.png
+TransformButtonsRotateCWIcon	png		TransformButtonsRotateCWIcon.png
+TransformButtonsScaleUpIcon	png		TransformButtonsScaleUpIcon.png
+TransformButtonsScaleDownIcon	png		TransformButtonsScaleDownIcon.png
+TransformButtonsUpArrowIcon	png		TransformButtonsUpArrowIcon.png
+TransformButtonsDownArrowIcon	png		TransformButtonsDownArrowIcon.png
+TransformButtonsLeftArrowIcon	png		TransformButtonsLeftArrowIcon.png
+TransformButtonsRightArrowIcon	png		TransformButtonsRightArrowIcon.png
+TransformButtonsIcon	png		TransformButtonsIcon.png
+TransformButtonsIconRollover	png		TransformButtonsIconRollover.png
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////

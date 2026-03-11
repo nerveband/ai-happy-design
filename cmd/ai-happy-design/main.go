@@ -45,7 +45,9 @@ Discovery-first flow for LLM agents:
   1) ai-happy-design tools --llm --json
   2) ai-happy-design actions [domain]
   3) ai-happy-design batch --help`,
-	Version: version,
+	Version:       version,
+	SilenceErrors: true,
+	SilenceUsage:  true,
 }
 
 var connectCmd = &cobra.Command{
@@ -167,6 +169,8 @@ var commandChannel string
 var commandOutput string
 var commandBase64 bool
 var commandCompressImages bool
+var commandFieldsFlag string
+var commandDryRunFlag bool
 
 var commandCmd = &cobra.Command{
 	Use:   "command <command> [params-json]",
@@ -215,6 +219,25 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 			}
 		}
 		params = batchutil.NormalizeBatchParams(command, params)
+
+		// Dry-run: validate params against schema without executing
+		if commandDryRunFlag {
+			ops := []map[string]interface{}{
+				{"command": command, "params": params},
+			}
+			schemaResult := validate.ValidateBatch(ops)
+			out := map[string]interface{}{
+				"ok":      schemaResult.Blocked == 0,
+				"command": command,
+				"params":  params,
+				"validation": map[string]interface{}{
+					"warnings": schemaResult.Warnings,
+					"fixed":    schemaResult.Fixed,
+					"blocked":  schemaResult.Blocked,
+				},
+			}
+			return printJSON(out)
+		}
 
 		// Handle local-only commands that don't need Figma connection
 		if handled, err := handleLocalCommand(command, params); handled {
@@ -266,6 +289,8 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 		var parsed map[string]interface{}
 		hasData := false
 		if err := json.Unmarshal(result, &parsed); err == nil {
+			// Sanitize response to prevent prompt injection via node names/text
+			parsed = validate.SanitizeResponseMap(parsed)
 			_, hasData = parsed["data"].(string)
 		}
 
@@ -328,6 +353,16 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 
 		var pretty interface{}
 		if err := json.Unmarshal(result, &pretty); err == nil {
+			// Sanitize response to prevent prompt injection
+			if m, ok := pretty.(map[string]interface{}); ok {
+				pretty = validate.SanitizeResponseMap(m)
+			}
+			// Apply --fields filtering if requested
+			if commandFieldsFlag != "" {
+				if m, ok := pretty.(map[string]interface{}); ok {
+					pretty = filterFields(m, strings.Split(commandFieldsFlag, ","))
+				}
+			}
 			return printJSON(pretty)
 		}
 		fmt.Println(string(result))
@@ -346,6 +381,7 @@ var batchInterpolation bool
 var batchCompressImages bool
 var batchAllowOverlap bool
 var batchNoFix bool
+var batchDryRunFlag bool
 
 type batchOperation struct {
 	Name    string                 `json:"name,omitempty"`
@@ -403,9 +439,7 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 	Args: cobra.ArbitraryArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		log.SetOutput(io.Discard)
-		if err := ensureRelayIfNeeded(); err != nil {
-			return err
-		}
+
 		if batchStrictQuality && (!batchLint || batchNoLint) {
 			return fmt.Errorf("--strict-quality requires lint checks. Remove --no-lint (or set --lint=true)")
 		}
@@ -413,6 +447,66 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 		// Collect batch files: multiple positional args, directory, inline JSON, or single file
 		batchFiles, inlineJSON, err := collectBatchInputs(args, batchOperations, batchOperationsFile)
 		if err != nil {
+			return err
+		}
+
+		// Dry-run for batch: load ops, validate, return results without executing
+		if batchDryRunFlag {
+			// Resolve single batch source for dry-run
+			dryOps := batchOperations
+			dryFile := batchOperationsFile
+			if inlineJSON != "" {
+				dryOps = inlineJSON
+				dryFile = ""
+			} else if len(batchFiles) >= 1 {
+				dryFile = batchFiles[0]
+				dryOps = ""
+			}
+			ops, loadErr := loadBatchOperations(dryOps, dryFile)
+			if loadErr != nil {
+				return loadErr
+			}
+			if len(ops) == 0 {
+				return fmt.Errorf("operations array is empty")
+			}
+
+			// Schema validation
+			validationOps := make([]map[string]interface{}, len(ops))
+			for i, op := range ops {
+				validationOps[i] = map[string]interface{}{
+					"command": op.Command,
+					"params":  op.Params,
+					"name":    op.Name,
+				}
+			}
+			schemaResult := validate.ValidateBatch(validationOps)
+
+			// Design lint
+			var lintResult designlint.Result
+			if batchLint && !batchNoLint {
+				lintResult = designlint.Check(validationOps)
+			}
+
+			out := map[string]interface{}{
+				"ok":         schemaResult.Blocked == 0,
+				"operations": len(ops),
+				"validation": map[string]interface{}{
+					"warnings": schemaResult.Warnings,
+					"fixed":    schemaResult.Fixed,
+					"blocked":  schemaResult.Blocked,
+				},
+			}
+			if batchLint && !batchNoLint {
+				out["designLint"] = map[string]interface{}{
+					"warnings": lintResult.Warnings,
+					"fixed":    lintResult.Fixed,
+					"score":    lintResult.Score,
+				}
+			}
+			return printJSON(out)
+		}
+
+		if err := ensureRelayIfNeeded(); err != nil {
 			return err
 		}
 
@@ -519,8 +613,7 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 						},
 					},
 				}
-				j, _ := json.MarshalIndent(out, "", "  ")
-				fmt.Println(string(j))
+				printJSONErr(out)
 				return fmt.Errorf("schema validation blocked %d issues", schemaResult.Blocked)
 			}
 		}
@@ -559,8 +652,7 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 						},
 					},
 				}
-				j, _ := json.MarshalIndent(out, "", "  ")
-				fmt.Println(string(j))
+				printJSONErr(out)
 				return fmt.Errorf("design quality score %.1f/10 below threshold 7.0", lintResult.Score.Overall)
 			}
 		}
@@ -1107,9 +1199,7 @@ func handleLocalCommand(command string, params map[string]interface{}) (bool, er
 		}
 		dpi, _ := params["dpi"].(float64)
 		tokens := tools.ComputeDesignTokens(w, h, dpi)
-		out, _ := json.MarshalIndent(tokens, "", "  ")
-		fmt.Println(string(out))
-		return true, nil
+		return true, printJSON(tokens)
 	default:
 		return false, nil
 	}
@@ -1718,13 +1808,61 @@ func uniqueStrings(in []string) []string {
 	return out
 }
 
+// stdoutIsTTY returns true when stdout is connected to a terminal (not piped).
+func stdoutIsTTY() bool {
+	fi, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+	return (fi.Mode() & os.ModeCharDevice) != 0
+}
+
+// marshalJSON returns v as JSON bytes using TTY-aware formatting.
+// When stdout is a TTY (interactive terminal), it uses indented formatting
+// for readability. When piped (non-TTY), it uses compact single-line JSON
+// to save tokens for LLM agents.
+func marshalJSON(v interface{}) ([]byte, error) {
+	if stdoutIsTTY() {
+		return json.MarshalIndent(v, "", "  ")
+	}
+	return json.Marshal(v)
+}
+
+// printJSON outputs v as JSON to stdout with TTY-aware formatting.
 func printJSON(v interface{}) error {
-	data, err := json.MarshalIndent(v, "", "  ")
+	data, err := marshalJSON(v)
 	if err != nil {
 		return err
 	}
 	fmt.Println(string(data))
 	return nil
+}
+
+// printJSONErr outputs v as JSON to stderr with TTY-aware formatting.
+// Used for structured error envelopes so agents can separate data (stdout)
+// from errors (stderr).
+func printJSONErr(v interface{}) {
+	data, err := marshalJSON(v)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		return
+	}
+	fmt.Fprintln(os.Stderr, string(data))
+}
+
+// filterFields returns a new map containing only the specified keys from data.
+func filterFields(data map[string]interface{}, fields []string) map[string]interface{} {
+	if len(fields) == 0 {
+		return data
+	}
+	filtered := make(map[string]interface{}, len(fields))
+	for _, f := range fields {
+		f = strings.TrimSpace(f)
+		if v, ok := data[f]; ok {
+			filtered[f] = v
+		}
+	}
+	return filtered
 }
 
 func roundTo(v float64, decimals int) float64 {
@@ -2487,12 +2625,11 @@ var extractCmd = &cobra.Command{
 			return err
 		}
 
-		data, _ := json.MarshalIndent(ops, "", "  ")
 		if outputPath != "" {
+			data, _ := json.MarshalIndent(ops, "", "  ")
 			return os.WriteFile(outputPath, data, 0644)
 		}
-		fmt.Println(string(data))
-		return nil
+		return printJSON(ops)
 	},
 }
 
@@ -2775,6 +2912,8 @@ func main() {
 	commandCmd.Flags().StringVarP(&commandOutput, "output", "o", "", "Save binary data (e.g. exported image) to this file path")
 	commandCmd.Flags().BoolVar(&commandBase64, "base64", false, "Output raw base64 JSON instead of saving to file (for export commands)")
 	commandCmd.Flags().BoolVar(&commandCompressImages, "compress-images", false, "Compress resolved imageData before sending (requires ImageMagick)")
+	commandCmd.Flags().StringVar(&commandFieldsFlag, "fields", "", "Comma-separated fields to include in output (e.g., id,name,type)")
+	commandCmd.Flags().BoolVar(&commandDryRunFlag, "dry-run", false, "Validate params against schema without executing")
 
 	batchCmd.Flags().StringVarP(&batchOperations, "operations", "o", "", "JSON array of operations")
 	batchCmd.Flags().StringVarP(&batchOperationsFile, "operations-file", "f", "", "Path to JSON file containing operations array")
@@ -2792,6 +2931,7 @@ func main() {
 	batchCmd.Flags().BoolVar(&batchLint, "lint", true, "Auto-check created frames for overlaps, overflow, naming, and text sizing issues")
 	batchCmd.Flags().BoolVar(&batchNoLint, "no-lint", false, "Disable post-batch design lint checks")
 	batchCmd.Flags().BoolVar(&batchStrictQuality, "strict-quality", false, "Fail the batch if lint reports any warning/error issue (quality gate)")
+	batchCmd.Flags().BoolVar(&batchDryRunFlag, "dry-run", false, "Validate all operations against schema and design lint without executing")
 
 	toolsCmd.Flags().BoolVar(&catalogJSON, "json", true, "Output as JSON for machine-readable discovery")
 	toolsCmd.Flags().BoolVar(&catalogLLM, "llm", false, "Output enriched LLM-focused catalog with examples and playbook")
@@ -2852,6 +2992,27 @@ func main() {
 	rootCmd.AddCommand(configCmd)
 
 	if err := rootCmd.Execute(); err != nil {
+		printJSONErr(map[string]interface{}{
+			"error": err.Error(),
+			"code":  classifyTopLevelError(err),
+		})
 		os.Exit(1)
+	}
+}
+
+// classifyTopLevelError categorises a cobra/command error into a machine-readable code.
+func classifyTopLevelError(err error) string {
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "not connected"), strings.Contains(msg, "disconnected"):
+		return "CONNECTION_ERROR"
+	case strings.Contains(msg, "timed out"), strings.Contains(msg, "timeout"):
+		return "TIMEOUT"
+	case strings.Contains(msg, "unknown command"), strings.Contains(msg, "not found"):
+		return "UNKNOWN_COMMAND"
+	case strings.Contains(msg, "required"):
+		return "VALIDATION_ERROR"
+	default:
+		return "ERROR"
 	}
 }

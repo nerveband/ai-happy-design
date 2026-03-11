@@ -611,6 +611,16 @@ async function setRangeStyle(params: any) {
       node.setRangeTextCase(start, end, range.textCase);
     }
 
+    // --- Hyperlink ---
+    if (range.hyperlink !== undefined || range.url !== undefined) {
+      var linkUrl = range.hyperlink || range.url;
+      if (linkUrl === null || linkUrl === '' || linkUrl === 'none') {
+        node.setRangeHyperlink(start, end, null);
+      } else {
+        node.setRangeHyperlink(start, end, { type: 'URL', value: linkUrl });
+      }
+    }
+
     rangesApplied++;
   }
 

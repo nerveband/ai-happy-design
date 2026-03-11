@@ -1,0 +1,358 @@
+---
+title: Presentations
+description: Create slide decks and pitch decks in Figma with consistent branding, auto-layout, and batch export.
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+AI Happy Design can create full presentation decks in Figma with consistent branding, auto-layout for content, and batch export for distribution.
+
+## Slide Sizes
+
+| Format | Size (px) | Aspect Ratio |
+|--------|----------|-------------|
+| Standard (16:9) | 1920 x 1080 | Widescreen |
+| Wide (16:10) | 1920 x 1200 | MacBook native |
+| Classic (4:3) | 1440 x 1080 | Projector |
+| Tall / Mobile | 1080 x 1920 | Vertical |
+
+## Compute Tokens for Slides
+
+```bash
+ai-happy-design command design.compute_tokens '{"width": 1920, "height": 1080}'
+```
+
+For a 1920px-wide deck:
+- Hero: ~200px
+- Title: ~152px
+- Heading: ~112px
+- Body: ~84px
+- Caption: ~64px
+
+## Title Slide
+
+```json
+[
+  {
+    "name": "title_slide",
+    "command": "frame",
+    "params": {
+      "name": "Title Slide",
+      "w": 1920, "h": 1080,
+      "bg": "#0C1E2C",
+      "layoutMode": "VERTICAL",
+      "padding": 120,
+      "itemSpacing": 32,
+      "primaryAxisAlign": "CENTER",
+      "counterAxisAlign": "CENTER"
+    }
+  },
+  {
+    "name": "deck_title",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.title_slide.result.id}}",
+      "text": "Quarterly Product Review",
+      "sz": 72, "ff": "Space Grotesk", "fontStyle": "Bold",
+      "color": "#FFFFFF",
+      "textAlign": "CENTER",
+      "layoutSizingHorizontal": "FILL"
+    }
+  },
+  {
+    "name": "deck_subtitle",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.title_slide.result.id}}",
+      "text": "Q1 2026 Results and Q2 Priorities",
+      "sz": 32, "ff": "Inter",
+      "color": "#888888",
+      "textAlign": "CENTER",
+      "layoutSizingHorizontal": "FILL"
+    }
+  },
+  {
+    "name": "author",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.title_slide.result.id}}",
+      "text": "Presented by Engineering Team",
+      "sz": 24, "ff": "Inter",
+      "color": "#666666",
+      "textAlign": "CENTER",
+      "layoutSizingHorizontal": "FILL"
+    }
+  }
+]
+```
+
+## Content Slide with Metrics
+
+```json
+[
+  {
+    "name": "metrics_slide",
+    "command": "frame",
+    "params": {
+      "name": "Key Metrics",
+      "w": 1920, "h": 1080,
+      "bg": "#0C1E2C",
+      "layoutMode": "VERTICAL",
+      "paddingTop": 80, "paddingRight": 120,
+      "paddingBottom": 80, "paddingLeft": 120,
+      "itemSpacing": 48
+    }
+  },
+  {
+    "name": "slide_heading",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.metrics_slide.result.id}}",
+      "text": "Key Metrics",
+      "sz": 48, "ff": "Space Grotesk", "fontStyle": "Bold",
+      "color": "#FFFFFF",
+      "layoutSizingHorizontal": "FILL"
+    }
+  },
+  {
+    "name": "metrics_row",
+    "command": "frame",
+    "params": {
+      "pid": "${{steps.metrics_slide.result.id}}",
+      "name": "Metrics Row",
+      "layoutMode": "HORIZONTAL",
+      "itemSpacing": 32,
+      "noFill": true,
+      "layoutSizingHorizontal": "FILL"
+    }
+  },
+  {
+    "name": "metric_revenue",
+    "command": "frame",
+    "params": {
+      "pid": "${{steps.metrics_row.result.id}}",
+      "name": "Revenue",
+      "layoutMode": "VERTICAL",
+      "padding": 32, "itemSpacing": 8,
+      "bg": {"r": 1, "g": 1, "b": 1, "a": 0.04},
+      "r": 16,
+      "layoutSizingHorizontal": "FILL"
+    }
+  },
+  {
+    "name": "revenue_value",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.metric_revenue.result.id}}",
+      "text": "$2.4M", "sz": 48,
+      "ff": "Space Grotesk", "fontStyle": "Bold",
+      "color": "#FFD600"
+    }
+  },
+  {
+    "name": "revenue_label",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.metric_revenue.result.id}}",
+      "text": "Revenue", "sz": 20, "ff": "Inter",
+      "color": "#888888"
+    }
+  },
+  {
+    "name": "metric_users",
+    "command": "frame",
+    "params": {
+      "pid": "${{steps.metrics_row.result.id}}",
+      "name": "Users",
+      "layoutMode": "VERTICAL",
+      "padding": 32, "itemSpacing": 8,
+      "bg": {"r": 1, "g": 1, "b": 1, "a": 0.04},
+      "r": 16,
+      "layoutSizingHorizontal": "FILL"
+    }
+  },
+  {
+    "name": "users_value",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.metric_users.result.id}}",
+      "text": "48K", "sz": 48,
+      "ff": "Space Grotesk", "fontStyle": "Bold",
+      "color": "#FFD600"
+    }
+  },
+  {
+    "name": "users_label",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.metric_users.result.id}}",
+      "text": "Active Users", "sz": 20, "ff": "Inter",
+      "color": "#888888"
+    }
+  },
+  {
+    "name": "metric_retention",
+    "command": "frame",
+    "params": {
+      "pid": "${{steps.metrics_row.result.id}}",
+      "name": "Retention",
+      "layoutMode": "VERTICAL",
+      "padding": 32, "itemSpacing": 8,
+      "bg": {"r": 1, "g": 1, "b": 1, "a": 0.04},
+      "r": 16,
+      "layoutSizingHorizontal": "FILL"
+    }
+  },
+  {
+    "name": "retention_value",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.metric_retention.result.id}}",
+      "text": "94%", "sz": 48,
+      "ff": "Space Grotesk", "fontStyle": "Bold",
+      "color": "#FFD600"
+    }
+  },
+  {
+    "name": "retention_label",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.metric_retention.result.id}}",
+      "text": "Retention Rate", "sz": 20, "ff": "Inter",
+      "color": "#888888"
+    }
+  }
+]
+```
+
+## Bullet Point Slide
+
+```json
+[
+  {
+    "name": "bullet_slide",
+    "command": "frame",
+    "params": {
+      "name": "Priorities",
+      "w": 1920, "h": 1080,
+      "bg": "#0C1E2C",
+      "layoutMode": "VERTICAL",
+      "paddingTop": 80, "paddingRight": 120,
+      "paddingBottom": 80, "paddingLeft": 120,
+      "itemSpacing": 24
+    }
+  },
+  {
+    "name": "bullet_heading",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.bullet_slide.result.id}}",
+      "text": "Q2 Priorities",
+      "sz": 48, "ff": "Space Grotesk", "fontStyle": "Bold",
+      "color": "#FFFFFF",
+      "layoutSizingHorizontal": "FILL"
+    }
+  },
+  {
+    "name": "bullet_1",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.bullet_slide.result.id}}",
+      "text": "Launch mobile app beta program",
+      "sz": 28, "ff": "Inter", "color": "#CCCCCC",
+      "layoutSizingHorizontal": "FILL"
+    }
+  },
+  {
+    "name": "bullet_2",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.bullet_slide.result.id}}",
+      "text": "Scale infrastructure to 100K concurrent users",
+      "sz": 28, "ff": "Inter", "color": "#CCCCCC",
+      "layoutSizingHorizontal": "FILL"
+    }
+  },
+  {
+    "name": "bullet_3",
+    "command": "text",
+    "params": {
+      "pid": "${{steps.bullet_slide.result.id}}",
+      "text": "Integrate AI-powered design suggestions",
+      "sz": 28, "ff": "Inter", "color": "#CCCCCC",
+      "layoutSizingHorizontal": "FILL"
+    }
+  }
+]
+```
+
+## Consistent Branding Across Slides
+
+To maintain brand consistency across an entire deck:
+
+1. **Compute tokens once** for the slide dimensions
+2. **Define a color palette** and use it across all slides
+3. **Use the same font pairings** (e.g., Space Grotesk for headings, Inter for body)
+4. **Use consistent padding** (e.g., 120px horizontal, 80px vertical)
+5. **Use consistent card styling** (same cornerRadius, fill opacity, stroke)
+
+## Batch Export
+
+Export all slides at once:
+
+```bash
+# Find all slide frames
+ai-happy-design command document.find_nodes '{"nodeType":"FRAME"}'
+
+# Batch export as PNG
+ai-happy-design command export.batch \
+  '{"nodeIds":"42:248,42:260,42:272,42:284","format":"PNG","scale":2}'
+
+# Export individual slide as PDF
+ai-happy-design command export.pdf '{"nodeId":"42:248","scale":2}'
+```
+
+## Building a Full Deck
+
+For a complete presentation, create one batch file per slide type and chain them:
+
+```bash
+# Create all slides
+ai-happy-design batch slides/title.json
+ai-happy-design batch slides/agenda.json
+ai-happy-design batch slides/metrics.json
+ai-happy-design batch slides/priorities.json
+ai-happy-design batch slides/closing.json
+
+# Export all
+ai-happy-design command export.batch \
+  '{"nodeIds":"ALL_SLIDE_IDS","format":"PNG","scale":2}'
+```
+
+Or combine everything into a single batch file for maximum throughput (27 ops/sec).
+
+## Tips for Presentations
+
+<CardGrid>
+  <Card title="Auto-layout everything">
+    Use auto-layout for all slide content. It handles spacing and alignment automatically.
+  </Card>
+  <Card title="Consistent text hierarchy">
+    Title: 48-72px. Body: 24-32px. Caption: 16-20px. Same across all slides.
+  </Card>
+  <Card title="The 8px grid">
+    All spacing, padding, and sizing on multiples of 8.
+  </Card>
+  <Card title="Export at 2x">
+    Crisp output for projectors and screens. Use `scale: 2` on all exports.
+  </Card>
+</CardGrid>
+
+- **Name every slide** clearly for easy navigation in Figma's layers panel
+- **Use FILL sizing** for text and metric cards to distribute space evenly
+- **Add subtle card backgrounds** for metrics, callouts, and quotes
+- **Keep bullet points concise**, one line per point, 28-32px
+
+---
+
+Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveband/ai-happy-design) | License: GPL-3.0

@@ -90,8 +90,7 @@ Exit code 0 = valid, 1 = validation errors found.`,
 				"ok":     false,
 				"errors": []string{fmt.Sprintf("Invalid JSON: %v", jsonErr)},
 			}
-			j, _ := json.MarshalIndent(out, "", "  ")
-			fmt.Println(string(j))
+			printJSONErr(out)
 			os.Exit(1)
 			return nil
 		}
@@ -125,8 +124,11 @@ Exit code 0 = valid, 1 = validation errors found.`,
 			},
 		}
 
-		j, _ := json.MarshalIndent(out, "", "  ")
-		fmt.Println(string(j))
+		if len(structuralErrs) > 0 || schemaResult.Blocked > 0 {
+			printJSONErr(out)
+		} else {
+			_ = printJSON(out)
+		}
 
 		if len(structuralErrs) > 0 || schemaResult.Blocked > 0 {
 			os.Exit(1)

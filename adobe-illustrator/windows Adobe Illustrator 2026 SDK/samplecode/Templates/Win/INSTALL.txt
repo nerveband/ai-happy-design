@@ -1,0 +1,23 @@
+The default installation folder, <VS>, is C:\Program Files (x86)\Microsoft Visual Studio\<*version>\Enterprise\Common7\IDE.
+
+1. Quit Visual Studio if it is running.
+2. Copy IllustratorSDKdefault.vcxproj to <VS>\VC\VCWizards\.
+3. Copy the folder <SDK>\samplecode\Templates\Win\IllustratorSDK\ to
+<VS>\VC\VCWizards\AppWiz\.
+4. Copy the file IllustratorSDK.vsz to <VS>\VC\vcprojects\ (Note: Create vcprojects folder if it doesnt exist already).
+5. Open the IllustratorSDK.vsz in any text editor and check for "Wizard=VsWizard.VsWizardEngine.xx.x", the xx.x should match with internal version of installed visual studio, For eg. 15.0 is internal version for visual studio 2017.
+6. Create a new folder <VS>\VC\vcprojects\IllustratorSDK\, and copy the file
+IllustratorSDK.vsdir into the new folder.
+7. Start Visual Studio.
+8. Choose File > New > Project.
+9. In the Project Types pane of the New Project dialog, select Visual C++ > IllustratorSDK.
+10. In the Templates pane, select SDKProject.
+11. Set the Name of the project to a name of your choice.
+12. Set the Location of the project to the <SDK>\samplecode folder. (If you save to a different location, you
+will have to update the relative paths.)
+13. Ensure Create Directory For Solution is not checked. (If this option is selected, the relative paths will
+have to be updated, as the project file will not be at the top level.)
+14. Click OK.
+15. Build the project and load it into Illustrator. See “Build the project” in “Creating a plug-in in Windows” in the getting started guide.
+
+*version = Visual studio version recommended in the development-platform section of getting-started-guide.

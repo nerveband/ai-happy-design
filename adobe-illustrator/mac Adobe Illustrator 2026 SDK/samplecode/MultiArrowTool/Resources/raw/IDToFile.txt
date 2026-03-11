@@ -1,0 +1,4 @@
+19000.svg		S_SDKBothEndsArrowTool_Lg_N@2x.svg
+19001.svg		S_SDKHeadArrowTool_Lg_N@2x.svg
+19002.svg		S_SDKLineTool_Lg_N@2x.svg
+19003.svg		S_SDKTailArrowTool_Lg_N@2x.svg

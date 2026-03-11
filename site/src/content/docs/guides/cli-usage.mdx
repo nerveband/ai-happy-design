@@ -1,0 +1,315 @@
+---
+title: CLI Usage
+description: Using AI Happy Design from the command line. Covers single commands, batch mode, flags, channel management, and output formats.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+AI Happy Design is designed as a **CLI-first** tool. The CLI is the fastest interface for both human operators and LLM agents, processing operations at **27 ops/sec** in batch mode.
+
+## Modes of Operation
+
+The binary supports several modes:
+
+| Mode | Command | Purpose |
+|------|---------|---------|
+| **Single Command** | `ai-happy-design command` | Execute one Figma operation |
+| **Batch** | `ai-happy-design batch` | Execute multiple operations in one session |
+| **MCP Server** | `ai-happy-design mcp` | Run as MCP server for AI editors |
+| **WebSocket Relay** | `ai-happy-design ws` | Run just the relay server |
+| **Schema** | `ai-happy-design schema` | Inspect command schemas |
+| **Validate** | `ai-happy-design validate` | Dry-run validation |
+| **Guide** | `ai-happy-design guide` | Design intelligence reference |
+| **Tools** | `ai-happy-design tools` | List available tools |
+
+## Single Command Mode
+
+Execute one Figma operation and get the result:
+
+```bash
+ai-happy-design command <domain.action> '<json_params>'
+```
+
+Examples:
+
+```bash
+# Create a frame
+ai-happy-design command node.create_frame \
+  '{"name":"Hero Section","width":1080,"height":1920,"color":"#0a0a0a"}'
+
+# Set a solid fill
+ai-happy-design command paint.set_solid \
+  '{"nodeId":"42:248","color":"#FFD600"}'
+
+# Get document info (no params needed)
+ai-happy-design command document.get_info
+
+# Export a node as PNG
+ai-happy-design command export.image \
+  '{"nodeId":"42:248","format":"PNG","scale":2}'
+```
+
+## Batch Mode
+
+Execute multiple operations in a single WebSocket session:
+
+<Tabs>
+  <TabItem label="From File">
+
+```bash
+ai-happy-design batch design.json
+```
+
+  </TabItem>
+  <TabItem label="Inline JSON">
+
+```bash
+ai-happy-design batch '[{"name":"frame","command":"node.create_frame","params":{"width":400,"height":300}}]'
+```
+
+  </TabItem>
+  <TabItem label="From Stdin">
+
+```bash
+cat design.json | ai-happy-design batch
+```
+
+  </TabItem>
+  <TabItem label="Flag Syntax">
+
+```bash
+ai-happy-design batch -f design.json
+ai-happy-design batch -o '[{"command":"node.create_frame","params":{"width":400}}]'
+```
+
+  </TabItem>
+</Tabs>
+
+<Aside type="caution">
+The batch payload must be a **plain array** `[{...}]`, NOT wrapped in `{"operations":[...]}`.
+</Aside>
+
+## Parameter Passing
+
+Parameters can be passed in several ways for single commands:
+
+```bash
+# Positional argument (preferred)
+ai-happy-design command text.create '{"text":"Hello","fontSize":24}'
+
+# Flag syntax
+ai-happy-design command text.create -p '{"text":"Hello","fontSize":24}'
+```
+
+## Parameter Shorthands
+
+The CLI auto-expands shorthand parameter names to reduce typing:
+
+| Shorthand | Expands to | Example |
+|-----------|-----------|---------|
+| `pid` | `parentId` | `"pid": "1:2"` |
+| `w` | `width` | `"w": 400` |
+| `h` | `height` | `"h": 300` |
+| `sz` | `fontSize` | `"sz": 24` |
+| `ff` | `fontFamily` | `"ff": "Inter"` |
+| `lh` | `lineHeight` | `"lh": 140` |
+| `bg` | `color` | `"bg": "#1a1a1a"` |
+| `r` | `cornerRadius` | `"r": 16` |
+| `fillColor` | `color` | `"fillColor": "#FF0000"` |
+
+The `fillColor` to `color` alias is especially important. It is the number one silent failure from cross-tool training data. The tool resolves it automatically.
+
+## Command Aliases
+
+Batch mode supports compact command aliases:
+
+| Alias | Full Command |
+|-------|-------------|
+| `frame` | `node.create_frame` |
+| `rect` | `shape.create_rectangle` |
+| `text` | `text.create` |
+| `fill` | `paint.set_solid` |
+| `stroke` | `paint.set_stroke` |
+| `gradient` | `paint.set_gradient` |
+| `shadow` | `effect.add_shadow` |
+| `blur` | `effect.add_blur` |
+| `glass` | `effect.apply_glass` |
+| `noise` | `effect.add_noise` |
+| `texture` | `effect.add_texture` |
+| `modify` | `node.modify` |
+| `mask` | `node.set_mask` |
+| `find` | `document.find_nodes` |
+
+See the full [Batch Aliases reference](/reference/batch-aliases/) for details.
+
+## Step Interpolation
+
+Reference results from earlier batch steps using `${{steps.NAME.result.FIELD}}`:
+
+```json
+[
+  {
+    "name": "bg",
+    "command": "node.create_frame",
+    "params": { "name": "Background", "width": 1080, "height": 1920 }
+  },
+  {
+    "name": "title",
+    "command": "text.create",
+    "params": {
+      "parentId": "${{steps.bg.result.id}}",
+      "text": "Welcome",
+      "fontSize": 64
+    }
+  }
+]
+```
+
+The most common interpolation is `${{steps.NAME.result.id}}` for parent-child relationships. Step names should use `snake_case` to prevent interpolation issues.
+
+## Batch Flags
+
+| Flag | Description |
+|------|-------------|
+| `--lint` | Run design lint checks after batch completes |
+| `--strict-quality` | Fail the run if any lint warning/error is found |
+| `--fail-fast` | Stop on first operation failure (default: continue all) |
+| `--parallel` | Execute independent operations in parallel |
+| `--live` | Stream operation results as they complete |
+| `--allow-overlap` | Skip auto-placement (do not call `find_free_space`) |
+| `--no-lint` | Explicitly skip lint checks |
+| `--compress-images` | Compress images via ImageMagick before sending |
+
+### Example with flags
+
+```bash
+ai-happy-design batch design.json \
+  --lint \
+  --strict-quality \
+  --fail-fast \
+  --live
+```
+
+## Channel Management
+
+The channel system routes messages to the correct Figma plugin instance. This matters when you have multiple Figma files open.
+
+```bash
+# Use a specific channel
+ai-happy-design command document.get_info --channel my-channel
+
+# Set default channel via environment variable
+export AHD_CHANNEL=my-channel
+
+# Check connection status
+ai-happy-design command connect.status
+```
+
+### Channel Resolution Order
+
+1. **Positional argument** directly in the command
+2. **`--channel` flag** as an explicit flag
+3. **`AHD_CHANNEL` env var** as an environment variable
+4. **Relay preferred/active channel**, auto-detected from the relay
+
+## Discovery Commands
+
+```bash
+# List all tools with descriptions (LLM-friendly)
+ai-happy-design tools --llm --json
+
+# List actions for a specific domain
+ai-happy-design actions paint
+
+# Get JSON schema for a command
+ai-happy-design schema text.create --json
+
+# Get all schemas at once (for LLM context files)
+ai-happy-design schema --all
+
+# Get design intelligence guide
+ai-happy-design guide
+
+# Get a specific design topic
+ai-happy-design guide --topic typography
+
+# List example batches
+ai-happy-design examples slide
+
+# Validate without executing
+ai-happy-design validate
+```
+
+## Output Formats
+
+### Single Command Output
+
+Returns the raw result from the Figma plugin:
+
+```json
+{"id":"42:248","name":"Hero Section","type":"FRAME","width":1080,"height":1920}
+```
+
+### Batch Output
+
+Returns a structured summary with timing:
+
+```json
+{
+  "ok": true,
+  "steps": [
+    {
+      "index": 0,
+      "name": "bg",
+      "command": "node.create_frame",
+      "ok": true,
+      "result": {"id": "42:248", "name": "Background"},
+      "attempts": 1,
+      "elapsedMs": 35
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "succeeded": 5,
+    "failed": 0
+  },
+  "timing": {
+    "totalMs": 185,
+    "avgMs": 37
+  }
+}
+```
+
+Each step's `result` contains the Figma plugin response, including the `id` of any created nodes. This is what `${{steps.NAME.result.id}}` references during interpolation.
+
+## CLI-Only Commands
+
+Some commands are only available via CLI, not MCP:
+
+| Command | Description |
+|---------|-------------|
+| `extract` | Parse HTML/CSS into batch JSON |
+| `benchmark exec` | Time batch execution |
+| `benchmark pipe` | External LLM timing |
+
+```bash
+# Convert HTML to Figma batch operations
+ai-happy-design extract page.html --width 1080 --height 1350
+
+# Benchmark a batch file
+ai-happy-design benchmark exec ops.json --runs 3
+```
+
+## CLI vs MCP Performance
+
+| Mode | Throughput | Best For |
+|------|-----------|----------|
+| **CLI batch** | ~27 ops/sec | Bulk creation (20+ ops), automated pipelines |
+| **CLI command** | 1 op/call | Quick edits, single operations |
+| **MCP** | ~3-5 ops/sec | Interactive AI agent sessions |
+
+For heavy design work with 20+ operations, CLI batch is significantly faster than MCP because it sends all operations over one WebSocket connection with no per-call protocol overhead.
+
+---
+
+Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveband/ai-happy-design) | License: GPL-3.0

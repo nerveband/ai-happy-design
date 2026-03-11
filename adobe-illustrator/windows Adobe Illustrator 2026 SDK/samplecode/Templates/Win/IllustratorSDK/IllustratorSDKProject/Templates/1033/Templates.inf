@@ -1,0 +1,9 @@
+Source\TemplatePlugin.cpp
+Source\TemplatePlugin.h
+Source\TemplateSuites.cpp
+Source\TemplateSuites.h
+Source\TemplateID.h
+Resources\Win\resource.rc
+Resources\Win\resource.h
+Resources\Mac\Template.r
+Template.xcodeproj\project.pbxproj

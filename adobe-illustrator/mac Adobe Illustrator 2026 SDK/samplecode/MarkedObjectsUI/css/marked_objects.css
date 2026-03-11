@@ -1,0 +1,48 @@
+body {
+	font-size: 13px;
+}
+
+form {
+	display: table;
+}
+
+div .table {
+	display: table;
+}
+
+.row {
+	display: table-row;
+}
+
+.col {
+	display: table-cell;
+	padding: 3px;
+}
+
+#preferences {
+	display: none;
+}
+
+#list .ui-selecting { 
+	background: #FECA40; 
+}
+
+#list .ui-selected { 
+	background: #F39814; 
+	color: white; 
+}
+
+#list { 
+	list-style-type: none; 
+	margin: 0; 
+	padding: 0; 
+}
+
+#list li { 
+	/*
+	margin: 3px; 
+	padding: 0.4em; 
+	font-size: 1.4em; 
+	height: 18px; 
+	*/
+}

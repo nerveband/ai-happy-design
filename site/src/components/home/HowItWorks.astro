@@ -1,0 +1,177 @@
+---
+---
+
+<section class="section section-spotlight" id="how-it-works">
+  <div class="container">
+    <div class="reveal">
+      <h2 class="section-headline">Three layers. <span class="text-accent">Zero friction.</span></h2>
+    </div>
+
+    <div class="reveal flow-diagram">
+      <div class="flow-node">
+        <div class="flow-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><rect x="32" y="56" width="192" height="160" rx="8"/><line x1="128" y1="56" x2="128" y2="16"/><line x1="96" y1="16" x2="160" y2="16"/><circle cx="100" cy="144" r="12" fill="#FFD600" stroke="none"/><circle cx="156" cy="144" r="12" fill="#FFD600" stroke="none"/><path d="M104,176a28,28,0,0,0,48,0" fill="none"/></svg>
+        </div>
+        <div class="flow-label">Your AI Agent</div>
+        <div class="flow-sub">Claude, Cursor, GPT</div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="40" viewBox="0 0 20 40" fill="none" stroke="#FFD600" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="0" x2="10" y2="32"/><polyline points="4 26 10 34 16 26"/></svg>
+      </div>
+
+      <div class="flow-node">
+        <div class="flow-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><polyline points="80 96 120 128 80 160"/><line x1="136" y1="160" x2="176" y2="160"/><rect x="32" y="48" width="192" height="160" rx="8"/></svg>
+        </div>
+        <div class="flow-label">CLI / MCP Server</div>
+        <div class="flow-sub">Schema validation + design intelligence</div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="40" viewBox="0 0 20 40" fill="none" stroke="#FFD600" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="0" x2="10" y2="32"/><polyline points="4 26 10 34 16 26"/></svg>
+      </div>
+
+      <div class="flow-node">
+        <div class="flow-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><path d="M80,80h96" /><path d="M80,128h96" /><path d="M80,176h96" /><polyline points="48,104 48,80 80,80" /><polyline points="208,104 208,80 176,80" /><polyline points="48,152 48,176 80,176" /><polyline points="208,152 208,176 176,176" /></svg>
+        </div>
+        <div class="flow-label">WebSocket Relay</div>
+        <div class="flow-sub">localhost:3055</div>
+      </div>
+
+      <div class="flow-arrow">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="40" viewBox="0 0 20 40" fill="none" stroke="#FFD600" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="0" x2="10" y2="32"/><polyline points="4 26 10 34 16 26"/></svg>
+      </div>
+
+      <div class="flow-node">
+        <div class="flow-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><path d="M176,232H80a16,16,0,0,1-16-16V100A60,60,0,0,1,128,40h0a60,60,0,0,1,64,60V216A16,16,0,0,1,176,232Z" fill="none"/><line x1="128" y1="120" x2="128" y2="168"/><line x1="104" y1="144" x2="152" y2="144"/></svg>
+        </div>
+        <div class="flow-label">Figma Plugin</div>
+        <div class="flow-sub">Canvas read + write</div>
+      </div>
+    </div>
+
+    <div class="grid-3 stagger-grid layer-cards">
+      <div class="glass-card layer-card">
+        <div class="layer-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><path d="M40,114.7V56a8,8,0,0,1,8-8H208a8,8,0,0,1,8,8v58.7c0,84-72.8,120.9-84.2,126a7.5,7.5,0,0,1-7.6,0C113,235.6,40,198.7,40,114.7Z" fill="none"/><polyline points="88 136 112 160 168 104"/></svg>
+        </div>
+        <h3 class="layer-title">Schema Validation</h3>
+        <p class="layer-desc">144 typed schemas. Fuzzy matching catches hallucinations. Named colors auto-resolve. fillColor to color aliases just work.</p>
+      </div>
+
+      <div class="glass-card layer-card">
+        <div class="layer-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><path d="M176,232H80a8,8,0,0,1-8-8V167.4c0-1.4-.4-2.7-1.2-3.8A72,72,0,0,1,56,112a72,72,0,0,1,144,0,72.3,72.3,0,0,1-14.8,43.6,8,8,0,0,0-1.2,5V224A8,8,0,0,1,176,232Z" fill="none"/><line x1="96" y1="232" x2="160" y2="232"/><line x1="96" y1="200" x2="160" y2="200"/><line x1="128" y1="56" x2="128" y2="16"/><line x1="56" y1="84" x2="28" y2="68"/><line x1="200" y1="84" x2="228" y2="68"/></svg>
+        </div>
+        <h3 class="layer-title">Design Intelligence</h3>
+        <p class="layer-desc">Built-in type scale (perfect fourth 1.333), spacing tokens, quality gates. Your agent knows design principles at runtime.</p>
+      </div>
+
+      <div class="glass-card layer-card">
+        <div class="layer-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><rect x="40" y="88" width="176" height="128" rx="8"/><path d="M92,88V60a36,36,0,0,1,72,0V88" fill="none"/><circle cx="128" cy="152" r="12" fill="#FFD600" stroke="none"/></svg>
+        </div>
+        <h3 class="layer-title">Local &amp; Private</h3>
+        <p class="layer-desc">Everything runs on localhost. WebSocket relay on port 3055. Nothing leaves your machine.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Flow Diagram — pure CSS */
+  .flow-diagram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    margin: 3rem auto 4rem;
+    max-width: 400px;
+  }
+
+  .flow-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 1.25rem 2rem;
+    border: 1px solid rgba(255, 214, 0, 0.2);
+    border-radius: 12px;
+    background: rgba(255, 214, 0, 0.03);
+    width: 100%;
+    text-align: center;
+    transition: border-color 0.3s ease, background 0.3s ease;
+  }
+
+  .flow-node:hover {
+    border-color: rgba(255, 214, 0, 0.4);
+    background: rgba(255, 214, 0, 0.06);
+  }
+
+  .flow-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.25rem;
+  }
+
+  .flow-label {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 1rem;
+    color: #ffffff;
+  }
+
+  .flow-sub {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+  }
+
+  .flow-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+  }
+
+  /* Layer cards */
+  .layer-cards {
+    margin-top: 0;
+  }
+
+  .layer-card {
+    text-align: center;
+    padding: 2.5rem 2rem;
+  }
+
+  .layer-icon {
+    margin-bottom: 1.25rem;
+  }
+
+  .layer-title {
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #ffffff;
+  }
+
+  .layer-desc {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    line-height: 1.65;
+  }
+
+  @media (max-width: 768px) {
+    .layer-cards {
+      grid-template-columns: 1fr;
+    }
+
+    .flow-diagram {
+      max-width: 300px;
+    }
+  }
+</style>

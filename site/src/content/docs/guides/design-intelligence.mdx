@@ -1,0 +1,317 @@
+---
+title: Design Intelligence
+description: Built-in design tokens, modular type scale, quality gates, and design guidance. AI Happy Design understands visual hierarchy, not just pixels.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+AI Happy Design has a built-in design intelligence system. Instead of guessing font sizes, spacing values, and layout proportions, it computes them from your canvas dimensions using a modular type scale and 8px grid system.
+
+## The Guide Command
+
+The `guide` command returns design thinking, patterns, and rules:
+
+```bash
+# Full design guide
+ai-happy-design guide
+
+# Specific topic
+ai-happy-design guide --topic typography
+ai-happy-design guide --topic color
+ai-happy-design guide --topic layout
+ai-happy-design guide --topic depth
+ai-happy-design guide --topic states
+ai-happy-design guide --topic quality
+
+# All topics combined
+ai-happy-design guide --topic all
+```
+
+### Available Topics
+
+| Topic | What it covers |
+|-------|---------------|
+| `typography` | Font sizing, line height, font pairings, weight hierarchy |
+| `color` | Dark/light themes, contrast ratios, opacity patterns |
+| `layout` | Auto-layout (flexbox), coordinate system, grid, centering |
+| `depth` | Shadows, blur, glass morphism, layering |
+| `states` | Hover, active, disabled, focus states |
+| `quality` | Lint checks, export, naming, balance rules |
+
+## Design Tokens
+
+The `design.compute_tokens` command calculates all sizing values for any canvas dimensions:
+
+```bash
+ai-happy-design command design.compute_tokens \
+  '{"width": 1080, "height": 1920}'
+```
+
+This returns concrete pixel values. No manual math needed:
+
+```json
+{
+  "canvas": {"width": 1080, "height": 1920, "ratio": 1.78, "layoutType": "portrait"},
+  "typography": {
+    "display": 200,
+    "hero": 152,
+    "title": 112,
+    "heading": 84,
+    "subheading": 64,
+    "body": 48,
+    "caption": 36
+  },
+  "spacing": {
+    "sidePadding": 72,
+    "contentWidth": 936,
+    "framePadding": 64,
+    "cardPadding": 40,
+    "itemSpacing": 16,
+    "cardGap": 24,
+    "sectionGap": 72,
+    "topPadding": 192,
+    "cornerRadius": 16
+  },
+  "buttons": {
+    "height": 120,
+    "horizontalPadding": 60,
+    "pillRadius": 60,
+    "roundedRadius": 34,
+    "fontSize": 48
+  },
+  "cards": {
+    "fullWidth": 936,
+    "halfWidth": 456,
+    "thirdWidth": 296
+  }
+}
+```
+
+<Aside type="tip">
+Always call `design.compute_tokens` **before** creating any design. It is the foundation for professional-looking output at any canvas size.
+</Aside>
+
+### How the Type Scale Works
+
+The type scale uses a **perfect fourth ratio (1.333)** from a base proportional to canvas width:
+
+- **Base font** = `width * 0.044` (e.g., 1080px canvas = 48px body text)
+- **Each step** multiplies by 1.333
+- **Text sizes** snap to a 4px grid
+- **Spacing** snaps to an 8px grid
+
+| Step | Name | Formula | 1080px | 600px |
+|------|------|---------|--------|-------|
+| -1 | caption | base / 1.333 | 36px | 20px |
+| 0 | body | base | 48px | 28px |
+| +1 | subheading | base * 1.333 | 64px | 36px |
+| +2 | heading | base * 1.333^2 | 84px | 48px |
+| +3 | title | base * 1.333^3 | 112px | 64px |
+| +4 | hero | base * 1.333^4 | 152px | 88px |
+| +5 | display | base * 1.333^5 | 200px | 116px |
+
+### Social Media Context
+
+A 1080px canvas renders at approximately 375px on a phone screen (0.35x scaling):
+
+- Body at 48px in canvas = ~17px on phone (comfortable reading)
+- Caption at 36px in canvas = ~12px on phone (minimum readable)
+- Anything below 24px in canvas is hard to read on mobile
+
+### Layout Classification
+
+The token system automatically classifies canvas proportions:
+
+| Ratio (H/W) | Layout Type | Columns | Top Padding |
+|-------------|------------|---------|-------------|
+| > 2.0 | ultra-tall | 1 column | 15% of height |
+| >= 1.15 | portrait | 1-2 columns | 10% of height |
+| >= 0.85 | square | 2-3 columns | 8% of height |
+| < 0.85 | landscape | 3-4 columns | 6% of height |
+
+### Print Mode
+
+For print designs, pass `dpi: 300` to get print-appropriate sizing:
+
+```bash
+ai-happy-design command design.compute_tokens \
+  '{"width": 2550, "height": 3300, "dpi": 300}'
+```
+
+Common print canvas sizes at 300 DPI:
+
+| Format | Pixels (300 DPI) |
+|--------|-----------------|
+| US Letter | 2550 x 3300 |
+| A4 | 2480 x 3508 |
+| Business Card | 1050 x 600 |
+
+## Design System Analysis
+
+Before creating designs in an existing Figma file, analyze what styles and variables already exist:
+
+```bash
+ai-happy-design command design_system.analyze
+```
+
+This scans the current Figma file and returns:
+
+- **Color styles**: existing paint styles with hex values
+- **Typography styles**: text styles with font family, size, weight
+- **Effect styles**: shadow, blur, and other effect styles
+- **Variables**: variable collections with modes and values
+- **Components**: local components and their usage patterns
+- **Reuse guidance**: recommendations for maintaining consistency
+
+Use this output to ensure new designs stay consistent with the existing design language.
+
+## Quality Gates
+
+### Lint System
+
+The lint system checks for common design mistakes after creation:
+
+```bash
+# Run lint after a batch
+ai-happy-design batch ops.json --lint
+
+# Fail the run on any issue
+ai-happy-design batch ops.json --lint --strict-quality
+
+# Lint a specific node manually
+ai-happy-design command document.lint '{"nodeId":"42:248"}'
+```
+
+### Lint Checks
+
+| Check | Severity | What it catches |
+|-------|----------|----------------|
+| `overflow` | Warning | Children extending beyond parent bounds |
+| `overlap` | Warning | Sibling elements overlapping |
+| `text_too_large` | Error | fontSize > 50% of parent height |
+| `text_too_small` | Error | fontSize < 12px (unreadable) |
+| `default_name` | Warning | Figma default names ("Frame 47") |
+| `oversized_child` | Warning | Child > 110% of parent dimensions |
+| `absolute_child_non_autolayout` | Warning | ABSOLUTE positioning in non-auto-layout frame |
+| `absolute_overflow` | Warning | Absolute child exceeds auto-layout parent bounds |
+
+### Overlap Detection
+
+Check for overlapping children in any frame:
+
+```bash
+ai-happy-design command layout.check_overlaps '{"nodeId":"42:248"}'
+```
+
+Returns details about which elements overlap and by how much. Run this after creating layouts to verify visual correctness.
+
+### Quality Gate Output
+
+With `--strict-quality`, the batch output includes a quality gate:
+
+```json
+{
+  "summary": {
+    "total": 12,
+    "succeeded": 12,
+    "failed": 0,
+    "qualityGate": {
+      "passed": false,
+      "warnings": 2,
+      "errors": 1,
+      "issues": [
+        {"check": "default_name", "nodeId": "42:250", "message": "Node has default name 'Frame 47'"},
+        {"check": "text_too_small", "nodeId": "42:251", "message": "fontSize 8px is below minimum 12px"}
+      ]
+    }
+  }
+}
+```
+
+## Design Thinking Framework
+
+The guide system teaches a CSS-to-Figma mental model:
+
+### CSS-to-Figma Translation
+
+| CSS Property | Figma Equivalent |
+|-------------|-----------------|
+| `display: flex` | `layoutMode: VERTICAL/HORIZONTAL` + `itemSpacing` + `padding` |
+| `background` | `paint.set_solid` or `paint.set_gradient` |
+| `border` | `paint.set_stroke` |
+| `border-radius` | `cornerRadius` on `create_frame` |
+| `box-shadow` | `effect.add_shadow` |
+| `filter: blur()` | `effect.add_blur {blurType: LAYER_BLUR}` |
+| `backdrop-filter` | `effect.add_blur {blurType: BACKGROUND_BLUR}` |
+| `opacity` | `node.set_opacity` |
+| `z-index` | `layer.bring_to_front` / `layer.send_to_back` |
+| `width: 100%` | `layoutSizingHorizontal: FILL` |
+
+### Visual Hierarchy Rules
+
+| Level | Treatment | Purpose |
+|-------|----------|---------|
+| **Primary** | Display/hero tier, weight 800, accent color | The ONE focal point |
+| **Secondary** | Heading/subheading tier, weight 600-700, white/muted | Supporting headings |
+| **Tertiary** | Body/caption tier, weight 400-500, muted gray | Detail text |
+| **Ambient** | Very low opacity (0.05-0.15) | Decorative shapes, must NOT compete |
+
+The primary element gets the highest contrast. Secondary is medium contrast. Tertiary is low contrast. Ambient is near-invisible.
+
+## The 10-Step Playbook
+
+The recommended workflow for creating any design:
+
+1. **Discover**: get the catalog with `ai-happy-design tools --llm --json`
+2. **Analyze**: check existing styles with `design_system.analyze`
+3. **Tokens**: compute sizing with `design.compute_tokens {width, height}`
+4. **Find space**: get placement with `document.find_free_space`
+5. **Think in CSS**: draft as HTML/CSS mentally, then translate to Figma commands
+6. **Hierarchy**: use modular type scale tiers (hero, title, heading, body, caption)
+7. **Create**: batch for multi-element, single command for edits
+8. **Balance**: siblings match in padding, spacing, radius, text sizes
+9. **Effects**: shadows on cards, gradients on hero backgrounds, blur for glass
+10. **Export**: `export.image` at scale 2 and visually verify
+
+## Progressive Disclosure
+
+The design intelligence system uses progressive disclosure. Agents start broad and drill down:
+
+1. **SKILL.md**: compact workflow overview (fits any LLM context window)
+2. **`ai-happy-design guide`**: full design rules without tool details
+3. **`ai-happy-design guide --topic X`**: deep dive on a specific area
+4. **`ai-happy-design tools --llm --json`**: complete tool catalog with examples
+
+## Shadow Recipes
+
+| Style | offsetY | radius | opacity | Use for |
+|-------|---------|--------|---------|---------|
+| Subtle | 2 | 8 | 0.10 | Cards, inputs |
+| Medium | 4 | 16 | 0.20 | Elevated cards |
+| Large | 8 | 32 | 0.30 | Modals, popovers |
+| Glow | 0 | 24 | 0.15 | Accent highlights |
+
+## Balance Rules
+
+Sibling elements must match in visual properties:
+
+- **Cards**: same width, height, padding, cornerRadius, itemSpacing
+- **Text**: same fontSize, fontWeight, color at the same hierarchy level
+- **Minimum sizes**: card height >= 15-20% of canvas height, content area >= 60%
+- **Card width formula**: `cardWidth = (rowWidth - (N-1) * gap) / N`
+
+<Aside type="caution">
+Unbalanced siblings are the most common design mistake. If three cards in a row have different heights or padding, the entire layout looks broken.
+</Aside>
+
+## Naming Conventions
+
+- **Step names**: `snake_case` for batch steps: `hero_bg`, `card_title`, `cta_button`
+- **Layer names**: descriptive by role: "Hero Background", "Card - Feature", "CTA Button"
+- **Never** leave Figma defaults like "Frame 47" or "Rectangle 12"
+
+The `default_name` lint check catches unnamed layers automatically.
+
+---
+
+Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveband/ai-happy-design) | License: GPL-3.0

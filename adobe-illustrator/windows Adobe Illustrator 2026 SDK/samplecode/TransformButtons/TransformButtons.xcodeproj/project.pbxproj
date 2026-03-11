@@ -1,0 +1,347 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		2AF5F88F0CF5F8040091D961 /* AppContext.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F8890CF5F8040091D961 /* AppContext.cpp */; };
+		2AF5F8900CF5F8040091D961 /* IllustratorSDK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F88A0CF5F8040091D961 /* IllustratorSDK.cpp */; };
+		2AF5F8910CF5F8040091D961 /* Main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F88B0CF5F8040091D961 /* Main.cpp */; };
+		2AF5F8920CF5F8040091D961 /* Plugin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F88C0CF5F8040091D961 /* Plugin.cpp */; };
+		2AF5F8930CF5F8040091D961 /* SDKAboutPluginsHelper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F88D0CF5F8040091D961 /* SDKAboutPluginsHelper.cpp */; };
+		2AF5F8940CF5F8040091D961 /* Suites.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F88E0CF5F8040091D961 /* Suites.cpp */; };
+		2AF5F89A0CF5F8260091D961 /* IAIUnicodeString.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F8970CF5F8260091D961 /* IAIUnicodeString.cpp */; };
+		2AF5F8A40CF5F8360091D961 /* TransformButtonsID.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AF5F89D0CF5F8360091D961 /* TransformButtonsID.h */; };
+		2AF5F8A50CF5F8360091D961 /* TransformButtonsPlugin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F89E0CF5F8360091D961 /* TransformButtonsPlugin.cpp */; };
+		2AF5F8A60CF5F8360091D961 /* TransformButtonsPlugin.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AF5F89F0CF5F8360091D961 /* TransformButtonsPlugin.h */; };
+		2AF5F8A70CF5F8360091D961 /* TransformButtonsSuites.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F8A00CF5F8360091D961 /* TransformButtonsSuites.cpp */; };
+		2AF5F8A80CF5F8360091D961 /* TransformButtonsSuites.h in Headers */ = {isa = PBXBuildFile; fileRef = 2AF5F8A10CF5F8360091D961 /* TransformButtonsSuites.h */; };
+		322D22C617F18D8000681154 /* TransformButtons.r in Rez */ = {isa = PBXBuildFile; fileRef = 322D22C517F18D8000681154 /* TransformButtons.r */; };
+		322D22CA17F1900F00681154 /* IDToFile.txt in Resources */ = {isa = PBXBuildFile; fileRef = 322D22C917F1900F00681154 /* IDToFile.txt */; };
+		A1943F7A25E51F6700FD8F0A /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1943F7925E51F6700FD8F0A /* Cocoa.framework */; };
+		C4B1643413063B1E007644F6 /* TransformButtonsPanelController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C4B1643213063B1E007644F6 /* TransformButtonsPanelController.cpp */; };
+		C4B1643513063B1E007644F6 /* TransformButtonsPanelController.h in Headers */ = {isa = PBXBuildFile; fileRef = C4B1643313063B1E007644F6 /* TransformButtonsPanelController.h */; };
+		C4B1643713063B2B007644F6 /* FlashUIController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C4B1643613063B2B007644F6 /* FlashUIController.cpp */; };
+		C4B1644E13063BAD007644F6 /* IAIFilePath.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C4B1644C13063BAD007644F6 /* IAIFilePath.cpp */; };
+		C4B1644F13063BAD007644F6 /* IAIStringFormatUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C4B1644D13063BAD007644F6 /* IAIStringFormatUtils.cpp */; };
+		C4B164A313063D79007644F6 /* SDKPlugPlug.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C4B164A213063D79007644F6 /* SDKPlugPlug.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		2AF5F8890CF5F8040091D961 /* AppContext.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = AppContext.cpp; path = ../common/source/AppContext.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F88A0CF5F8040091D961 /* IllustratorSDK.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = IllustratorSDK.cpp; path = ../common/source/IllustratorSDK.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F88B0CF5F8040091D961 /* Main.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = Main.cpp; path = ../common/source/Main.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F88C0CF5F8040091D961 /* Plugin.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = Plugin.cpp; path = ../common/source/Plugin.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F88D0CF5F8040091D961 /* SDKAboutPluginsHelper.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = SDKAboutPluginsHelper.cpp; path = ../common/source/SDKAboutPluginsHelper.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F88E0CF5F8040091D961 /* Suites.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = Suites.cpp; path = ../common/source/Suites.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F8970CF5F8260091D961 /* IAIUnicodeString.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = IAIUnicodeString.cpp; path = ../../illustratorapi/illustrator/IAIUnicodeString.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F89D0CF5F8360091D961 /* TransformButtonsID.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = TransformButtonsID.h; path = Source/TransformButtonsID.h; sourceTree = "<group>"; };
+		2AF5F89E0CF5F8360091D961 /* TransformButtonsPlugin.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = TransformButtonsPlugin.cpp; path = Source/TransformButtonsPlugin.cpp; sourceTree = "<group>"; };
+		2AF5F89F0CF5F8360091D961 /* TransformButtonsPlugin.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = TransformButtonsPlugin.h; path = Source/TransformButtonsPlugin.h; sourceTree = "<group>"; };
+		2AF5F8A00CF5F8360091D961 /* TransformButtonsSuites.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = TransformButtonsSuites.cpp; path = Source/TransformButtonsSuites.cpp; sourceTree = "<group>"; };
+		2AF5F8A10CF5F8360091D961 /* TransformButtonsSuites.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = TransformButtonsSuites.h; path = Source/TransformButtonsSuites.h; sourceTree = "<group>"; };
+		322D22C517F18D8000681154 /* TransformButtons.r */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.rez; name = TransformButtons.r; path = Resources/Mac/TransformButtons.r; sourceTree = "<group>"; };
+		322D22C917F1900F00681154 /* IDToFile.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = IDToFile.txt; path = Resources/raw/IDToFile.txt; sourceTree = "<group>"; };
+		6E81FEC40A8CB0E3002569B5 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text.plist; name = Info.plist; path = ../common/mac/Info.plist; sourceTree = SOURCE_ROOT; };
+		6EE2BA530A40BB2600CC7CE2 /* TransformButtons.aip */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TransformButtons.aip; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1943F7525E51F3700FD8F0A /* AIPluginRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = AIPluginRelease.xcconfig; path = ../common/mac/AIPluginRelease.xcconfig; sourceTree = "<group>"; };
+		A1943F7625E51F3700FD8F0A /* AIPluginCommon.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = AIPluginCommon.xcconfig; path = ../common/mac/AIPluginCommon.xcconfig; sourceTree = "<group>"; };
+		A1943F7725E51F3700FD8F0A /* AIPluginDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = AIPluginDebug.xcconfig; path = ../common/mac/AIPluginDebug.xcconfig; sourceTree = "<group>"; };
+		A1943F7925E51F6700FD8F0A /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		C4B1643213063B1E007644F6 /* TransformButtonsPanelController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TransformButtonsPanelController.cpp; path = Source/TransformButtonsPanelController.cpp; sourceTree = "<group>"; };
+		C4B1643313063B1E007644F6 /* TransformButtonsPanelController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TransformButtonsPanelController.h; path = Source/TransformButtonsPanelController.h; sourceTree = "<group>"; };
+		C4B1643613063B2B007644F6 /* FlashUIController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FlashUIController.cpp; path = ../common/source/FlashUIController.cpp; sourceTree = SOURCE_ROOT; };
+		C4B1644C13063BAD007644F6 /* IAIFilePath.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IAIFilePath.cpp; path = ../../illustratorapi/illustrator/IAIFilePath.cpp; sourceTree = SOURCE_ROOT; };
+		C4B1644D13063BAD007644F6 /* IAIStringFormatUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IAIStringFormatUtils.cpp; path = ../../illustratorapi/illustrator/IAIStringFormatUtils.cpp; sourceTree = SOURCE_ROOT; };
+		C4B164A213063D79007644F6 /* SDKPlugPlug.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDKPlugPlug.cpp; path = ../common/source/SDKPlugPlug.cpp; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		508817D209F0C9AD0071BF1A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1943F7A25E51F6700FD8F0A /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		508817C209F0C9740071BF1A = {
+			isa = PBXGroup;
+			children = (
+				A1943F7425E51F2500FD8F0A /* xcconfigs */,
+				A1943F7825E51F6600FD8F0A /* Frameworks */,
+				508817F509F0CAB50071BF1A /* Sources */,
+				6EE2BA590A40BDD300CC7CE2 /* Resources */,
+				508817D509F0C9AD0071BF1A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		508817D509F0C9AD0071BF1A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6EE2BA530A40BB2600CC7CE2 /* TransformButtons.aip */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		508817F509F0CAB50071BF1A /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				F9C02B790BA6E7590039151A /* Shared */,
+				2AF5F89D0CF5F8360091D961 /* TransformButtonsID.h */,
+				C4B1643213063B1E007644F6 /* TransformButtonsPanelController.cpp */,
+				C4B1643313063B1E007644F6 /* TransformButtonsPanelController.h */,
+				2AF5F89E0CF5F8360091D961 /* TransformButtonsPlugin.cpp */,
+				2AF5F89F0CF5F8360091D961 /* TransformButtonsPlugin.h */,
+				2AF5F8A00CF5F8360091D961 /* TransformButtonsSuites.cpp */,
+				2AF5F8A10CF5F8360091D961 /* TransformButtonsSuites.h */,
+			);
+			name = Sources;
+			sourceTree = "<group>";
+		};
+		6EE2BA590A40BDD300CC7CE2 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				322D22C917F1900F00681154 /* IDToFile.txt */,
+				322D22C517F18D8000681154 /* TransformButtons.r */,
+				6E81FEC40A8CB0E3002569B5 /* Info.plist */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+		};
+		A1943F7425E51F2500FD8F0A /* xcconfigs */ = {
+			isa = PBXGroup;
+			children = (
+				A1943F7625E51F3700FD8F0A /* AIPluginCommon.xcconfig */,
+				A1943F7725E51F3700FD8F0A /* AIPluginDebug.xcconfig */,
+				A1943F7525E51F3700FD8F0A /* AIPluginRelease.xcconfig */,
+			);
+			name = xcconfigs;
+			sourceTree = "<group>";
+		};
+		A1943F7825E51F6600FD8F0A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A1943F7925E51F6700FD8F0A /* Cocoa.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		F9C02B790BA6E7590039151A /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				C4B164A213063D79007644F6 /* SDKPlugPlug.cpp */,
+				C4B1644C13063BAD007644F6 /* IAIFilePath.cpp */,
+				C4B1644D13063BAD007644F6 /* IAIStringFormatUtils.cpp */,
+				C4B1643613063B2B007644F6 /* FlashUIController.cpp */,
+				2AF5F8970CF5F8260091D961 /* IAIUnicodeString.cpp */,
+				2AF5F8890CF5F8040091D961 /* AppContext.cpp */,
+				2AF5F88A0CF5F8040091D961 /* IllustratorSDK.cpp */,
+				2AF5F88B0CF5F8040091D961 /* Main.cpp */,
+				2AF5F88C0CF5F8040091D961 /* Plugin.cpp */,
+				2AF5F88D0CF5F8040091D961 /* SDKAboutPluginsHelper.cpp */,
+				2AF5F88E0CF5F8040091D961 /* Suites.cpp */,
+			);
+			name = Shared;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		6EE2BA0A0A40B76300CC7CE2 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2AF5F8A40CF5F8360091D961 /* TransformButtonsID.h in Headers */,
+				2AF5F8A60CF5F8360091D961 /* TransformButtonsPlugin.h in Headers */,
+				2AF5F8A80CF5F8360091D961 /* TransformButtonsSuites.h in Headers */,
+				C4B1643513063B1E007644F6 /* TransformButtonsPanelController.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		508817D309F0C9AD0071BF1A /* TransformButtons */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 508817D709F0C9AE0071BF1A /* Build configuration list for PBXNativeTarget "TransformButtons" */;
+			buildPhases = (
+				FDD9160C21AC0A0A0018B958 /* ShellScript */,
+				6EE2BA0A0A40B76300CC7CE2 /* Headers */,
+				508817D109F0C9AD0071BF1A /* Sources */,
+				508817D009F0C9AD0071BF1A /* Resources */,
+				508817D209F0C9AD0071BF1A /* Frameworks */,
+				6EE2BA0C0A40B77400CC7CE2 /* Rez */,
+				322D22C817F18E2E00681154 /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TransformButtons;
+			productName = TransformButtonsProject;
+			productReference = 6EE2BA530A40BB2600CC7CE2 /* TransformButtons.aip */;
+			productType = "com.apple.product-type.bundle";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		508817C409F0C9740071BF1A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+			};
+			buildConfigurationList = 508817C509F0C9740071BF1A /* Build configuration list for PBXProject "TransformButtons" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
+			mainGroup = 508817C209F0C9740071BF1A;
+			productRefGroup = 508817D509F0C9AD0071BF1A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				508817D309F0C9AD0071BF1A /* TransformButtons */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		508817D009F0C9AD0071BF1A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				322D22CA17F1900F00681154 /* IDToFile.txt in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXRezBuildPhase section */
+		6EE2BA0C0A40B77400CC7CE2 /* Rez */ = {
+			isa = PBXRezBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				322D22C617F18D8000681154 /* TransformButtons.r in Rez */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXRezBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		322D22C817F18E2E00681154 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "mkdir -p \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/png\"\nmkdir -p \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/txt\"\ncp -f \"./Resources/raw/TransformButtonsRotateCCWIcon.png\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/png/TransformButtonsRotateCCWIcon.png\"\ncp -f \"./Resources/raw/TransformButtonsRotateCWIcon.png\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/png/TransformButtonsRotateCWIcon.png\"\ncp -f \"./Resources/raw/TransformButtonsScaleUpIcon.png\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/png/TransformButtonsScaleUpIcon.png\"\ncp -f \"./Resources/raw/TransformButtonsScaleDownIcon.png\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/png/TransformButtonsScaleDownIcon.png\"\ncp -f \"./Resources/raw/TransformButtonsUpArrowIcon.png\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/png/TransformButtonsUpArrowIcon.png\"\ncp -f \"./Resources/raw/TransformButtonsDownArrowIcon.png\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/png/TransformButtonsDownArrowIcon.png\"\ncp -f \"./Resources/raw/TransformButtonsLeftArrowIcon.png\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/png/TransformButtonsLeftArrowIcon.png\"\ncp -f \"./Resources/raw/TransformButtonsRightArrowIcon.png\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/png/TransformButtonsRightArrowIcon.png\"\ncp -f \"./Resources/raw/TransformButtonsIcon.png\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/png/TransformButtonsIcon.png\"\ncp -f \"./Resources/raw/TransformButtonsIconRollover.png\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/png/TransformButtonsIconRollover.png\"\nmkdir -p \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/pipl\"\ncp -f \"plugin.pipl\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/pipl/plugin.pipl\"\n\nexit\n";
+		};
+		FDD9160C21AC0A0A0018B958 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "python3 ../../tools/pipl/create_pipl.py -input '[{\"name\":\"TransformButtons\",\"entry_point\" : \"PluginMain\"}]' \n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		508817D109F0C9AD0071BF1A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2AF5F88F0CF5F8040091D961 /* AppContext.cpp in Sources */,
+				2AF5F8900CF5F8040091D961 /* IllustratorSDK.cpp in Sources */,
+				2AF5F8910CF5F8040091D961 /* Main.cpp in Sources */,
+				2AF5F8920CF5F8040091D961 /* Plugin.cpp in Sources */,
+				2AF5F8930CF5F8040091D961 /* SDKAboutPluginsHelper.cpp in Sources */,
+				2AF5F8940CF5F8040091D961 /* Suites.cpp in Sources */,
+				2AF5F89A0CF5F8260091D961 /* IAIUnicodeString.cpp in Sources */,
+				2AF5F8A50CF5F8360091D961 /* TransformButtonsPlugin.cpp in Sources */,
+				2AF5F8A70CF5F8360091D961 /* TransformButtonsSuites.cpp in Sources */,
+				C4B1643413063B1E007644F6 /* TransformButtonsPanelController.cpp in Sources */,
+				C4B1643713063B2B007644F6 /* FlashUIController.cpp in Sources */,
+				C4B1644E13063BAD007644F6 /* IAIFilePath.cpp in Sources */,
+				C4B1644F13063BAD007644F6 /* IAIStringFormatUtils.cpp in Sources */,
+				C4B164A313063D79007644F6 /* SDKPlugPlug.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		508817C609F0C9740071BF1A /* debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1943F7625E51F3700FD8F0A /* AIPluginCommon.xcconfig */;
+			buildSettings = {
+			};
+			name = debug;
+		};
+		508817C709F0C9740071BF1A /* release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1943F7625E51F3700FD8F0A /* AIPluginCommon.xcconfig */;
+			buildSettings = {
+			};
+			name = release;
+		};
+		508817D809F0C9AE0071BF1A /* debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1943F7725E51F3700FD8F0A /* AIPluginDebug.xcconfig */;
+			buildSettings = {
+			};
+			name = debug;
+		};
+		508817D909F0C9AE0071BF1A /* release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1943F7525E51F3700FD8F0A /* AIPluginRelease.xcconfig */;
+			buildSettings = {
+			};
+			name = release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		508817C509F0C9740071BF1A /* Build configuration list for PBXProject "TransformButtons" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				508817C609F0C9740071BF1A /* debug */,
+				508817C709F0C9740071BF1A /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+		508817D709F0C9AE0071BF1A /* Build configuration list for PBXNativeTarget "TransformButtons" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				508817D809F0C9AE0071BF1A /* debug */,
+				508817D909F0C9AE0071BF1A /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 508817C409F0C9740071BF1A /* Project object */;
+}

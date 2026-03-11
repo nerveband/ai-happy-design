@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -55,13 +54,8 @@ func showExample(category string) error {
 		return fmt.Errorf("unknown example category %q", category)
 	}
 
-	// Pretty-print the JSON
-	out, err := json.MarshalIndent(payload, "", "  ")
-	if err != nil {
-		return err
-	}
-	fmt.Println(string(out))
-	return nil
+	// Output the example payload
+	return printJSON(payload)
 }
 
 var exampleDescriptions = map[string]string{

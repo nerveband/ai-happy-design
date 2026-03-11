@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -25,7 +24,11 @@ var schemaCmd = &cobra.Command{
 		}
 
 		if len(args) == 0 {
-			// List all commands
+			if schemaJSON {
+				// Machine-readable: output all schemas as JSON array
+				return printJSON(schema.All)
+			}
+			// List all commands (human-readable)
 			for _, s := range schema.All {
 				aliases := ""
 				if len(s.Aliases) > 0 {
@@ -42,9 +45,7 @@ var schemaCmd = &cobra.Command{
 		}
 
 		if schemaJSON {
-			out, _ := json.MarshalIndent(s, "", "  ")
-			fmt.Println(string(out))
-			return nil
+			return printJSON(s)
 		}
 
 		// Human-readable table

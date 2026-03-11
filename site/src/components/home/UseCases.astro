@@ -1,0 +1,108 @@
+---
+const cases = [
+  {
+    title: 'Social Media',
+    desc: 'Generate Instagram carousels, stories, and posts at scale. 5 slides in 13 seconds.',
+    link: '/use-cases/social-media/',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><rect x="40" y="40" width="176" height="176" rx="16"/><circle cx="128" cy="128" r="48"/><circle cx="180" cy="76" r="12" fill="#FFD600" stroke="none"/></svg>'
+  },
+  {
+    title: 'Presentations',
+    desc: 'Build pitch decks and slide sets programmatically from structured data.',
+    link: '/use-cases/presentations/',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><rect x="32" y="48" width="192" height="136" rx="8"/><line x1="128" y1="184" x2="128" y2="216"/><line x1="96" y1="216" x2="160" y2="216"/><polygon points="128,80 100,160 156,160" fill="none"/></svg>'
+  },
+  {
+    title: 'Design Systems',
+    desc: 'Audit components, generate token libraries, enforce consistency.',
+    link: '/use-cases/design-systems/',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><rect x="48" y="48" width="64" height="64" rx="8"/><rect x="144" y="48" width="64" height="64" rx="8"/><rect x="48" y="144" width="64" height="64" rx="8"/><rect x="144" y="144" width="64" height="64" rx="8"/><line x1="128" y1="48" x2="128" y2="208"/><line x1="48" y1="128" x2="208" y2="128"/></svg>'
+  },
+  {
+    title: 'Marketing',
+    desc: 'Batch-produce ads, banners, email headers with schema validation.',
+    link: '/use-cases/marketing/',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><path d="M192,64,69.7,98.7a8,8,0,0,0-5.7,7.7v43.2a8,8,0,0,0,5.7,7.7L192,192Z" fill="none"/><line x1="192" y1="64" x2="192" y2="192"/><path d="M69.7,157.3,48,200" fill="none"/><circle cx="208" cy="128" r="16" fill="none"/></svg>'
+  },
+  {
+    title: 'Prototyping',
+    desc: 'Rapid UI mockups from natural language. Describe it, see it on canvas.',
+    link: '/use-cases/prototyping/',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><rect x="32" y="56" width="192" height="160" rx="8"/><line x1="32" y1="96" x2="224" y2="96"/><line x1="80" y1="56" x2="80" y2="96"/><line x1="128" y1="136" x2="128" y2="176"/><line x1="108" y1="156" x2="148" y2="156"/></svg>'
+  },
+  {
+    title: 'Multi-Agent',
+    desc: 'Chain multiple AI agents. One reads specs, another designs, another exports.',
+    link: '/use-cases/multi-agent/',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256" fill="none" stroke="#FFD600" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><circle cx="128" cy="144" r="40"/><path d="M128,104a32,32,0,1,0-32-32" fill="none"/><circle cx="128" cy="72" r="32"/><path d="M68,216a60,60,0,0,1,120,0" fill="none"/><path d="M58,192a36,36,0,0,1,24-34" fill="none"/><path d="M198,192a36,36,0,0,0-24-34" fill="none"/><circle cx="80" cy="128" r="24"/><circle cx="176" cy="128" r="24"/></svg>'
+  }
+];
+---
+
+<section class="section section-spotlight" id="use-cases">
+  <div class="container">
+    <div class="reveal">
+      <h2 class="section-headline">What you can do <span class="text-accent">on day one.</span></h2>
+    </div>
+
+    <div class="grid-3 stagger-grid cases-grid">
+      {cases.map((c) => (
+        <a href={c.link} class="glass-card tilt-card case-card">
+          <div class="case-icon" set:html={c.icon} />
+          <h3 class="case-title">{c.title}</h3>
+          <p class="case-desc">{c.desc}</p>
+          <span class="case-link">Learn more &rarr;</span>
+        </a>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .cases-grid {
+    margin-top: 4rem;
+  }
+
+  .case-card {
+    display: block;
+    text-decoration: none;
+    padding: 2rem;
+    cursor: pointer;
+  }
+
+  .case-icon {
+    margin-bottom: 1.25rem;
+  }
+
+  .case-title {
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+  }
+
+  .case-desc {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .case-link {
+    font-size: 0.85rem;
+    color: var(--color-accent);
+    font-weight: 500;
+    transition: opacity 0.2s ease;
+  }
+
+  .case-card:hover .case-link {
+    opacity: 0.8;
+  }
+
+  @media (max-width: 768px) {
+    .cases-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

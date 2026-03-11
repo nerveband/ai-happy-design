@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<script src="../js/CSInterface.js"></script>
+	<script src="../js/jquery-1.9.1.min.js"></script>
+	<script src="../js/main.js"></script>
+	<link rel="stylesheet" href="../css/snippetrunner.css" />
+</head>
+<body>
+	<form>
+		<div class="row">
+			<div class="col">
+				<label>Snippet:</label>
+			</div>
+			<div class="col">
+			 	<select name="snippets" id="snippets"></select>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label>Operation:</label>
+			</div>
+			<div class="col">
+				<select name="operations" id="operations" disabled>
+					<option value="Select">Select</option>
+				</select>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label>Conditions:</label>
+			</div>
+			<div class="col">
+				<p id="precondition"></p>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label>Log:</label>
+			</div>
+			<div class="col">
+				<textarea id="log" rows="10" cols="50"></textarea>
+			</div>
+		</div>
+	</form>
+	<div class="row">
+		<input type="submit" id="run" value="Run" disabled />
+		<input type="submit" id="clear" value="Clear log" />
+		<input type="submit" id="save" value="Save log" />
+	</div>
+</body>
+</html>

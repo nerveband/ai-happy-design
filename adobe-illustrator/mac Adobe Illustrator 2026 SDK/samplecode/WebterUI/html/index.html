@@ -1,0 +1,114 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html 
+xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<script src="../js/CSInterface.js"></script>
+	<script src="../js/jquery-1.9.1.min.js"></script>
+	<script src="../js/main.js"></script>
+	<link rel="stylesheet" href="../css/webterui.css" />
+</head>
+<body>
+	<form>
+		<div class="row">
+			<div class="col"></div>
+			<div class="col">
+				<label id="docLabel">Document</label>
+			</div>
+			<div class="col">
+				<label id="artLabel">No art selected</label>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label>Entry:</label>
+			</div>
+			<div class="col">
+				<select name="docEntryDropDown" id="docEntryDropDown" disabled>
+				</select>
+			</div>
+			<div class="col">
+				<select name="artEntryDropDown" id="artEntryDropDown" disabled>
+				</select>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label>Definition:</label>
+			</div>
+			<div class="col">
+				<input type="text" id="docDefinitionTxt" disabled/>
+			</div>
+			<div class="col">
+				<input type="text" id="artDefinitionTxt" disabled/>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label>Type:</label>
+			</div>
+			<div class="col">
+				<select name="docTypeDropDown" id="docTypeDropDown" disabled>
+					<option value="0">Unknown</option>
+					<option value="1">Integer</option>
+					<option value="2">Boolean</option>
+					<option value="3">Real</option>
+					<option value="4">String</option>
+					<option value="5">Dict</option>
+					<option value="6">Array</option>
+					<option value="7">Binary</option>
+					<option value="8">Point</option>
+					<option value="9">Matrix</option>
+					<option value="10">PatternRef</option>
+					<option value="11">BrushPatternRef</option>
+					<option value="12">CustomColorRef</option>
+					<option value="13">GradientRef</option>
+					<option value="14">PluginObjectRef</option>
+					<option value="15">FillStyle</option>
+					<option value="16">StrokeStyle</option>
+					<option value="17">UIDType</option>
+					<option value="18">UIDREFType</option>
+					<option value="19">XMLNodeType</option>
+					<option value="20">SVGFilterType</option>
+					<option value="21">ArtStyleType</option>
+				</select>
+			</div>
+			<div class="col">
+				<select name="artTypeDropDown" id="artTypeDropDown" disabled>
+					<option value="0">Unknown</option>
+					<option value="1">Integer</option>
+					<option value="2">Boolean</option>
+					<option value="3">Real</option>
+					<option value="4">String</option>
+					<option value="5">Dict</option>
+					<option value="6">Array</option>
+					<option value="7">Binary</option>
+					<option value="8">Point</option>
+					<option value="9">Matrix</option>
+					<option value="10">PatternRef</option>
+					<option value="11">BrushPatternRef</option>
+					<option value="12">CustomColorRef</option>
+					<option value="13">GradientRef</option>
+					<option value="14">PluginObjectRef</option>
+					<option value="15">FillStyle</option>
+					<option value="16">StrokeStyle</option>
+					<option value="17">UIDType</option>
+					<option value="18">UIDREFType</option>
+					<option value="19">XMLNodeType</option>
+					<option value="20">SVGFilterType</option>
+					<option value="21">ArtStyleType</option>
+				</select>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col"></div>
+			<div class="col">
+				<input type="submit" id="docAddBtn" value="Add" disabled/>
+			</div>
+			<div class="col">
+				<input type="submit" id="artAddBt" value="Add" disabled/>
+			</div>
+		</div>
+	</form>
+</body>
+</html>

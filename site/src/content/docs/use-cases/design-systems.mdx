@@ -1,0 +1,371 @@
+---
+title: Design Systems
+description: Build and maintain Figma design systems with variables, styles, components, and design tokens using AI Happy Design.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+AI Happy Design gives you full access to Figma's design system capabilities: components, styles, variables, and collections. You can build an entire design system programmatically.
+
+## Analyzing Existing Systems
+
+Before creating new elements, analyze what already exists in the file:
+
+```bash
+ai-happy-design command design_system.analyze
+```
+
+This returns:
+- All paint, text, and effect styles with values
+- Variables and variable collections
+- Local components and their properties
+- Color, typography, and spacing patterns
+- Reuse guidance for maintaining consistency
+
+<Aside type="tip">
+Always run `design_system.analyze` before adding to an existing file. This prevents duplicating styles and ensures consistency.
+</Aside>
+
+## Creating Paint Styles
+
+Define reusable color styles with semantic naming:
+
+```json
+[
+  {
+    "name": "primary_color",
+    "command": "style.create_paint",
+    "params": {
+      "name": "Brand/Primary",
+      "color": "#FFD600",
+      "description": "Primary brand accent color"
+    }
+  },
+  {
+    "name": "bg_dark",
+    "command": "style.create_paint",
+    "params": {
+      "name": "Background/Dark",
+      "color": "#0a0a0a",
+      "description": "Primary dark background"
+    }
+  },
+  {
+    "name": "surface_card",
+    "command": "style.create_paint",
+    "params": {
+      "name": "Surface/Card",
+      "color": "#161616",
+      "description": "Card surface color"
+    }
+  },
+  {
+    "name": "text_primary",
+    "command": "style.create_paint",
+    "params": {
+      "name": "Text/Primary",
+      "color": "#FFFFFF",
+      "description": "Primary text color on dark backgrounds"
+    }
+  },
+  {
+    "name": "text_muted",
+    "command": "style.create_paint",
+    "params": {
+      "name": "Text/Muted",
+      "color": "#888888",
+      "description": "Secondary/muted text color"
+    }
+  }
+]
+```
+
+Use `/` in style names for hierarchical grouping in Figma's style panel.
+
+## Creating Text Styles
+
+```json
+[
+  {
+    "name": "style_display",
+    "command": "style.create_text",
+    "params": {
+      "name": "Typography/Display",
+      "description": "Display text: Space Grotesk ExtraBold 64px"
+    }
+  },
+  {
+    "name": "style_heading",
+    "command": "style.create_text",
+    "params": {
+      "name": "Typography/Heading",
+      "description": "Section heading: Space Grotesk Bold 32px"
+    }
+  },
+  {
+    "name": "style_body",
+    "command": "style.create_text",
+    "params": {
+      "name": "Typography/Body",
+      "description": "Body text: Inter Regular 16px, line-height 150%"
+    }
+  },
+  {
+    "name": "style_caption",
+    "command": "style.create_text",
+    "params": {
+      "name": "Typography/Caption",
+      "description": "Caption text: Inter Regular 12px"
+    }
+  }
+]
+```
+
+## Creating Effect Styles
+
+```json
+[
+  {
+    "name": "shadow_subtle",
+    "command": "style.create_effect",
+    "params": {
+      "name": "Shadow/Subtle",
+      "description": "Subtle drop shadow for cards: Y:2 R:8 a:0.10"
+    }
+  },
+  {
+    "name": "shadow_elevated",
+    "command": "style.create_effect",
+    "params": {
+      "name": "Shadow/Elevated",
+      "description": "Elevated shadow for modals: Y:8 R:32 a:0.30"
+    }
+  }
+]
+```
+
+## Creating Variables
+
+Define design tokens as Figma variables with collections:
+
+```json
+[
+  {
+    "name": "spacing_collection",
+    "command": "variable.create_collection",
+    "params": {"name": "Spacing"}
+  },
+  {
+    "name": "space_xs",
+    "command": "variable.create",
+    "params": {
+      "name": "spacing/xs",
+      "collectionId": "${{steps.spacing_collection.result.id}}",
+      "resolvedType": "FLOAT"
+    }
+  },
+  {
+    "name": "set_xs",
+    "command": "variable.set_value",
+    "params": {
+      "variableId": "${{steps.space_xs.result.id}}",
+      "value": 4
+    }
+  },
+  {
+    "name": "space_sm",
+    "command": "variable.create",
+    "params": {
+      "name": "spacing/sm",
+      "collectionId": "${{steps.spacing_collection.result.id}}",
+      "resolvedType": "FLOAT"
+    }
+  },
+  {
+    "name": "set_sm",
+    "command": "variable.set_value",
+    "params": {
+      "variableId": "${{steps.space_sm.result.id}}",
+      "value": 8
+    }
+  },
+  {
+    "name": "space_md",
+    "command": "variable.create",
+    "params": {
+      "name": "spacing/md",
+      "collectionId": "${{steps.spacing_collection.result.id}}",
+      "resolvedType": "FLOAT"
+    }
+  },
+  {
+    "name": "set_md",
+    "command": "variable.set_value",
+    "params": {
+      "variableId": "${{steps.space_md.result.id}}",
+      "value": 16
+    }
+  }
+]
+```
+
+### Color Variables with Modes
+
+Create color variables that support light/dark modes:
+
+```json
+[
+  {
+    "name": "color_collection",
+    "command": "variable.create_collection",
+    "params": {"name": "Colors"}
+  },
+  {
+    "name": "bg_var",
+    "command": "variable.create",
+    "params": {
+      "name": "color/background",
+      "collectionId": "${{steps.color_collection.result.id}}",
+      "resolvedType": "COLOR"
+    }
+  }
+]
+```
+
+## Binding Variables to Nodes
+
+Apply variables to node properties for live token binding:
+
+```bash
+ai-happy-design command variable.bind '{
+  "nodeId": "42:248",
+  "variableId": "VAR_ID",
+  "field": "paddingTop"
+}'
+```
+
+Unbind when no longer needed:
+
+```bash
+ai-happy-design command variable.unbind '{
+  "nodeId": "42:248",
+  "field": "paddingTop"
+}'
+```
+
+## Creating Components
+
+Turn any node into a reusable component:
+
+```bash
+# First, create the frame with all its content
+ai-happy-design batch button.json
+
+# Then convert it to a component
+ai-happy-design command component.create '{
+  "nodeId": "42:248",
+  "name": "Button/Primary"
+}'
+```
+
+<Aside type="note">
+Components must be created from existing nodes. Create the frame and its children first, then convert the frame to a component.
+</Aside>
+
+### Creating Component Instances
+
+```bash
+ai-happy-design command component.create_instance '{
+  "componentKey": "COMPONENT_KEY",
+  "x": 100, "y": 200,
+  "parentId": "42:260"
+}'
+```
+
+### Creating Variant Sets
+
+Group related components as variants:
+
+```bash
+ai-happy-design command component.create_set '{
+  "nodeIds": "42:248,42:250,42:252",
+  "name": "Button"
+}'
+```
+
+### Overriding Instance Properties
+
+```bash
+# Get current overrides
+ai-happy-design command component.get_overrides '{"nodeId": "42:300"}'
+
+# Set overrides
+ai-happy-design command component.set_overrides '{
+  "nodeId": "42:300",
+  "overrides": {"text": "New Label", "visible": true}
+}'
+```
+
+## Applying Styles to Nodes
+
+```bash
+# Apply paint style
+ai-happy-design command style.apply '{
+  "nodeId": "42:248",
+  "styleId": "S:abc123",
+  "styleType": "PAINT"
+}'
+
+# Apply text style
+ai-happy-design command style.apply '{
+  "nodeId": "42:249",
+  "styleId": "S:def456",
+  "styleType": "TEXT"
+}'
+
+# Apply effect style
+ai-happy-design command style.apply '{
+  "nodeId": "42:248",
+  "styleId": "S:ghi789",
+  "styleType": "EFFECT"
+}'
+```
+
+Style types: `PAINT`, `TEXT`, `EFFECT`, `GRID`.
+
+## Full Workflow: Building a Design System
+
+1. **Analyze** existing styles with `design_system.analyze`
+2. **Compute tokens** with `design.compute_tokens` for target canvas sizes
+3. **Create paint styles** for brand colors, backgrounds, surfaces, text
+4. **Create text styles** for display, heading, body, caption tiers
+5. **Create effect styles** for shadow levels and blur presets
+6. **Create variables** for spacing, sizing, radius, and color tokens
+7. **Build base components** (buttons, cards, badges, inputs, navbars)
+8. **Create variant sets** for component states (default, hover, active, disabled)
+9. **Document** with clear naming: `Brand/Primary`, `Typography/Heading`, `Spacing/md`
+
+## Design Token Computation
+
+Use `design.compute_tokens` to generate a complete token set:
+
+```bash
+ai-happy-design command design.compute_tokens '{"width":1440,"height":900}'
+```
+
+Returns all font sizes, spacing values, padding, and card dimensions. Use these concrete values when creating variables to ensure consistency.
+
+## Tips
+
+- **Use `/` in style names** for grouping: `Brand/Primary`, `Background/Dark`
+- **Analyze before creating** to avoid duplicating existing styles
+- **Variable collections** group related tokens: one for Spacing, one for Colors, one for Typography
+- **Components must be created from existing nodes**, so build the frame first
+- **Export component thumbnails** at 2x for documentation
+- **List all styles**: `ai-happy-design command style.get_all`
+- **List all variables**: `ai-happy-design command variable.get_all`
+- **List all components**: `ai-happy-design command component.get_local`
+
+---
+
+Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveband/ai-happy-design) | License: GPL-3.0

@@ -1,0 +1,21 @@
+body {
+	font-size: 13px;
+}
+
+div .table {
+	display: table;
+}
+
+.row {
+	display: table-row;
+}
+
+.col {
+	display: table-cell;
+	padding: 3px;
+}
+
+.left {
+	float: left;
+	margin-right: 50px;
+}

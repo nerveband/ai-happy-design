@@ -45,7 +45,9 @@ Discovery-first flow for LLM agents:
   1) ahd-figma tools --llm --json
   2) ahd-figma actions [domain]
   3) ahd-figma batch --help`,
-	Version: version,
+	Version:       version,
+	SilenceErrors: true,
+	SilenceUsage:  true,
 }
 
 var connectCmd = &cobra.Command{
@@ -519,8 +521,7 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 						},
 					},
 				}
-				j, _ := json.MarshalIndent(out, "", "  ")
-				fmt.Println(string(j))
+				printJSONErr(out)
 				return fmt.Errorf("schema validation blocked %d issues", schemaResult.Blocked)
 			}
 		}
@@ -559,8 +560,7 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 						},
 					},
 				}
-				j, _ := json.MarshalIndent(out, "", "  ")
-				fmt.Println(string(j))
+				printJSONErr(out)
 				return fmt.Errorf("design quality score %.1f/10 below threshold 7.0", lintResult.Score.Overall)
 			}
 		}
@@ -1107,9 +1107,7 @@ func handleLocalCommand(command string, params map[string]interface{}) (bool, er
 		}
 		dpi, _ := params["dpi"].(float64)
 		tokens := tools.ComputeDesignTokens(w, h, dpi)
-		out, _ := json.MarshalIndent(tokens, "", "  ")
-		fmt.Println(string(out))
-		return true, nil
+		return true, printJSON(tokens)
 	default:
 		return false, nil
 	}
@@ -1718,13 +1716,46 @@ func uniqueStrings(in []string) []string {
 	return out
 }
 
+// stdoutIsTTY returns true when stdout is connected to a terminal (not piped).
+func stdoutIsTTY() bool {
+	fi, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+	return (fi.Mode() & os.ModeCharDevice) != 0
+}
+
+// marshalJSON returns v as JSON bytes using TTY-aware formatting.
+// When stdout is a TTY (interactive terminal), it uses indented formatting
+// for readability. When piped (non-TTY), it uses compact single-line JSON
+// to save tokens for LLM agents.
+func marshalJSON(v interface{}) ([]byte, error) {
+	if stdoutIsTTY() {
+		return json.MarshalIndent(v, "", "  ")
+	}
+	return json.Marshal(v)
+}
+
+// printJSON outputs v as JSON to stdout with TTY-aware formatting.
 func printJSON(v interface{}) error {
-	data, err := json.MarshalIndent(v, "", "  ")
+	data, err := marshalJSON(v)
 	if err != nil {
 		return err
 	}
 	fmt.Println(string(data))
 	return nil
+}
+
+// printJSONErr outputs v as JSON to stderr with TTY-aware formatting.
+// Used for structured error envelopes so agents can separate data (stdout)
+// from errors (stderr).
+func printJSONErr(v interface{}) {
+	data, err := marshalJSON(v)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		return
+	}
+	fmt.Fprintln(os.Stderr, string(data))
 }
 
 func roundTo(v float64, decimals int) float64 {
@@ -2487,12 +2518,11 @@ var extractCmd = &cobra.Command{
 			return err
 		}
 
-		data, _ := json.MarshalIndent(ops, "", "  ")
 		if outputPath != "" {
+			data, _ := json.MarshalIndent(ops, "", "  ")
 			return os.WriteFile(outputPath, data, 0644)
 		}
-		fmt.Println(string(data))
-		return nil
+		return printJSON(ops)
 	},
 }
 
@@ -2852,6 +2882,27 @@ func main() {
 	rootCmd.AddCommand(configCmd)
 
 	if err := rootCmd.Execute(); err != nil {
+		printJSONErr(map[string]interface{}{
+			"error": err.Error(),
+			"code":  classifyTopLevelError(err),
+		})
 		os.Exit(1)
+	}
+}
+
+// classifyTopLevelError categorises a cobra/command error into a machine-readable code.
+func classifyTopLevelError(err error) string {
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "not connected"), strings.Contains(msg, "disconnected"):
+		return "CONNECTION_ERROR"
+	case strings.Contains(msg, "timed out"), strings.Contains(msg, "timeout"):
+		return "TIMEOUT"
+	case strings.Contains(msg, "unknown command"), strings.Contains(msg, "not found"):
+		return "UNKNOWN_COMMAND"
+	case strings.Contains(msg, "required"):
+		return "VALIDATION_ERROR"
+	default:
+		return "ERROR"
 	}
 }

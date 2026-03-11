@@ -47,7 +47,9 @@ Discovery-first workflow:
   1) ahd-illustrator tools --json
   2) ahd-illustrator schema <domain.action> --json
   3) ahd-illustrator command <domain.action> --json '{...}' --dry-run`,
-	Version: version,
+	Version:       version,
+	SilenceErrors: true,
+	SilenceUsage:  true,
 }
 
 var toolsCmd = &cobra.Command{
@@ -310,6 +312,15 @@ var examplesCmd = &cobra.Command{
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
+		errData := map[string]interface{}{
+			"error": err.Error(),
+			"code":  "ERROR",
+		}
+		if data, jErr := json.Marshal(errData); jErr == nil {
+			fmt.Fprintln(os.Stderr, string(data))
+		} else {
+			fmt.Fprintln(os.Stderr, err.Error())
+		}
 		os.Exit(1)
 	}
 }

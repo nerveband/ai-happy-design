@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<ExtensionManifest 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ExtensionBundleId="com.adobe.illustrator.tutorialui" ExtensionBundleVersion="1.0.0" Version="5.0">
+  <ExtensionList>
+    <Extension Id="com.adobe.illustrator.tutorialui.dialog" Version="1.0.0"/>
+  </ExtensionList>
+  <ExecutionEnvironment>
+    <HostList>
+      <Host Name="ILST" Version="18.0"/>
+    </HostList>
+    <LocaleList>
+      <Locale Code="All"/>
+    </LocaleList>
+    <RequiredRuntimeList>
+      <RequiredRuntime Name="CSXS" Version="5.0"/>
+    </RequiredRuntimeList>
+  </ExecutionEnvironment>
+  <DispatchInfoList>
+    <Extension Id="com.adobe.illustrator.tutorialui.dialog">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./html/index.html</MainPath>
+          <CEFCommandLine/>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>ModalDialog</Type>
+          <Menu>TutorialUI</Menu>
+          <Geometry>
+            <Size>
+              <Height>110</Height>
+              <Width>230</Width>
+            </Size>
+            <MinSize>
+              <Height>110</Height>
+              <Width>230</Width>
+            </MinSize>
+            <MaxSize>
+              <Height>110</Height>
+              <Width>230</Width>
+            </MaxSize>
+          </Geometry>
+          <Icons/>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+  </DispatchInfoList>
+</ExtensionManifest>

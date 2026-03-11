@@ -1,0 +1,357 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 45;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		101232ED1F67B7E4006C9682 /* IAIArtMatcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 101232EA1F67B7E4006C9682 /* IAIArtMatcher.cpp */; };
+		101232EE1F67B7E4006C9682 /* IAIArtSet.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 101232EB1F67B7E4006C9682 /* IAIArtSet.cpp */; };
+		101232EF1F67B7E4006C9682 /* IAIDictionary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 101232EC1F67B7E4006C9682 /* IAIDictionary.cpp */; };
+		2ACEEF890D17CEA100087840 /* WebterID.h in Headers */ = {isa = PBXBuildFile; fileRef = 2ACEEF880D17CEA100087840 /* WebterID.h */; };
+		2AF5F90A0CF5F9E80091D961 /* AppContext.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F9040CF5F9E80091D961 /* AppContext.cpp */; };
+		2AF5F90B0CF5F9E80091D961 /* IllustratorSDK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F9050CF5F9E80091D961 /* IllustratorSDK.cpp */; };
+		2AF5F90C0CF5F9E80091D961 /* Main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F9060CF5F9E80091D961 /* Main.cpp */; };
+		2AF5F90D0CF5F9E80091D961 /* Plugin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F9070CF5F9E80091D961 /* Plugin.cpp */; };
+		2AF5F90E0CF5F9E80091D961 /* SDKAboutPluginsHelper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F9080CF5F9E80091D961 /* SDKAboutPluginsHelper.cpp */; };
+		2AF5F90F0CF5F9E80091D961 /* Suites.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F9090CF5F9E80091D961 /* Suites.cpp */; };
+		2AF5F9170CF5FA1F0091D961 /* IAIUnicodeString.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2AF5F9130CF5FA1F0091D961 /* IAIUnicodeString.cpp */; };
+		6E9770560A59E22E00BB07F9 /* WebterPlugin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6E9770530A59E22E00BB07F9 /* WebterPlugin.cpp */; };
+		6E9770570A59E22E00BB07F9 /* WebterSuites.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6E9770540A59E22E00BB07F9 /* WebterSuites.cpp */; };
+		9E80497B13D488CF00A62CEA /* DictionaryToXmlConverter.h in Headers */ = {isa = PBXBuildFile; fileRef = 9E80497913D488CF00A62CEA /* DictionaryToXmlConverter.h */; };
+		9E80497C13D488CF00A62CEA /* DictionaryToXmlConverter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9E80497A13D488CF00A62CEA /* DictionaryToXmlConverter.cpp */; };
+		A1D69C1325E523E6000A16D0 /* AIPluginDebug.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = A1D69C1025E523E5000A16D0 /* AIPluginDebug.xcconfig */; };
+		A1D69C1425E523E6000A16D0 /* AIPluginRelease.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = A1D69C1125E523E5000A16D0 /* AIPluginRelease.xcconfig */; };
+		A1D69C1525E523E6000A16D0 /* AIPluginCommon.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = A1D69C1225E523E6000A16D0 /* AIPluginCommon.xcconfig */; };
+		A1D69C1925E52411000A16D0 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1D69C1825E52411000A16D0 /* Cocoa.framework */; };
+		C4EC4A40135BDDF000590FEF /* WebterPanelController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C4EC4A3F135BDDF000590FEF /* WebterPanelController.cpp */; };
+		C4EC4A45135BDE4D00590FEF /* FlashUIController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C4EC4A43135BDE4D00590FEF /* FlashUIController.cpp */; };
+		C4EC4A46135BDE4D00590FEF /* SDKPlugPlug.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C4EC4A44135BDE4D00590FEF /* SDKPlugPlug.cpp */; };
+		C4EC4A4A135BDE8E00590FEF /* IAIStringFormatUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C4EC4A49135BDE8E00590FEF /* IAIStringFormatUtils.cpp */; };
+		C4EC4A4E135BDEB500590FEF /* IAIFilePath.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C4EC4A4D135BDEB500590FEF /* IAIFilePath.cpp */; };
+		F938CBBA0B8B9EC50039754D /* Webter.r in Rez */ = {isa = PBXBuildFile; fileRef = F938CBB90B8B9EC50039754D /* Webter.r */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		101232EA1F67B7E4006C9682 /* IAIArtMatcher.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IAIArtMatcher.cpp; path = ../../illustratorapi/illustrator/IAIArtMatcher.cpp; sourceTree = "<group>"; };
+		101232EB1F67B7E4006C9682 /* IAIArtSet.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IAIArtSet.cpp; path = ../../illustratorapi/illustrator/IAIArtSet.cpp; sourceTree = "<group>"; };
+		101232EC1F67B7E4006C9682 /* IAIDictionary.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IAIDictionary.cpp; path = ../../illustratorapi/illustrator/IAIDictionary.cpp; sourceTree = "<group>"; };
+		2ACEEF880D17CEA100087840 /* WebterID.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = WebterID.h; path = Source/WebterID.h; sourceTree = "<group>"; };
+		2AF5F9040CF5F9E80091D961 /* AppContext.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = AppContext.cpp; path = ../common/source/AppContext.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F9050CF5F9E80091D961 /* IllustratorSDK.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = IllustratorSDK.cpp; path = ../common/source/IllustratorSDK.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F9060CF5F9E80091D961 /* Main.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = Main.cpp; path = ../common/source/Main.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F9070CF5F9E80091D961 /* Plugin.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = Plugin.cpp; path = ../common/source/Plugin.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F9080CF5F9E80091D961 /* SDKAboutPluginsHelper.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = SDKAboutPluginsHelper.cpp; path = ../common/source/SDKAboutPluginsHelper.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F9090CF5F9E80091D961 /* Suites.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = Suites.cpp; path = ../common/source/Suites.cpp; sourceTree = SOURCE_ROOT; };
+		2AF5F9130CF5FA1F0091D961 /* IAIUnicodeString.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = IAIUnicodeString.cpp; path = ../../illustratorapi/illustrator/IAIUnicodeString.cpp; sourceTree = SOURCE_ROOT; };
+		6E81FF620A8CD7E3002569B5 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text.plist; name = Info.plist; path = ../common/mac/Info.plist; sourceTree = SOURCE_ROOT; };
+		6E9770530A59E22E00BB07F9 /* WebterPlugin.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = WebterPlugin.cpp; path = Source/WebterPlugin.cpp; sourceTree = "<group>"; };
+		6E9770540A59E22E00BB07F9 /* WebterSuites.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = WebterSuites.cpp; path = Source/WebterSuites.cpp; sourceTree = "<group>"; };
+		6EE2BA530A40BB2600CC7CE2 /* Webter.aip */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Webter.aip; sourceTree = BUILT_PRODUCTS_DIR; };
+		9E80497913D488CF00A62CEA /* DictionaryToXmlConverter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DictionaryToXmlConverter.h; path = Source/DictionaryToXmlConverter.h; sourceTree = "<group>"; };
+		9E80497A13D488CF00A62CEA /* DictionaryToXmlConverter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DictionaryToXmlConverter.cpp; path = Source/DictionaryToXmlConverter.cpp; sourceTree = "<group>"; };
+		A1D69C1025E523E5000A16D0 /* AIPluginDebug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = AIPluginDebug.xcconfig; path = ../common/mac/AIPluginDebug.xcconfig; sourceTree = "<group>"; };
+		A1D69C1125E523E5000A16D0 /* AIPluginRelease.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = AIPluginRelease.xcconfig; path = ../common/mac/AIPluginRelease.xcconfig; sourceTree = "<group>"; };
+		A1D69C1225E523E6000A16D0 /* AIPluginCommon.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = AIPluginCommon.xcconfig; path = ../common/mac/AIPluginCommon.xcconfig; sourceTree = "<group>"; };
+		A1D69C1825E52411000A16D0 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		C4EC4A3F135BDDF000590FEF /* WebterPanelController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WebterPanelController.cpp; path = Source/WebterPanelController.cpp; sourceTree = "<group>"; };
+		C4EC4A43135BDE4D00590FEF /* FlashUIController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FlashUIController.cpp; path = ../common/source/FlashUIController.cpp; sourceTree = SOURCE_ROOT; };
+		C4EC4A44135BDE4D00590FEF /* SDKPlugPlug.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDKPlugPlug.cpp; path = ../common/source/SDKPlugPlug.cpp; sourceTree = SOURCE_ROOT; };
+		C4EC4A49135BDE8E00590FEF /* IAIStringFormatUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IAIStringFormatUtils.cpp; path = ../../illustratorapi/illustrator/IAIStringFormatUtils.cpp; sourceTree = SOURCE_ROOT; };
+		C4EC4A4D135BDEB500590FEF /* IAIFilePath.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IAIFilePath.cpp; path = ../../illustratorapi/illustrator/IAIFilePath.cpp; sourceTree = SOURCE_ROOT; };
+		F938CBB90B8B9EC50039754D /* Webter.r */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.rez; name = Webter.r; path = Resources/Mac/Webter.r; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		508817D209F0C9AD0071BF1A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1D69C1925E52411000A16D0 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		508817C209F0C9740071BF1A = {
+			isa = PBXGroup;
+			children = (
+				A1D69C0F25E523D2000A16D0 /* xcconfigs */,
+				A1D69C1725E52410000A16D0 /* Frameworks */,
+				508817F509F0CAB50071BF1A /* Sources */,
+				6EE2BA590A40BDD300CC7CE2 /* Resources */,
+				508817D509F0C9AD0071BF1A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		508817D509F0C9AD0071BF1A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6EE2BA530A40BB2600CC7CE2 /* Webter.aip */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		508817F509F0CAB50071BF1A /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				F9C02B440BA6E5E90039151A /* Shared */,
+				2ACEEF880D17CEA100087840 /* WebterID.h */,
+				C4EC4A3F135BDDF000590FEF /* WebterPanelController.cpp */,
+				6E9770530A59E22E00BB07F9 /* WebterPlugin.cpp */,
+				6E9770540A59E22E00BB07F9 /* WebterSuites.cpp */,
+				9E80497913D488CF00A62CEA /* DictionaryToXmlConverter.h */,
+				9E80497A13D488CF00A62CEA /* DictionaryToXmlConverter.cpp */,
+			);
+			name = Sources;
+			sourceTree = "<group>";
+		};
+		6EE2BA590A40BDD300CC7CE2 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				F938CBB90B8B9EC50039754D /* Webter.r */,
+				6E81FF620A8CD7E3002569B5 /* Info.plist */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+		};
+		A1D69C0F25E523D2000A16D0 /* xcconfigs */ = {
+			isa = PBXGroup;
+			children = (
+				A1D69C1225E523E6000A16D0 /* AIPluginCommon.xcconfig */,
+				A1D69C1025E523E5000A16D0 /* AIPluginDebug.xcconfig */,
+				A1D69C1125E523E5000A16D0 /* AIPluginRelease.xcconfig */,
+			);
+			name = xcconfigs;
+			sourceTree = "<group>";
+		};
+		A1D69C1725E52410000A16D0 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A1D69C1825E52411000A16D0 /* Cocoa.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		F9C02B440BA6E5E90039151A /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				101232EA1F67B7E4006C9682 /* IAIArtMatcher.cpp */,
+				101232EB1F67B7E4006C9682 /* IAIArtSet.cpp */,
+				101232EC1F67B7E4006C9682 /* IAIDictionary.cpp */,
+				C4EC4A4D135BDEB500590FEF /* IAIFilePath.cpp */,
+				C4EC4A49135BDE8E00590FEF /* IAIStringFormatUtils.cpp */,
+				C4EC4A43135BDE4D00590FEF /* FlashUIController.cpp */,
+				C4EC4A44135BDE4D00590FEF /* SDKPlugPlug.cpp */,
+				2AF5F9130CF5FA1F0091D961 /* IAIUnicodeString.cpp */,
+				2AF5F9040CF5F9E80091D961 /* AppContext.cpp */,
+				2AF5F9050CF5F9E80091D961 /* IllustratorSDK.cpp */,
+				2AF5F9060CF5F9E80091D961 /* Main.cpp */,
+				2AF5F9070CF5F9E80091D961 /* Plugin.cpp */,
+				2AF5F9080CF5F9E80091D961 /* SDKAboutPluginsHelper.cpp */,
+				2AF5F9090CF5F9E80091D961 /* Suites.cpp */,
+			);
+			name = Shared;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		6EE2BA0A0A40B76300CC7CE2 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2ACEEF890D17CEA100087840 /* WebterID.h in Headers */,
+				9E80497B13D488CF00A62CEA /* DictionaryToXmlConverter.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		508817D309F0C9AD0071BF1A /* Webter */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 508817D709F0C9AE0071BF1A /* Build configuration list for PBXNativeTarget "Webter" */;
+			buildPhases = (
+				FDD9160F21AC0AE70018B958 /* ShellScript */,
+				6EE2BA0A0A40B76300CC7CE2 /* Headers */,
+				508817D109F0C9AD0071BF1A /* Sources */,
+				508817D009F0C9AD0071BF1A /* Resources */,
+				508817D209F0C9AD0071BF1A /* Frameworks */,
+				6EE2BA0C0A40B77400CC7CE2 /* Rez */,
+				FA13BD4317E7240B00496E84 /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Webter;
+			productName = WebterProject;
+			productReference = 6EE2BA530A40BB2600CC7CE2 /* Webter.aip */;
+			productType = "com.apple.product-type.bundle";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		508817C409F0C9740071BF1A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+			};
+			buildConfigurationList = 508817C509F0C9740071BF1A /* Build configuration list for PBXProject "Webter" */;
+			compatibilityVersion = "Xcode 3.1";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
+			mainGroup = 508817C209F0C9740071BF1A;
+			productRefGroup = 508817D509F0C9AD0071BF1A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				508817D309F0C9AD0071BF1A /* Webter */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		508817D009F0C9AD0071BF1A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1D69C1325E523E6000A16D0 /* AIPluginDebug.xcconfig in Resources */,
+				A1D69C1525E523E6000A16D0 /* AIPluginCommon.xcconfig in Resources */,
+				A1D69C1425E523E6000A16D0 /* AIPluginRelease.xcconfig in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXRezBuildPhase section */
+		6EE2BA0C0A40B77400CC7CE2 /* Rez */ = {
+			isa = PBXRezBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F938CBBA0B8B9EC50039754D /* Webter.r in Rez */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXRezBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		FA13BD4317E7240B00496E84 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "mkdir -p \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/png\"\nmkdir -p \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/txt\"\ncp -f \"./Resources/raw/WebterIcon.png\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/png/WebterIcon.png\"\ncp -f \"./Resources/raw/WebterIconRollover.png\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/png/WebterIconRollover.png\"\ncp -f \"./Resources/raw/IDToFile.txt\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/txt/IDToFile.txt\"\nmkdir -p \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/pipl\"\ncp -f \"plugin.pipl\" \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}.aip/Contents/Resources/pipl/plugin.pipl\"\n\nexit\n";
+		};
+		FDD9160F21AC0AE70018B958 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "python3 ../../tools/pipl/create_pipl.py -input '[{\"name\":\"Webter\",\"entry_point\" : \"PluginMain\"}]'\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		508817D109F0C9AD0071BF1A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				101232ED1F67B7E4006C9682 /* IAIArtMatcher.cpp in Sources */,
+				6E9770560A59E22E00BB07F9 /* WebterPlugin.cpp in Sources */,
+				6E9770570A59E22E00BB07F9 /* WebterSuites.cpp in Sources */,
+				2AF5F90A0CF5F9E80091D961 /* AppContext.cpp in Sources */,
+				2AF5F90B0CF5F9E80091D961 /* IllustratorSDK.cpp in Sources */,
+				2AF5F90C0CF5F9E80091D961 /* Main.cpp in Sources */,
+				2AF5F90D0CF5F9E80091D961 /* Plugin.cpp in Sources */,
+				2AF5F90E0CF5F9E80091D961 /* SDKAboutPluginsHelper.cpp in Sources */,
+				2AF5F90F0CF5F9E80091D961 /* Suites.cpp in Sources */,
+				101232EF1F67B7E4006C9682 /* IAIDictionary.cpp in Sources */,
+				2AF5F9170CF5FA1F0091D961 /* IAIUnicodeString.cpp in Sources */,
+				C4EC4A40135BDDF000590FEF /* WebterPanelController.cpp in Sources */,
+				C4EC4A45135BDE4D00590FEF /* FlashUIController.cpp in Sources */,
+				C4EC4A46135BDE4D00590FEF /* SDKPlugPlug.cpp in Sources */,
+				C4EC4A4A135BDE8E00590FEF /* IAIStringFormatUtils.cpp in Sources */,
+				C4EC4A4E135BDEB500590FEF /* IAIFilePath.cpp in Sources */,
+				101232EE1F67B7E4006C9682 /* IAIArtSet.cpp in Sources */,
+				9E80497C13D488CF00A62CEA /* DictionaryToXmlConverter.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		508817C609F0C9740071BF1A /* debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1D69C1225E523E6000A16D0 /* AIPluginCommon.xcconfig */;
+			buildSettings = {
+			};
+			name = debug;
+		};
+		508817C709F0C9740071BF1A /* release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1D69C1225E523E6000A16D0 /* AIPluginCommon.xcconfig */;
+			buildSettings = {
+			};
+			name = release;
+		};
+		508817D809F0C9AE0071BF1A /* debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1D69C1025E523E5000A16D0 /* AIPluginDebug.xcconfig */;
+			buildSettings = {
+			};
+			name = debug;
+		};
+		508817D909F0C9AE0071BF1A /* release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1D69C1125E523E5000A16D0 /* AIPluginRelease.xcconfig */;
+			buildSettings = {
+			};
+			name = release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		508817C509F0C9740071BF1A /* Build configuration list for PBXProject "Webter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				508817C609F0C9740071BF1A /* debug */,
+				508817C709F0C9740071BF1A /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+		508817D709F0C9AE0071BF1A /* Build configuration list for PBXNativeTarget "Webter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				508817D809F0C9AE0071BF1A /* debug */,
+				508817D909F0C9AE0071BF1A /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 508817C409F0C9740071BF1A /* Project object */;
+}

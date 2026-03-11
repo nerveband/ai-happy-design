@@ -215,6 +215,24 @@ func validateParam(step int, name string, p *schema.Param, val interface{}, para
 			return issues
 		}
 
+		// Control character check
+		if hasControlChars(str) {
+			issues = append(issues, Issue{
+				Step: step, Name: name, Phase: "schema", Code: "CONTROL_CHARS",
+				Param:   p.Name,
+				Message: fmt.Sprintf("%s contains invalid control characters", p.Name),
+			})
+		}
+
+		// Path traversal check (for params that look like file paths)
+		if hasPathTraversal(str) {
+			issues = append(issues, Issue{
+				Step: step, Name: name, Phase: "schema", Code: "PATH_TRAVERSAL",
+				Param:   p.Name,
+				Message: fmt.Sprintf("%s contains path traversal sequences", p.Name),
+			})
+		}
+
 		// Enum check with fuzzy matching
 		if len(p.Enum) > 0 {
 			found := false
@@ -271,6 +289,28 @@ func validateParam(step int, name string, p *schema.Param, val interface{}, para
 		}
 	}
 	return issues
+}
+
+// hasControlChars checks for control characters that agents might hallucinate.
+func hasControlChars(s string) bool {
+	for _, r := range s {
+		if r < 0x20 && r != '\n' && r != '\r' && r != '\t' {
+			return true
+		}
+		if r == 0x7f { // DEL
+			return true
+		}
+	}
+	return false
+}
+
+// hasPathTraversal detects path traversal sequences in a string.
+func hasPathTraversal(s string) bool {
+	return strings.Contains(s, "..") ||
+		strings.Contains(s, "%2e") || strings.Contains(s, "%2E") ||
+		strings.Contains(s, "%2f") || strings.Contains(s, "%2F") ||
+		strings.Contains(s, "%5c") || strings.Contains(s, "%5C") ||
+		strings.Contains(s, "%00")
 }
 
 func toFloat64(v interface{}) (float64, bool) {

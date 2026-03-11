@@ -1,0 +1,131 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html 
+  xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <script src="../js/CSInterface.js"></script>
+    <script src="../js/jquery-1.9.1.min.js"></script>
+    <script src="../js/main.js"></script>
+	<link rel="stylesheet" href="../css/strokefilterui.css" />
+  </head>
+  <body>
+	<form id="dashForm">
+		<div class="row">
+			<div class="col">
+				<input type="checkbox" id="dashedStrokeCB" value="true">
+			</div>
+			<div class="col">
+			 	<label>Dashed Stroke</label>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<input type="checkbox" id="adjustDashCB" value="true">
+			</div>
+			<div class="col">
+			 	<label>Adjust Dash</label>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label>Dash 1:</label>
+			</div>
+			<div class="col">
+			 	<label><input type="number" id="dash1"/>pt</label>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label>Gap 1:</label>
+			</div>
+			<div class="col">
+			 	<label><input type="number" id="gap1"/>pt</label>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label>Dash 2:</label>
+			</div>
+			<div class="col">
+			 	<label><input type="number" id="dash2"/>pt</label>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label>Gap 2:</label>
+			</div>
+			<div class="col">
+			 	<label><input type="number" id="gap2"/>pt</label>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label>Dash 3:</label>
+			</div>
+			<div class="col">
+			 	<label><input type="number" id="dash3"/>pt</label>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label>Gap 3:</label>
+			</div>
+			<div class="col">
+			 	<label><input type="number" id="gap3"/>pt</label>
+			</div>
+		</div>
+		<div class="row">
+			<input type="submit" id="dashOkBtn" value="OK" />
+			<input type="submit" id="dashCancelBtn" value="Cancel" />
+		</div>
+	</form>
+	
+	<form id="waveForm">
+		<div class="row">
+			<div class="col">
+				<input type="checkbox" id="exchangeCB" value="true">
+			</div>
+			<div class="col">
+			 	<label>Exchange Width 1/2</label>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<input type="checkbox" id="replaceCB" value="true">
+			</div>
+			<div class="col">
+			 	<label>Replace</label>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label>Number:</label>
+			</div>
+			<div class="col">
+			 	<input type="number" id="number"/>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label>Width 1:</label>
+			</div>
+			<div class="col">
+			 	<label><input type="number" id="width1"/>pt</label>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label>Width 2:</label>
+			</div>
+			<div class="col">
+			 	<label><input type="number" id="width2"/>pt</label>
+			</div>
+		</div>
+		<div class="row">
+			<input type="submit" id="waveOkBtn" value="OK" />
+			<input type="submit" id="waveCancelBtn" value="Cancel" />
+		</div>
+	</form>
+
+  </body>
+</html>

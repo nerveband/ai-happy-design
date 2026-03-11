@@ -1,0 +1,228 @@
+---
+title: Quick Start
+description: Connect to Figma and create your first design with AI Happy Design in under 5 minutes.
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+Connect to Figma and create a simple card design using the CLI. Takes about 5 minutes.
+
+## Step 1: Start the Relay
+
+The relay is the WebSocket server that bridges the CLI and the Figma plugin.
+
+```bash
+ai-happy-design ws
+```
+
+This starts the relay on `ws://127.0.0.1:3055`. Keep this running in a terminal.
+
+<Aside type="tip">
+If you are using MCP mode (`ai-happy-design mcp`), the relay starts automatically. No need to run it separately.
+</Aside>
+
+## Step 2: Open the Figma Plugin
+
+1. Open a Figma file in the **desktop app**
+2. Run **Plugins > AI Happy Design**
+3. The plugin status should show **Connected**
+
+The plugin auto-connects to `ws://127.0.0.1:3055`. If you see "Connecting...", make sure the relay is running.
+
+## Step 3: Verify the Connection
+
+```bash
+ai-happy-design command document.get_info
+```
+
+You should see your Figma document's name and page information returned as JSON:
+
+```json
+{
+  "name": "My Design File",
+  "currentPage": "Page 1",
+  "pages": ["Page 1"]
+}
+```
+
+## Step 4: Your First Command
+
+### Find Free Space
+
+Always check where to place new frames so you do not overlap existing work:
+
+```bash
+ai-happy-design command document.find_free_space \
+  '{"width":400,"height":300}'
+```
+
+This returns an `x,y` position that avoids overlapping existing frames, snapped to an 8px grid.
+
+### Create a Frame
+
+```bash
+ai-happy-design command node.create_frame \
+  '{"name":"My First Card","x":0,"y":0,"width":400,"height":300,"color":"#1a1a1a","cornerRadius":16}'
+```
+
+The response includes the new frame's `id`:
+
+```json
+{"id":"42:248","name":"My First Card","type":"FRAME","width":400,"height":300}
+```
+
+### Add a Title
+
+Use the frame's `id` as the `parentId`:
+
+```bash
+ai-happy-design command text.create \
+  '{"parentId":"42:248","text":"Hello World","fontSize":28,"fontFamily":"Inter","fontStyle":"Bold","color":"#FFFFFF","x":32,"y":32}'
+```
+
+### Add a Description
+
+```bash
+ai-happy-design command text.create \
+  '{"parentId":"42:248","text":"This card was created entirely from the command line.","fontSize":16,"fontFamily":"Inter","color":"#888888","x":32,"y":72,"width":336}'
+```
+
+## Step 5: Do It All at Once with Batch
+
+The real power is **batch mode**. Save this as `card.json`:
+
+```json
+[
+  {
+    "name": "card",
+    "command": "node.create_frame",
+    "params": {
+      "name": "My First Card",
+      "width": 400,
+      "height": 300,
+      "color": "#1a1a1a",
+      "cornerRadius": 16
+    }
+  },
+  {
+    "name": "title",
+    "command": "text.create",
+    "params": {
+      "parentId": "${{steps.card.result.id}}",
+      "text": "Hello World",
+      "fontSize": 28,
+      "fontFamily": "Inter",
+      "fontStyle": "Bold",
+      "color": "#FFFFFF",
+      "x": 32,
+      "y": 32
+    }
+  },
+  {
+    "name": "desc",
+    "command": "text.create",
+    "params": {
+      "parentId": "${{steps.card.result.id}}",
+      "text": "Built with AI Happy Design in under a second.",
+      "fontSize": 16,
+      "fontFamily": "Inter",
+      "color": "#888888",
+      "x": 32,
+      "y": 72,
+      "width": 336
+    }
+  }
+]
+```
+
+Run it:
+
+```bash
+ai-happy-design batch card.json
+```
+
+All three operations execute in a single WebSocket session at ~27 ops/sec. The `${{steps.card.result.id}}` interpolation automatically wires up parent-child relationships. No need to manually copy IDs between steps.
+
+### Batch Output
+
+```json
+{
+  "ok": true,
+  "steps": [
+    {"index":0, "name":"card", "command":"node.create_frame", "ok":true, "result":{"id":"42:248"}, "elapsedMs":35},
+    {"index":1, "name":"title", "command":"text.create", "ok":true, "result":{"id":"42:249"}, "elapsedMs":28},
+    {"index":2, "name":"desc", "command":"text.create", "ok":true, "result":{"id":"42:250"}, "elapsedMs":31}
+  ],
+  "summary": {"total":3, "succeeded":3, "failed":0},
+  "timing": {"totalMs":94, "avgMs":31}
+}
+```
+
+## Step 6: Export and Verify
+
+Export your creation as a PNG:
+
+```bash
+ai-happy-design command export.image \
+  '{"nodeId":"42:248","format":"PNG","scale":2}'
+```
+
+The exported image is saved to your OS temp directory. The response includes the file path so you can open it directly.
+
+## Step 7: Try Using Aliases
+
+Batch supports compact aliases for faster authoring. The same card using aliases:
+
+```json
+[
+  {"name": "card", "command": "frame", "params": {"name": "Card", "w": 400, "h": 300, "bg": "#1a1a1a", "r": 16}},
+  {"name": "title", "command": "text", "params": {"pid": "${{steps.card.result.id}}", "text": "Hello", "sz": 28, "ff": "Inter"}},
+  {"name": "desc", "command": "text", "params": {"pid": "${{steps.card.result.id}}", "text": "Built fast.", "sz": 16, "ff": "Inter", "w": 336}}
+]
+```
+
+See the full list of [Batch Aliases](/reference/batch-aliases/).
+
+## Step 8: Try MCP Mode
+
+If your editor supports MCP (Claude Code, Cursor, Windsurf, VS Code, Zed), configure AI Happy Design as an MCP server:
+
+```json
+{
+  "mcpServers": {
+    "ai-happy-design": {
+      "command": "ai-happy-design",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Or auto-configure all detected editors:
+
+```bash
+ai-happy-design register
+```
+
+Now your AI assistant can call Figma tools directly. Ask it to "create a social media card in Figma" and watch it happen.
+
+## What's Next
+
+<CardGrid>
+  <Card title="CLI Usage" icon="seti:shell">
+    Learn single commands, batch mode, flags, and output formats in the [CLI Usage guide](/guides/cli-usage/).
+  </Card>
+  <Card title="Batch Operations" icon="list-format">
+    Deep-dive into interpolation, composites, quality gates, and performance in [Batch Operations](/guides/batch-operations/).
+  </Card>
+  <Card title="Design Intelligence" icon="star">
+    Discover design tokens, type scales, and quality checks in [Design Intelligence](/guides/design-intelligence/).
+  </Card>
+  <Card title="Command Reference" icon="open-book">
+    Browse all 150+ commands across 14+ domains in the [Command Reference](/reference/commands/).
+  </Card>
+</CardGrid>
+
+---
+
+Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveband/ai-happy-design) | License: GPL-3.0

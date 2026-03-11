@@ -1,0 +1,32 @@
+# AI Happy Design
+
+> CLI tool that gives LLMs full Figma canvas control via WebSocket relay to Figma plugin.
+
+## Quick Start
+
+1. Install: `brew install nerveband/tap/ai-happy-design` or `ai-happy-design upgrade`
+2. Start relay: `ai-happy-design ws`
+3. Open Figma plugin, connect to relay
+4. Execute: `ai-happy-design batch '[{"command":"slide","params":{...}}]'`
+
+## Key Commands
+
+- `batch` — Execute design operations from JSON (main LLM path)
+- `command` — Execute single operation
+- `schema <command>` — Print exact JSON shape for a command
+- `validate` — Dry-run: check JSON without executing
+- `guide` — Design intelligence (visual hierarchy, composition, effects)
+- `tools --json` — List all commands with schemas
+- `examples [category]` — Pre-built example payloads
+
+## Design Workflow
+
+1. `ai-happy-design command design.compute_tokens '{"width":1080,"height":1350}'`
+2. `ai-happy-design command document.find_free_space '{"width":1080,"height":1350}'`
+3. Generate batch JSON using `ai-happy-design schema <command> --json`
+4. `ai-happy-design batch ops.json`
+5. `ai-happy-design command export.image '{"nodeId":"...","scale":2}'`
+
+## Links
+
+- [Full command reference](https://aihappydesign.com/llms-full.txt)

@@ -1,0 +1,20 @@
+body {
+	font-size: 13px;
+}
+
+form {
+	display: table;
+}
+
+div .table {
+	display: table;
+}
+
+.row {
+	display: table-row;
+}
+
+.col {
+	display: table-cell;
+	padding: 3px;
+}

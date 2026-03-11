@@ -39,7 +39,7 @@ var toolDescriptions = map[string]map[string]string{
 		"load_font":       "Load a font for use. Params: fontFamily, fontStyle",
 		"set_style_id":    "Apply a text style. Params: nodeId, styleId",
 		"list_fonts":      "List available fonts. Params: fontFamily (optional filter substring)",
-		"set_range_style": "Apply multiple styles to character ranges. Params: nodeId, ranges[{match|start+end, bold, italic, color, fontSize, fontFamily, fontStyle, letterSpacing, lineHeight, textDecoration, textCase}]",
+		"set_range_style": "Apply multiple styles to character ranges. Params: nodeId, ranges[{match|start+end, bold, italic, color, fontSize, fontFamily, fontStyle, letterSpacing, lineHeight, textDecoration, textCase, hyperlink (URL string or null to remove)}]",
 	},
 	"layout": {
 		"set_auto_layout": "Enable auto-layout on a frame. Params: nodeId, direction, itemSpacing, padding*, primaryAxisAlign, counterAxisAlign",

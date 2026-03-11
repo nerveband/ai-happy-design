@@ -1,0 +1,129 @@
+---
+const cliCode = `<span class="comment"># Create a card with text in one batch</span><br/>
+<span class="command">ahd-figma batch</span> <span class="string">'[<br/>
+&nbsp;&nbsp;{"command":"frame","name":"card",<br/>
+&nbsp;&nbsp;&nbsp;"params":{"w":400,"h":300}},<br/>
+&nbsp;&nbsp;{"command":"text",<br/>
+&nbsp;&nbsp;&nbsp;"params":{"pid":"\${{steps.card.result.id}}",<br/>
+&nbsp;&nbsp;&nbsp;"text":"Hello"}}<br/>
+]'</span>`;
+
+const registerCode = `<span class="comment"># Auto-detect and configure all editors</span><br/>
+<span class="command">ahd-figma register</span><br/><br/>
+<span class="muted">Detected editors:</span><br/>
+<span class="success">&#10003;</span> Claude Code<br/>
+<span class="success">&#10003;</span> Cursor<br/>
+<span class="success">&#10003;</span> VS Code<br/>
+<span class="muted">MCP configured for 3 editors.</span>`;
+
+const tokensCode = `<span class="comment"># Compute design tokens for any canvas size</span><br/>
+<span class="command">ahd-figma command</span> design.compute_tokens \\<br/>
+&nbsp;&nbsp;<span class="string">'{"width":1080,"height":1080}'</span><br/><br/>
+<span class="muted">{ "body": 48, "heading": 84, "title": 112,<br/>
+&nbsp;&nbsp;"spacing": 8, "margin": 80, ... }</span>`;
+---
+
+<section class="section section-spotlight" id="features">
+  <div class="container">
+    <div class="reveal">
+      <h2 class="section-headline">Built for <span class="text-accent">depth.</span></h2>
+    </div>
+
+    <!-- Feature 1: CLI-First Speed -->
+    <div class="feature-row reveal">
+      <div class="feature-info">
+        <h3 class="feature-title">CLI-First Speed</h3>
+        <p class="feature-desc">
+          27 operations per second in batch mode. Single WebSocket connection. Step interpolation chains operations. Compact aliases keep payloads tight.
+        </p>
+      </div>
+      <div class="feature-code">
+        <div class="code-block" set:html={cliCode} />
+      </div>
+    </div>
+
+    <hr class="section-divider" />
+
+    <!-- Feature 2: Multi-Editor MCP -->
+    <div class="feature-row feature-row-reverse reveal">
+      <div class="feature-info">
+        <h3 class="feature-title">Multi-Editor MCP</h3>
+        <p class="feature-desc">
+          Register once, use everywhere. Claude Code, Cursor, Windsurf, VS Code, Zed. All supported via the Model Context Protocol.
+        </p>
+      </div>
+      <div class="feature-code">
+        <div class="code-block" set:html={registerCode} />
+      </div>
+    </div>
+
+    <hr class="section-divider" />
+
+    <!-- Feature 3: Design Intelligence -->
+    <div class="feature-row reveal">
+      <div class="feature-info">
+        <h3 class="feature-title">Design Intelligence</h3>
+        <p class="feature-desc">
+          More than commands. Built-in design knowledge. Modular type scale, spacing tokens, quality gates, and a 12-step playbook agents can query at runtime.
+        </p>
+      </div>
+      <div class="feature-code">
+        <div class="code-block" set:html={tokensCode} />
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .feature-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+    padding: 4rem 0;
+  }
+
+  .feature-row-reverse {
+    direction: rtl;
+  }
+
+  .feature-row-reverse > * {
+    direction: ltr;
+  }
+
+  .feature-title {
+    font-family: var(--font-heading);
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #ffffff;
+  }
+
+  .feature-desc {
+    font-size: 1.05rem;
+    color: var(--color-text-muted);
+    line-height: 1.7;
+    max-width: 480px;
+  }
+
+  .feature-code .code-block {
+    font-size: 0.8rem;
+  }
+
+  .section-divider {
+    margin: 0 auto;
+    max-width: 200px;
+  }
+
+  @media (max-width: 768px) {
+    .feature-row {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      padding: 2rem 0;
+    }
+
+    .feature-row-reverse {
+      direction: ltr;
+    }
+  }
+</style>

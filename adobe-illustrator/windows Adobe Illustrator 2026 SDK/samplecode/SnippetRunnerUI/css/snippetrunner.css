@@ -1,0 +1,26 @@
+body {
+	font-size: 13px;
+}
+
+p {
+	padding: 0;
+	margin: 0;
+}
+
+label {
+	font-weight: bold;
+}
+
+form {
+	display: table;
+}
+
+.row {
+	display: table-row;
+}
+
+.col {
+	display: table-cell;
+	padding: 3px;
+	vertical-align: top;
+}

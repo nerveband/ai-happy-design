@@ -15,3 +15,6 @@ dist/
 figma-friend.skill
 plugin/ai-happy-design.skill
 .worktrees/
+
+# Local Netlify folder
+.netlify

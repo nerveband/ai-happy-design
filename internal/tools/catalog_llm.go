@@ -344,7 +344,21 @@ func DesignGuide() map[string]interface{} {
 		"playbook":       catalog["playbook"],
 		"workflow":       catalog["workflow"],
 		"lintChecks":     catalog["lintChecks"],
+		"topics":         "For deep dives, call: guide --topic typography|color|layout|depth|states|quality|all",
 		"hint":           "For full tool catalog with command examples, call describe(action='catalog').",
+	}
+}
+
+// GuideAll combines all topic guides into a single comprehensive reference.
+func GuideAll() map[string]interface{} {
+	return map[string]interface{}{
+		"version":    "4.0",
+		"typography": GuideTypography(),
+		"color":      GuideColor(),
+		"layout":     GuideLayout(),
+		"depth":      GuideDepth(),
+		"states":     GuideStates(),
+		"quality":    GuideQuality(),
 	}
 }
 

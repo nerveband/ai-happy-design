@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<ExtensionManifest 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ExtensionBundleId="com.adobe.illustrator.transformbuttonsui" ExtensionBundleVersion="1.0.0" Version="5.0">
+  <ExtensionList>
+    <Extension Id="com.adobe.illustrator.transformbuttonsui.panel" Version="1.0.0"/>
+  </ExtensionList>
+  <ExecutionEnvironment>
+    <HostList>
+      <Host Name="ILST" Version="18.0"/>
+    </HostList>
+    <LocaleList>
+      <Locale Code="All"/>
+    </LocaleList>
+    <RequiredRuntimeList>
+      <RequiredRuntime Name="CSXS" Version="5.0"/>
+    </RequiredRuntimeList>
+  </ExecutionEnvironment>
+  <DispatchInfoList>
+    <Extension Id="com.adobe.illustrator.transformbuttonsui.panel">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./html/index.html</MainPath>
+          <CEFCommandLine/>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Panel</Type>
+          <Menu/> <!-- menu provided by plug-in -->
+          <Geometry>
+            <Size>
+              <Height>125</Height>
+              <Width>500</Width>
+            </Size>
+            <MinSize>
+                <Height>125</Height>
+                <Width>500</Width>
+            </MinSize>
+            <MaxSize>
+                <Height>125</Height>
+                <Width>500</Width>
+            </MaxSize>
+          </Geometry>
+          <Icons/>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+  </DispatchInfoList>
+</ExtensionManifest>
