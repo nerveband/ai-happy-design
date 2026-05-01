@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -162,21 +163,65 @@ func runUpgrade() error {
 		return fmt.Errorf("failed to get executable path: %w", err)
 	}
 
-	if err := updater.UpdateTo(context.Background(), latest, exe); err != nil {
+	targetExe, aliasExe := upgradeTargetPaths(exe)
+	if err := updater.UpdateTo(context.Background(), latest, targetExe); err != nil {
 		return fmt.Errorf("failed to update: %w", err)
 	}
 
 	// macOS requires ad-hoc signing or the binary gets SIGKILL'd
 	if runtime.GOOS == "darwin" {
 		fmt.Println("Signing binary for macOS...")
-		if signErr := signBinary(exe); signErr != nil {
+		if signErr := signBinary(targetExe); signErr != nil {
 			fmt.Fprintf(os.Stderr, "Warning: ad-hoc signing failed: %v\n", signErr)
-			fmt.Fprintf(os.Stderr, "Run manually: codesign -s - -f %s\n", exe)
+			fmt.Fprintf(os.Stderr, "Run manually: codesign -s - -f %s\n", targetExe)
+		}
+	}
+
+	if aliasExe != "" {
+		if err := copyExecutable(targetExe, aliasExe); err != nil {
+			return fmt.Errorf("failed to update ahd-figma alias: %w", err)
 		}
 	}
 
 	fmt.Printf("Successfully upgraded to %s\n", latest.Version())
 	return nil
+}
+
+func upgradeTargetPaths(exe string) (targetExe string, aliasExe string) {
+	dir := filepath.Dir(exe)
+	base := filepath.Base(exe)
+	if base == "ahd-figma" {
+		return filepath.Join(dir, "ai-happy-design"), exe
+	}
+	if base == "ai-happy-design" {
+		return exe, filepath.Join(dir, "ahd-figma")
+	}
+	return exe, ""
+}
+
+func copyExecutable(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	info, err := in.Stat()
+	if err != nil {
+		return err
+	}
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, info.Mode().Perm())
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		_ = out.Close()
+		return err
+	}
+	if err := out.Close(); err != nil {
+		return err
+	}
+	return os.Chmod(dst, info.Mode().Perm())
 }
 
 func signBinary(path string) error {
