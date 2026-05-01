@@ -181,6 +181,12 @@ func runUpgrade() error {
 		if err := copyExecutable(targetExe, aliasExe); err != nil {
 			return fmt.Errorf("failed to update ahd-figma alias: %w", err)
 		}
+		if runtime.GOOS == "darwin" {
+			if signErr := signBinary(aliasExe); signErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: ad-hoc signing alias failed: %v\n", signErr)
+				fmt.Fprintf(os.Stderr, "Run manually: codesign -s - -f %s\n", aliasExe)
+			}
+		}
 	}
 
 	fmt.Printf("Successfully upgraded to %s\n", latest.Version())
