@@ -1,0 +1,75 @@
+---
+import '../styles/site.css';
+---
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Happy Design - Agent-ready Figma automation</title>
+    <meta name="description" content="184 schema-backed Figma commands, MCP support, token export, accessibility audits, and design-code parity checks for AI agents." />
+    <link rel="canonical" href="https://aihappydesign.com/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div class="hero-grid">
+          <div>
+            <span class="eyebrow">v0.13.2 - 184 typed commands</span>
+            <h1>Agent-ready Figma automation</h1>
+            <p>Give AI agents a structured Figma canvas API: create, edit, validate, audit, export, and compare designs from one local CLI and plugin.</p>
+            <div class="hero-actions">
+              <a class="button primary" href="/getting-started/installation/">Get Started</a>
+              <a class="button" href="/reference/commands/">Command Reference</a>
+              <a class="button" href="https://github.com/nerveband/ai-happy-design">GitHub</a>
+            </div>
+          </div>
+          <div class="terminal" aria-label="CLI example">
+            <div class="terminal-header">
+              <span class="dot" style="background:#ff5f57"></span>
+              <span class="dot" style="background:#febc2e"></span>
+              <span class="dot" style="background:#28c840"></span>
+              <span>ahd-figma</span>
+            </div>
+            <pre><code><span class="yellow">$</span> ahd-figma batch launch-screen.json
+<span class="green">OK</span> 42 operations completed
+
+<span class="yellow">$</span> ahd-figma command document.accessibility_audit \
+  '&#123;"file":"launch-screen.json"&#125;'
+<span class="green">OK</span> WCAG-oriented checks passed
+
+<span class="yellow">$</span> ahd-figma command tokens.export \
+  '&#123;"format":"css","variablesFile":"figma-vars.json"&#125;'
+<span class="green">OK</span> wrote tokens.css</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="metric-grid">
+          <div class="metric"><strong>184</strong><span>schema-backed CLI commands</span></div>
+          <div class="metric"><strong>185</strong><span>MCP tools including ahd_describe</span></div>
+          <div class="metric"><strong>0.13.2</strong><span>latest installed release</span></div>
+          <div class="metric"><strong>ES6</strong><span>Figma plugin sandbox safe</span></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Built for second-pass agent iteration</h2>
+        <p class="section-lede">The CLI gives agents concrete feedback instead of only screenshots: schemas, dry runs, linting, accessibility findings, parity scores, and exportable artifacts.</p>
+        <div class="feature-grid">
+          <div class="feature"><h3>Fuller Figma surface</h3><p>Document, page, node, layout, text, paint, effect, component, variable, export, REST, Dev Mode, and guarded Figma Draw commands.</p></div>
+          <div class="feature"><h3>Tokens and variables</h3><p>Export presets or live variable snapshots to JSON, CSS, Tailwind, Swift, and Android outputs with config-driven paths.</p></div>
+          <div class="feature"><h3>Accessibility audits</h3><p>Catch contrast, line height, target size, non-text contrast, color-only communication, focus risk, and semantic naming issues.</p></div>
+          <div class="feature"><h3>Parity checks</h3><p>Compare generated design intent with code-spec contracts before implementation, handoff, or screenshot review.</p></div>
+          <div class="feature"><h3>Agent-safe output</h3><p>Use JSON, JSONL, compact fields, simple jq extraction, structured errors, and dry-run validation for reliable automation.</p></div>
+          <div class="feature"><h3>Local relay and plugin</h3><p>The WebSocket relay and bundled Figma plugin keep canvas operations local while still exposing MCP and CLI workflows.</p></div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

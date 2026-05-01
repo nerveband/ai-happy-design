@@ -1,5 +1,7 @@
 [build]
-  publish = "site"
+  base = "site"
+  command = "npm ci && npm run build"
+  publish = "dist"
 
 [[headers]]
   for = "/*"

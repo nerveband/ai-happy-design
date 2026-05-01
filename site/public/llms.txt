@@ -1,0 +1,47 @@
+# AI Happy Design
+
+Agent-ready Figma automation through one local CLI, WebSocket relay, Figma plugin, and MCP server.
+
+Current release: `v0.13.2`
+
+## Surface
+
+- CLI schemas: 184
+- CLI tools: 184
+- MCP tools/list: 185 including `ahd_describe`
+- Preferred binary: `ahd-figma`
+- Compatibility binary: `ai-happy-design`
+
+## Core Commands
+
+- `ahd-figma schema <command> --json`
+- `ahd-figma schema --all`
+- `ahd-figma validate payload.json`
+- `ahd-figma command <command> '<params-json>'`
+- `ahd-figma batch payload.json`
+- `ahd-figma mcp`
+- `ahd-figma guide`
+- `ahd-figma upgrade`
+
+## v0.13.2 Features
+
+- Token export from presets or Figma variable snapshots.
+- JSON, CSS, Tailwind, Swift, and Android token outputs.
+- WCAG-oriented accessibility audit.
+- Design-code parity comparison.
+- Dev Mode focused-node and CSS inspection.
+- Figma REST helpers for file metadata, dev resources, and webhooks.
+- Guarded Figma Draw command surface.
+- ES6-safe plugin build.
+
+## Agent Workflow
+
+1. Run `design.compute_tokens`.
+2. Run `document.find_free_space`.
+3. Inspect schemas before writing.
+4. Validate or dry-run payloads.
+5. Execute batch.
+6. Audit accessibility and parity.
+7. Export and compare visual output.
+
+Full generated reference: `/llms-full.txt`
