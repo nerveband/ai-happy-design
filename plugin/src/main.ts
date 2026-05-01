@@ -12,6 +12,7 @@ import { handleBoolean } from './handlers/boolean';
 import { handlePage } from './handlers/page';
 import { handleDocument } from './handlers/document';
 import { handleExport } from './handlers/export';
+import { handleDraw } from './handlers/draw';
 import { generateChannelKey } from './utils/channel';
 import { DEFAULT_PORT, normalizeRelayUrl } from './utils/relay';
 
@@ -79,6 +80,7 @@ const handlers: Record<string, (action: string, params: any) => Promise<any>> = 
   page: handlePage,
   document: handleDocument,
   export: handleExport,
+  draw: handleDraw,
 };
 
 // Show plugin UI

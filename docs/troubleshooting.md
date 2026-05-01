@@ -4,13 +4,13 @@
 1. Confirm relay is running:
 
 ```bash
-PORT=3056 ai-happy-design relay status
+PORT=3056 ahd-figma relay status
 ```
 
 or
 
 ```bash
-PORT=3056 ai-happy-design relay start
+PORT=3056 ahd-figma relay start
 ```
 
 2. Confirm plugin Relay URL matches relay port/path:
@@ -20,7 +20,7 @@ PORT=3056 ai-happy-design relay start
 If you want to run relay manually in foreground for debugging:
 
 ```bash
-PORT=3056 ai-happy-design ws
+PORT=3056 ahd-figma ws
 ```
 
 ## Seeing `handleSocketMessage [object Object]` in console
@@ -54,7 +54,7 @@ Fix:
 3. Or pass explicit channel:
 
 ```bash
-./bin/ai-happy-design command <channel> document.get_info
+./bin/ahd-figma command <channel> document.get_info
 ```
 
 4. Or set environment variable:
@@ -72,7 +72,7 @@ Fix:
 2. Or start relay manually:
 
 ```bash
-./bin/ai-happy-design relay start
+./bin/ahd-figma relay start
 ```
 
 ## Port occupied by non-relay process
@@ -84,7 +84,7 @@ Fix:
 2. Or run AHD on another port:
 
 ```bash
-PORT=3060 ./bin/ai-happy-design command document.get_info
+PORT=3060 ./bin/ahd-figma command document.get_info
 ```
 
 3. Keep plugin UI port aligned to the same value.
@@ -116,6 +116,8 @@ Check:
 3. Server returns valid image bytes and allows cross-origin access where needed.
 
 ## MCP tool calls timeout
+Use `ahd-figma mcp` and confirm `tools/list` returns schema-backed tools. For catalog/debug context, call `ahd_describe` or read `ahd://schema`.
+
 Check response envelope shape from plugin relay path:
 - success must include wrapped `message.id` + `message.result`
 - error must include wrapped `message.id` + `message.error`

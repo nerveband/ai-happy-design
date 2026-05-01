@@ -38,6 +38,13 @@ export async function handleText(action: string, params: any): Promise<any> {
     case 'add':
     case 'new':
     case 'create': return createText(params);
+    case 'rich':
+    case 'text_rich':
+    case 'rich_block':
+    case 'create_rich_block': return createRichBlock(params);
+    case 'measure': return measureText(params);
+    case 'fit_box':
+    case 'fit': return fitTextBox(params);
     case 'set_text':
     case 'update_text':
     case 'edit':
@@ -86,8 +93,140 @@ export async function handleText(action: string, params: any): Promise<any> {
     case 'opentype_features': return setOpentypeFeatures(params);
     case 'get_opentype':
     case 'get_opentype_features': return getOpentypeFeatures(params);
-    default: throw new Error('Unknown text action: ' + action + '. Available: create, set_content, set_font, set_size, set_weight, set_color, set_align, set_spacing, set_line_height, set_letter_spacing, set_decoration, set_case, set_paragraph_spacing, get_content, get_segments, load_font, set_style_id, list_fonts, set_range_style, set_opentype_features, get_opentype_features');
+    default: throw new Error('Unknown text action: ' + action + '. Available: create, rich_block, measure, fit_box, set_content, set_font, set_size, set_weight, set_color, set_align, set_spacing, set_line_height, set_letter_spacing, set_decoration, set_case, set_paragraph_spacing, get_content, get_segments, load_font, set_style_id, list_fonts, set_range_style, set_opentype_features, get_opentype_features');
   }
+}
+
+function fontStyleForWeight(weight: any, fallback: string) {
+  if (typeof weight === 'string' && weight.trim() && Number.isNaN(parseInt(weight, 10))) return weight;
+  var n = typeof weight === 'string' ? parseInt(weight, 10) : weight;
+  var weightMap: Record<number, string> = {
+    100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium',
+    600: 'Semi Bold', 700: 'Bold', 800: 'Extra Bold', 900: 'Black',
+  };
+  return weightMap[n] || fallback;
+}
+
+function textStyle(params: any, defaults: any) {
+  var style = params && params.style && typeof params.style === 'object' ? params.style : {};
+  var merged: any = {};
+  for (var key in defaults) merged[key] = defaults[key];
+  for (var key2 in style) merged[key2] = style[key2];
+  for (var key3 in params) {
+    if (key3 !== 'style' && key3 !== 'parentId' && key3 !== 'name') merged[key3] = params[key3];
+  }
+  return merged;
+}
+
+async function makeText(parent: BaseNode & ChildrenMixin, name: string, content: string, style: any, x: number, y: number, width: number) {
+  var family = resolveFontFamily(style.fontFamily || 'Inter');
+  var fontStyle = style.fontStyle || fontStyleForWeight(style.fontWeight, 'Regular');
+  var size = style.fontSize || 16;
+  await loadFont(family, fontStyle);
+  var text = figma.createText();
+  text.name = name;
+  text.x = x;
+  text.y = y;
+  text.fontName = { family, style: fontStyle };
+  text.fontSize = size;
+  text.characters = String(content || '');
+  text.resize(width, text.height);
+  text.textAutoResize = 'HEIGHT';
+  if (style.lineHeight !== undefined) {
+    var lh = style.lineHeight <= 4 ? style.lineHeight * 100 : style.lineHeight;
+    text.lineHeight = { value: lh, unit: 'PERCENT' };
+  }
+  if (style.letterSpacing !== undefined) {
+    text.letterSpacing = { value: style.letterSpacing, unit: 'PIXELS' };
+  }
+  if (style.textTransform === 'uppercase') text.textCase = 'UPPER';
+  if (style.color) {
+    var c = parseHexColor(style.color);
+    text.fills = [{ type: 'SOLID', color: { r: c.r, g: c.g, b: c.b }, opacity: c.a }];
+  }
+  parent.appendChild(text);
+  return text;
+}
+
+async function measureText(params: any) {
+  var style = textStyle(params, {});
+  var family = resolveFontFamily(style.fontFamily || 'Inter');
+  var fontStyle = style.fontStyle || fontStyleForWeight(style.fontWeight, 'Regular');
+  await loadFont(family, fontStyle);
+  var text = figma.createText();
+  text.visible = false;
+  text.fontName = { family, style: fontStyle };
+  text.fontSize = style.fontSize || 16;
+  text.characters = String(params.text || params.content || '');
+  if (params.width || style.width) {
+    text.resize(params.width || style.width, text.height);
+    text.textAutoResize = 'HEIGHT';
+  } else {
+    text.textAutoResize = 'WIDTH_AND_HEIGHT';
+  }
+  figma.currentPage.appendChild(text);
+  var result = { width: text.width, height: text.height, fontSize: text.fontSize, lineCount: text.characters.split('\n').length };
+  text.remove();
+  return result;
+}
+
+async function fitTextBox(params: any) {
+  var max = params.maxFontSize || params.fontSize || 24;
+  var min = params.minFontSize || 8;
+  var width = params.width;
+  var height = params.height;
+  if (!width || !height) throw new Error('width and height are required');
+  var best = min;
+  for (var size = max; size >= min; size--) {
+    var measured = await measureText(Object.assign({}, params, { fontSize: size }));
+    if (measured.width <= width + 0.5 && measured.height <= height + 0.5) {
+      best = size;
+      break;
+    }
+  }
+  var finalMeasure = await measureText(Object.assign({}, params, { fontSize: best }));
+  return { fontSize: best, width: finalMeasure.width, height: finalMeasure.height, fits: finalMeasure.height <= height + 0.5 };
+}
+
+async function createRichBlock(params: any) {
+  var parent = params.parentId ? await getParentById(params.parentId) : figma.currentPage;
+  if (!parent) parent = figma.currentPage;
+  var x = params.x || 0;
+  var y = params.y || 0;
+  var width = params.width || 320;
+  var gap = params.gap == null ? 8 : params.gap;
+  var headingStyle = textStyle({ style: params.headingStyle || {}, fontFamily: params.fontFamily }, { fontSize: 36, fontWeight: 700, color: '#E5AD43', lineHeight: 0.95 });
+  var priceStyle = textStyle({ style: params.priceStyle || {}, fontFamily: params.fontFamily }, { fontSize: 24, fontWeight: 700, color: '#F8F4EC', lineHeight: 1.05 });
+  var bodyStyle = textStyle({ style: params.bodyStyle || {}, fontFamily: params.fontFamily }, { fontSize: 19, fontWeight: 400, color: '#F8F4EC', lineHeight: 1.22 });
+  var noteStyle = textStyle({ style: params.noteStyle || {}, fontFamily: params.fontFamily }, { fontSize: 17, fontWeight: 500, color: '#F8F4EC', lineHeight: 1.2 });
+  var cy = y;
+  var created: any[] = [];
+  if (params.heading || params.title || params.tier) {
+    var h = await makeText(parent, (params.name || 'Rich block') + ' heading', params.heading || params.title || params.tier, headingStyle, x, cy, width);
+    created.push({ id: h.id, name: h.name, height: h.height });
+    cy += h.height + Math.max(2, gap - 4);
+  }
+  if (params.price) {
+    var p = await makeText(parent, (params.name || 'Rich block') + ' price', params.price, priceStyle, x, cy, width);
+    created.push({ id: p.id, name: p.name, height: p.height });
+    cy += p.height + gap;
+  }
+  var body = params.body || '';
+  if (Array.isArray(params.bullets) || Array.isArray(params.benefits)) {
+    var arr = params.bullets || params.benefits;
+    body = arr.map(function(item: any) { return '• ' + String(item); }).join('\n');
+  }
+  if (body) {
+    var b = await makeText(parent, (params.name || 'Rich block') + ' body', body, bodyStyle, x, cy, width);
+    created.push({ id: b.id, name: b.name, height: b.height });
+    cy += b.height + gap;
+  }
+  if (params.eligibility || params.note) {
+    var note = await makeText(parent, (params.name || 'Rich block') + ' note', params.eligibility || params.note, noteStyle, x, cy, width);
+    created.push({ id: note.id, name: note.name, height: note.height });
+    cy += note.height;
+  }
+  return { id: created.length ? created[0].id : null, name: params.name || 'Rich block', x: x, y: y, width: width, height: cy - y, children: created };
 }
 
 async function createText(params: any) {

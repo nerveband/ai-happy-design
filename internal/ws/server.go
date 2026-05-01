@@ -26,6 +26,7 @@ type Message struct {
 	Error   string          `json:"error,omitempty"`
 	Message json.RawMessage `json:"message,omitempty"`
 	Role    string          `json:"role,omitempty"`
+	Version string          `json:"version,omitempty"`
 }
 
 // Conn wraps a WebSocket connection with metadata.
@@ -34,6 +35,7 @@ type Conn struct {
 	id      string
 	channel string
 	role    string
+	version string
 	sendCh  chan []byte
 	closed  bool // true after eviction; prevents send-on-closed-channel panics
 	mu      sync.Mutex
@@ -72,11 +74,11 @@ type Server struct {
 	client *Client
 
 	// Idle auto-shutdown
-	idleTimeout time.Duration
+	idleTimeout  time.Duration
 	lastActivity time.Time
-	idleTimer   *time.Timer
-	startedAt   time.Time
-	httpServer  *http.Server
+	idleTimer    *time.Timer
+	startedAt    time.Time
+	httpServer   *http.Server
 }
 
 // NewServer creates a new WebSocket relay server on the given port.
@@ -483,6 +485,7 @@ func (s *Server) handleJoin(conn *Conn, msg *Message) {
 
 	conn.channel = channel
 	conn.role = msg.Role
+	conn.version = msg.Version
 
 	s.mu.Lock()
 	if s.channels[channel] == nil {
@@ -514,7 +517,7 @@ func (s *Server) handleJoin(conn *Conn, msg *Message) {
 	}
 	s.mu.Unlock()
 
-	log.Printf("[ws] %s joined channel %s (role=%s)", conn.id, channel, conn.role)
+	log.Printf("[ws] %s joined channel %s (role=%s version=%s)", conn.id, channel, conn.role, conn.version)
 
 	// Send confirmation
 	resp := Message{
@@ -569,14 +572,23 @@ func (s *Server) handleStatus(w http.ResponseWriter, _ *http.Request) {
 
 	s.mu.RLock()
 	channels := make(map[string]int)
+	clients := make(map[string][]map[string]string)
 	for ch, conns := range s.channels {
 		channels[ch] = len(conns)
+		for _, conn := range conns {
+			clients[ch] = append(clients[ch], map[string]string{
+				"id":      conn.id,
+				"role":    conn.role,
+				"version": conn.version,
+			})
+		}
 	}
 	s.mu.RUnlock()
 
 	status := map[string]interface{}{
 		"status":           "ok",
 		"channels":         channels,
+		"clients":          clients,
 		"preferredChannel": preferred,
 		"uptime":           time.Since(s.startedAt).Truncate(time.Second).String(),
 	}

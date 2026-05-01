@@ -1,0 +1,334 @@
+[
+  {
+    "name": "fit_business_heading",
+    "command": "text.fit_box",
+    "params": {
+      "text": "BUSINESS SHOWCASE OPPORTUNITY",
+      "width": 540,
+      "height": 72,
+      "fontFamily": "Brandon Grotesque",
+      "fontStyle": "Bold",
+      "minFontSize": 28,
+      "maxFontSize": 34
+    }
+  },
+  {
+    "name": "poster",
+    "command": "node.create_frame",
+    "params": {
+      "name": "CAIR-Georgia Gala Partnership Packages - CSS-like AHD Recreation",
+      "x": 4120,
+      "y": 320,
+      "width": 1600,
+      "height": 1024,
+      "color": "#050606",
+      "cornerRadius": 0
+    }
+  },
+  {
+    "name": "soft_top_glow",
+    "command": "shape.create_ellipse",
+    "params": {
+      "parentId": "${{steps.poster.result.id}}",
+      "name": "Soft amber top glow",
+      "x": 920,
+      "y": -170,
+      "width": 560,
+      "height": 380,
+      "color": "#38240633"
+    }
+  },
+  {
+    "name": "anniversary_ten",
+    "command": "text.create",
+    "params": {
+      "parentId": "${{steps.poster.result.id}}",
+      "name": "Decorative anniversary 10",
+      "x": 940,
+      "y": -8,
+      "width": 620,
+      "content": "10",
+      "fontFamily": "Brandon Grotesque",
+      "fontStyle": "Black",
+      "fontSize": 420,
+      "lineHeight": 85,
+      "lineHeightUnit": "PERCENT",
+      "color": "#8F601D"
+    }
+  },
+  {
+    "name": "fade_anniversary_ten",
+    "command": "node.modify",
+    "params": {
+      "nodeId": "${{steps.anniversary_ten.result.id}}",
+      "opacity": 0.3
+    }
+  },
+  {
+    "name": "brand",
+    "command": "text.create",
+    "params": {
+      "parentId": "${{steps.poster.result.id}}",
+      "name": "CAIR-Georgia wordmark",
+      "x": 40,
+      "y": 26,
+      "width": 620,
+      "content": "CAIR-GEORGIA",
+      "fontFamily": "Brandon Grotesque",
+      "fontStyle": "Black",
+      "fontSize": 64,
+      "letterSpacing": 6,
+      "lineHeight": 100,
+      "lineHeightUnit": "PERCENT",
+      "color": "#F7F7F5"
+    }
+  },
+  {
+    "name": "kicker",
+    "command": "text.create",
+    "params": {
+      "parentId": "${{steps.poster.result.id}}",
+      "name": "10th anniversary gala partnership kicker",
+      "x": 42,
+      "y": 132,
+      "width": 980,
+      "content": "10TH ANNIVERSARY GALA PARTNERSHIP",
+      "fontFamily": "Brandon Grotesque",
+      "fontStyle": "Bold",
+      "fontSize": 28,
+      "letterSpacing": 10,
+      "lineHeight": 100,
+      "lineHeightUnit": "PERCENT",
+      "color": "#F7F7F5"
+    }
+  },
+  {
+    "name": "title",
+    "command": "text.create",
+    "params": {
+      "parentId": "${{steps.poster.result.id}}",
+      "name": "Partnership packages headline",
+      "x": 42,
+      "y": 180,
+      "width": 1180,
+      "content": "PARTNERSHIP PACKAGES",
+      "fontFamily": "Brandon Grotesque",
+      "fontStyle": "Bold",
+      "fontSize": 58,
+      "letterSpacing": 8,
+      "lineHeight": 100,
+      "lineHeightUnit": "PERCENT",
+      "color": "#E5AD43"
+    }
+  },
+  {
+    "name": "headline_rule",
+    "command": "shape.create_line",
+    "params": {
+      "parentId": "${{steps.poster.result.id}}",
+      "name": "Headline horizontal rule",
+      "x": 42,
+      "y": 266,
+      "width": 1500,
+      "strokeWeight": 1.5,
+      "color": "#CE922D"
+    }
+  },
+  {
+    "name": "top_packages",
+    "command": "layout.pricing_grid",
+    "params": {
+      "parentId": "${{steps.poster.result.id}}",
+      "name": "Top sponsorship package grid",
+      "x": 40,
+      "y": 292,
+      "width": 1505,
+      "columns": 4,
+      "gap": 38,
+      "rowGap": 36,
+      "fontFamily": "Brandon Grotesque",
+      "gold": "#E5AD43",
+      "cream": "#F7F4EE",
+      "rule": "#CE922D",
+      "paddingLeft": 36,
+      "paddingTop": 0,
+      "paddingBottom": 0,
+      "cardMinHeight": 290,
+      "titleStyle": { "fontSize": 38, "fontWeight": 700, "lineHeight": 95, "letterSpacing": 2, "color": "#E5AD43" },
+      "priceStyle": { "fontSize": 28, "fontWeight": 700, "lineHeight": 100,
+      "lineHeightUnit": "PERCENT", "color": "#F7F4EE" },
+      "bodyStyle": { "fontSize": 19, "fontWeight": 400, "lineHeight": 134, "color": "#F7F4EE" },
+      "noteStyle": { "fontSize": 18, "fontWeight": 500, "lineHeight": 125, "color": "#F7F4EE" },
+      "cards": [
+        {
+          "name": "Diamond package",
+          "heading": "DIAMOND",
+          "price": "$10,000",
+          "benefits": [
+            "1-2 Minute video message from Sponsor",
+            "Full page ad in program booklet",
+            "Double booth in prefunction area",
+            "Two guest tables - 10 seats each",
+            "Social media spotlight",
+            "Logo and recognition during program",
+            "Logo on CAIR-Georgia website for a year"
+          ]
+        },
+        {
+          "name": "Platinum package",
+          "heading": "PLATINUM",
+          "price": "$5,000",
+          "benefits": [
+            "Half page ad in program booklet",
+            "Double booth in prefunction area",
+            "One guest table - 10 seats",
+            "Social media spotlight",
+            "Logo and recognition during program",
+            "Logo on CAIR-Georgia website for a year"
+          ]
+        },
+        {
+          "name": "Gold package",
+          "heading": "GOLD",
+          "price": "$2,500",
+          "benefits": [
+            "Quarter page ad in program booklet",
+            "One booth in prefunction area",
+            "One guest table - 10 seats",
+            "Social media spotlight",
+            "Logo and recognition in program",
+            "Logo on CAIR-Georgia website for a year"
+          ]
+        },
+        {
+          "name": "Silver package",
+          "heading": "SILVER",
+          "price": "$1,600",
+          "benefits": [
+            "One booth",
+            "One table",
+            "Booklet mention",
+            "Logo and recognition in program",
+            "Social media spotlight",
+            "Logo on CAIR-Georgia website for a year"
+          ],
+          "eligibility": "Eligibility: Medium businesses, law firms, masajid"
+        }
+      ]
+    }
+  },
+  {
+    "name": "middle_rule",
+    "command": "shape.create_line",
+    "params": {
+      "parentId": "${{steps.poster.result.id}}",
+      "name": "Middle section rule",
+      "x": 40,
+      "y": 626,
+      "width": 1505,
+      "strokeWeight": 1.3,
+      "color": "#CE922D"
+    }
+  },
+  {
+    "name": "bottom_packages",
+    "command": "layout.pricing_grid",
+    "params": {
+      "parentId": "${{steps.poster.result.id}}",
+      "name": "Bottom sponsorship package grid",
+      "x": 40,
+      "y": 654,
+      "width": 1505,
+      "columns": 3,
+      "gap": 58,
+      "rowGap": 30,
+      "fontFamily": "Brandon Grotesque",
+      "gold": "#E5AD43",
+      "cream": "#F7F4EE",
+      "rule": "#CE922D",
+      "paddingLeft": 36,
+      "paddingTop": 0,
+      "paddingBottom": 0,
+      "cardMinHeight": 250,
+      "titleStyle": { "fontSize": 34, "fontWeight": 700, "lineHeight": 98, "letterSpacing": 2, "color": "#E5AD43" },
+      "priceStyle": { "fontSize": 28, "fontWeight": 700, "lineHeight": 100,
+      "lineHeightUnit": "PERCENT", "color": "#F7F4EE" },
+      "bodyStyle": { "fontSize": 19, "fontWeight": 400, "lineHeight": 134, "color": "#F7F4EE" },
+      "noteStyle": { "fontSize": 18, "fontWeight": 500, "lineHeight": 125, "color": "#F7F4EE" },
+      "cards": [
+        {
+          "name": "Bronze package",
+          "heading": "BRONZE",
+          "price": "$1,000",
+          "benefits": [
+            "One booth",
+            "5 tickets",
+            "Logo and recognition during program",
+            "Social media spotlight",
+            "Logo on CAIR-Georgia website for a year"
+          ],
+          "eligibility": "Eligibility: Masajid, Islamic Schools, local nonprofits only"
+        },
+        {
+          "name": "Community organization package",
+          "heading": "COMMUNITY\nORGANIZATION",
+          "price": "$500",
+          "benefits": [
+            "One booth OR half page ad in program booklet",
+            "2 tickets",
+            "Social media spotlight",
+            "Logo on CAIR-Georgia website for a year"
+          ],
+          "eligibility": "Eligibility: Small community business or small nonprofit only"
+        },
+        {
+          "name": "Business showcase opportunity",
+          "heading": "BUSINESS SHOWCASE OPPORTUNITY",
+          "price": "(limit of 10)",
+          "benefits": [
+            "Business provides free samples for all attendees in prefunction space",
+            "If offering samples for sale, price per unit not to exceed $2",
+            "One booth",
+            "Two guest tickets",
+            "Half page ad in program booklet",
+            "Social media spotlight"
+          ],
+          "headingStyle": { "fontSize": "${{steps.fit_business_heading.result.fontSize}}" },
+          "priceStyle": { "fontSize": 19, "fontWeight": 400, "color": "#E5AD43" }
+        }
+      ]
+    }
+  },
+  {
+    "name": "footer_rule",
+    "command": "shape.create_line",
+    "params": {
+      "parentId": "${{steps.poster.result.id}}",
+      "name": "Footer rule",
+      "x": 40,
+      "y": 962,
+      "width": 1505,
+      "strokeWeight": 1.3,
+      "color": "#CE922D"
+    }
+  },
+  {
+    "name": "footer",
+    "command": "text.create",
+    "params": {
+      "parentId": "${{steps.poster.result.id}}",
+      "name": "Footer contact line",
+      "x": 348,
+      "y": 982,
+      "width": 900,
+      "content": "CAIRGEORGIA.ORG        |        404-239-2086        |        INFO@GA.CAIR.COM",
+      "fontFamily": "Brandon Grotesque",
+      "fontStyle": "Bold",
+      "fontSize": 24,
+      "letterSpacing": 8,
+      "lineHeight": 100,
+      "lineHeightUnit": "PERCENT",
+      "color": "#E5AD43"
+    }
+  }
+]

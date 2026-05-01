@@ -24,6 +24,7 @@ func init() {
 			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
 			{Name: "radius", Type: "number", Min: Ptr(0), Max: Ptr(200), Default: 10.0},
 			{Name: "type", Type: "string", Enum: []string{"LAYER_BLUR", "BACKGROUND_BLUR"}, Default: "LAYER_BLUR"},
+			{Name: "blurType", Type: "string", Enum: []string{"LAYER_BLUR", "BACKGROUND_BLUR"}},
 		},
 	})
 
@@ -36,4 +37,13 @@ func init() {
 			{Name: "intensity", Type: "string", Enum: []string{"light", "medium", "heavy"}, Default: "medium"},
 		},
 	})
+
+	nodeID := Param{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`}
+	Register(Schema{Command: "effect.set_effects", Description: "Set all effects on a node", Params: []Param{nodeID, {Name: "effects", Type: "array", Required: true}}})
+	Register(Schema{Command: "effect.apply_style", Description: "Apply an effect style", Params: []Param{nodeID, {Name: "styleId", Type: "string", Required: true}}})
+	Register(Schema{Command: "effect.remove_effect", Description: "Remove effects from a node", Params: []Param{nodeID}})
+	Register(Schema{Command: "effect.get_effects", Description: "Get effects from a node", Params: []Param{nodeID}})
+	Register(Schema{Command: "effect.add_noise", Description: "Add a noise effect where supported by Figma", Params: []Param{nodeID, {Name: "opacity", Type: "number", Min: Ptr(0), Max: Ptr(1)}, {Name: "size", Type: "number", Min: Ptr(0)}}})
+	Register(Schema{Command: "effect.add_texture", Description: "Add a texture effect where supported by Figma", Params: []Param{nodeID, {Name: "opacity", Type: "number", Min: Ptr(0), Max: Ptr(1)}, {Name: "size", Type: "number", Min: Ptr(0)}}})
+	Register(Schema{Command: "effect.add_glass", Description: "Add native glass effect where supported by Figma", Params: []Param{nodeID, {Name: "preset", Type: "string", Enum: []string{"light", "medium", "heavy"}}, {Name: "radius", Type: "number", Min: Ptr(0)}}})
 }

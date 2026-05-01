@@ -6,7 +6,14 @@ import "strings"
 var All []Schema
 
 // Register adds a schema to the global registry.
-func Register(s Schema) { All = append(All, s) }
+func Register(s Schema) {
+	for _, existing := range All {
+		if strings.EqualFold(existing.Command, s.Command) {
+			return
+		}
+	}
+	All = append(All, s)
+}
 
 // Lookup finds a schema by command name or alias. Returns nil if not found.
 func Lookup(command string) *Schema {
@@ -47,4 +54,42 @@ func Commands() []string {
 		out[i] = s.Command
 	}
 	return out
+}
+
+// GroupedCommands returns registered commands as domain -> sorted actions.
+func GroupedCommands() map[string][]string {
+	out := make(map[string][]string)
+	for _, s := range All {
+		domain, action, ok := SplitCommand(s.Command)
+		if !ok {
+			continue
+		}
+		out[domain] = append(out[domain], action)
+	}
+	for domain := range out {
+		sortStrings(out[domain])
+	}
+	return out
+}
+
+// SplitCommand splits a canonical "domain.action" command.
+func SplitCommand(command string) (string, string, bool) {
+	command = strings.TrimSpace(command)
+	dot := strings.Index(command, ".")
+	if dot <= 0 || dot >= len(command)-1 {
+		return "", "", false
+	}
+	return command[:dot], command[dot+1:], true
+}
+
+func sortStrings(values []string) {
+	for i := 1; i < len(values); i++ {
+		v := values[i]
+		j := i - 1
+		for j >= 0 && values[j] > v {
+			values[j+1] = values[j]
+			j--
+		}
+		values[j+1] = v
+	}
 }

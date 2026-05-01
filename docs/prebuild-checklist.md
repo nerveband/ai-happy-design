@@ -40,6 +40,7 @@ make build
 
 Expected outputs:
 - `bin/ai-happy-design`
+- `bin/ahd-figma`
 - `plugin/dist/code.js`
 - `plugin/dist/ui.html`
 
@@ -55,7 +56,7 @@ cd plugin && npm run typecheck && npm run verify:syntax && cd ..
 Start MCP mode:
 
 ```bash
-./bin/ai-happy-design mcp
+./bin/ahd-figma mcp
 ```
 
 Then in Figma run plugin **AI Happy Design**.
@@ -64,8 +65,8 @@ Then in Figma run plugin **AI Happy Design**.
 In another terminal:
 
 ```bash
-./bin/ai-happy-design tools --json
-./bin/ai-happy-design command document.get_info
+./bin/ahd-figma tools --json
+./bin/ahd-figma command document.get_info
 ```
 
 If multiple channels are active, pass explicit channel or set `AHD_CHANNEL`.

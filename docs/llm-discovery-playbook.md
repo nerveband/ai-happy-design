@@ -6,11 +6,11 @@ Use this flow to reduce command failures.
 CLI:
 
 ```bash
-ai-happy-design tools --llm --json
+ahd-figma tools --llm --json
 ```
 
 MCP:
-- Call `describe` with `action: "catalog"`.
+- Call `tools/list`, read `ahd://schema` or `ahd://tools`, or call `ahd_describe` with `action: "catalog"`.
 
 This returns:
 - tool/action list
@@ -22,13 +22,15 @@ This returns:
 Run these before edits:
 - `document.get_info`
 - `document.get_selection`
+- `document.get_focused_node` when working from Dev Mode focus
+- `node.get_css` when matching an existing node's generated CSS
 
 This reduces failures from invalid node assumptions.
 
 ## 3) For multi-step edits, use one payload
 Prefer:
 - CLI: `batch`
-- MCP: `bulk.execute`
+- MCP: schema-backed tools for small edits; CLI `batch` for multi-step generation
 
 Include:
 - `name` on each step
@@ -55,7 +57,7 @@ Use this prompt pattern:
 ```text
 1) Discover capabilities first using the catalog.
 2) Build the smallest safe command plan.
-3) Use bulk.execute (or batch) with named steps and interpolation.
+3) Use CLI batch with named steps and interpolation for multi-step creation.
 4) If one step fails, continue and return a per-step summary.
 5) For image URL failure, fallback to base64 image fill.
 ```

@@ -10,6 +10,8 @@ export async function handleDocument(action: string, params: any): Promise<any> 
     case 'get_selected':
     case 'selected':
     case 'get_selection': return getSelection(params);
+    case 'focused_node':
+    case 'get_focused_node': return getFocusedNode(params);
     case 'select':
     case 'set_selected':
     case 'set_selection': return setSelection(params);
@@ -39,7 +41,7 @@ export async function handleDocument(action: string, params: any): Promise<any> 
     case 'lint':
     case 'check':
     case 'validate': return lintNode(params);
-    default: throw new Error('Unknown document action: ' + action + '. Available: get_info, get_selection, set_selection, scan_text, scan_by_type, get_styles, find_by_name, find_by_type, focus, zoom_to, find_free_space, find_nodes, lint');
+    default: throw new Error('Unknown document action: ' + action + '. Available: get_info, get_selection, get_focused_node, set_selection, scan_text, scan_by_type, get_styles, find_by_name, find_by_type, focus, zoom_to, find_free_space, find_nodes, lint');
   }
 }
 
@@ -66,6 +68,15 @@ async function getSelection(_params: any) {
     nodes: selection.map(node => serializeNode(node, 0, 2)),
     count: selection.length,
   };
+}
+
+async function getFocusedNode(_params: any) {
+  var pageAny = figma.currentPage as any;
+  var focused = pageAny.focusedNode;
+  if (!focused) {
+    return { focusedNode: null };
+  }
+  return { focusedNode: serializeNode(focused as SceneNode, 0, 2) };
 }
 
 async function setSelection(params: any) {

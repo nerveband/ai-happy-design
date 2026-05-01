@@ -1,5 +1,10 @@
 package tools
 
+import (
+	"fmt"
+
+	"github.com/nerveband/ai-happy-design/internal/schema"
+)
 
 // toolDescriptions provides self-documentation for all tools.
 var toolDescriptions = map[string]map[string]string{
@@ -159,14 +164,26 @@ var toolDescriptions = map[string]map[string]string{
 // ToolCatalog returns a copy of the server tool/action descriptions for
 // machine-readable discovery in CLI or external integrations.
 func ToolCatalog() map[string]map[string]string {
-	out := make(map[string]map[string]string, len(toolDescriptions))
-	for tool, actions := range toolDescriptions {
-		actionCopy := make(map[string]string, len(actions))
-		for action, desc := range actions {
-			actionCopy[action] = desc
+	out := make(map[string]map[string]string)
+	for _, s := range schema.All {
+		domain, action, ok := schema.SplitCommand(s.Command)
+		if !ok {
+			continue
 		}
-		out[tool] = actionCopy
+		if _, ok := out[domain]; !ok {
+			out[domain] = make(map[string]string)
+		}
+
+		desc := s.Description
+		if overrides, ok := toolDescriptions[domain]; ok {
+			if override, ok := overrides[action]; ok && override != "" {
+				desc = override
+			}
+		}
+		if desc == "" {
+			desc = fmt.Sprintf("%s.%s", domain, action)
+		}
+		out[domain][action] = desc
 	}
 	return out
 }
-

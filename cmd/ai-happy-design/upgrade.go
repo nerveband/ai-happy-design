@@ -71,12 +71,15 @@ func checkForUpdates() (bool, string, error) {
 }
 
 func notifyUpdateAvailable() {
+	if os.Getenv("AHD_NO_UPDATE_CHECK") == "1" || os.Getenv("CI") == "true" {
+		return
+	}
 	hasUpdate, latestVersion, err := checkForUpdates()
 	if err != nil || !hasUpdate {
 		return
 	}
 	fmt.Fprintf(os.Stderr, "\nNew version available: %s (current: %s)\n", latestVersion, version)
-	fmt.Fprintf(os.Stderr, "Run 'ai-happy-design upgrade' to update\n\n")
+	fmt.Fprintf(os.Stderr, "Run '%s upgrade' to update\n\n", filepath.Base(os.Args[0]))
 }
 
 func loadUpdateCache() (*updateCheckCache, error) {

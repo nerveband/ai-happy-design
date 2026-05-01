@@ -6,7 +6,7 @@
 
 **Give AI full control of your Figma canvas.**
 
-A single Go binary that connects any AI (Claude, GPT, Gemini, etc.) to Figma through a local WebSocket relay. Design, edit, and export — all from natural language.
+A single Go binary, available as `ahd-figma` and the legacy `ai-happy-design` command, that connects any AI (Claude, GPT, Gemini, etc.) to Figma through a local WebSocket relay. Design, inspect, edit, and export from natural language.
 
 Made by [Ashraf Ali](https://ashrafali.net) | [GitHub](https://github.com/nerveband/ai-happy-design) | MIT License
 
@@ -29,18 +29,20 @@ AI / LLM              CLI (scripting)
 ```
 
 One binary. Three modes:
-- **MCP server** — standard integration for AI editors (Claude Code, Cursor, Windsurf, etc.)
+- **MCP server** — schema-backed integration for AI editors (Claude Code, Cursor, Windsurf, etc.)
 - **CLI** — direct commands and batch payloads. **10-50x faster than MCP for bulk operations** because it sends a single batch payload over one WebSocket connection instead of individual MCP tool calls. AI agents can use the CLI for heavy lifting.
 - **Relay** — WebSocket bridge to the Figma plugin
 
 ## What's Included
 
-- **14 tool domains**: paint, shape, text, layout, node, layer, component, style, variable, effect, boolean, page, document, export
+- **15 tool domains**: paint, shape, text, layout, node, layer, component, style, variable, effect, boolean, page, document, export, design
+- **Schema-backed MCP**: `ahd-figma mcp` exposes the same command schemas as the CLI plus resources for schemas, tools, and the design guide
+- **Current Figma context APIs**: inspect Dev Mode focused node with `document.get_focused_node` and generated CSS with `node.get_css`
 - **Batch operations**: Chain 150+ commands in one payload with step interpolation (`${{steps.name.result.id}}`), per-operation timing stats, ~27 ops/sec
 - **Smart canvas placement**: `document.find_free_space` scans existing frames and returns exact coordinates — AI never guesses where to place new designs
 - **Design tokens**: `design.compute_tokens` auto-computes fonts, spacing, padding, and layout for any canvas size — no Figma connection required
 - **Design intelligence**: Built-in design guide the AI can call to learn typography, balance, visual hierarchy, and CSS-to-Figma translation
-- **Auto-registration**: `ai-happy-design register` detects installed AI editors and configures MCP automatically
+- **Auto-registration**: `ahd-figma register` detects installed AI editors and configures MCP automatically
 - **Unicode-safe**: Full support for emojis, CJK, accented characters, em-dashes, and special characters
 - **Local only**: Everything on localhost. Nothing leaves your machine.
 
@@ -69,7 +71,7 @@ sudo mv ai-happy-design /usr/local/bin/
 ### 2. Setup Plugin
 
 ```bash
-ai-happy-design setup
+ahd-figma setup
 ```
 
 This extracts the embedded Figma plugin and opens Finder to the manifest file.
@@ -81,14 +83,14 @@ This extracts the embedded Figma plugin and opens Finder to the manifest file.
 ### 3. Register with Your AI Editor
 
 ```bash
-ai-happy-design register
+ahd-figma register
 ```
 
 Auto-detects installed editors (Claude Code, Claude Desktop, Cursor, Windsurf, VS Code, Zed) and registers the MCP server. Or register with a specific editor:
 
 ```bash
-ai-happy-design register --editor "Claude Code"
-ai-happy-design register --editor "Cursor"
+ahd-figma register --editor "Claude Code"
+ahd-figma register --editor "Cursor"
 ```
 
 **Manual setup** (if you prefer):
@@ -97,16 +99,16 @@ ai-happy-design register --editor "Cursor"
 <summary>Claude Code</summary>
 
 ```bash
-claude mcp add ai-happy-design -- ai-happy-design mcp
+claude mcp add ahd-figma -- ahd-figma mcp
 ```
 
 Or add to `~/.claude.json`:
 ```json
 {
   "mcpServers": {
-    "ai-happy-design": {
+    "ahd-figma": {
       "type": "stdio",
-      "command": "ai-happy-design",
+      "command": "ahd-figma",
       "args": ["mcp"]
     }
   }
@@ -121,8 +123,8 @@ Add to your MCP config file:
 ```json
 {
   "mcpServers": {
-    "ai-happy-design": {
-      "command": "ai-happy-design",
+    "ahd-figma": {
+      "command": "ahd-figma",
       "args": ["mcp"]
     }
   }
@@ -143,14 +145,14 @@ This is optional; the MCP server and CLI work without it.
 ### 4. Verify
 
 ```bash
-ai-happy-design tools --json       # List all tools
-ai-happy-design command document.get_info   # Test connection
+ahd-figma tools --json       # List all tools
+ahd-figma command document.get_info   # Test connection
 ```
 
 ### 5. Upgrade
 
 ```bash
-ai-happy-design upgrade
+ahd-figma upgrade
 ```
 
 Auto-checks for updates daily and notifies you. Upgrade downloads and installs the new binary in-place.
@@ -167,7 +169,7 @@ AI Happy Design ships with a **skill file** that teaches AI agents how to use th
 
 **Option B: Tell the AI to use the CLI directly:**
 
-> "Use the ai-happy-design CLI to design an Instagram post about [topic]. Run `ai-happy-design command design.compute_tokens` first for sizing."
+> "Use the ai-happy-design CLI to design an Instagram post about [topic]. Run `ahd-figma command design.compute_tokens` first for sizing."
 
 The skill is the preferred approach — it gives the AI everything it needs in one shot, including composite command format, batch aliases, design token workflow, and common pitfalls.
 
@@ -188,9 +190,10 @@ cp path/to/SKILL.md ~/.claude/skills/ai-happy-design/SKILL.md
 
 1. **Compute tokens** — get proportional font sizes and spacing for the target canvas
 2. **Find free space** — get exact coordinates so designs never overlap
-3. **Think in CSS** — mentally draft as HTML/CSS, then translate to Figma commands
-4. **Batch create** — write composite `slide`/`banner` commands or primitive ops
-5. **Export & verify** — visually inspect the result
+3. **Measure and fit text** — use `text.measure` and `text.fit_box` before locking dense layouts
+4. **Think in CSS** — draft HTML/CSS-like structure, then translate sections to Figma commands
+5. **Batch create** — write composite commands, `text.create_rich_block`, `layout.pricing_grid`, or primitive ops
+6. **Export & iterate** — compare against the reference, adjust the batch, and rerun
 
 ## CLI Usage
 
@@ -198,23 +201,23 @@ The CLI is the fastest way to drive Figma operations — **recommended for AI ag
 
 ### Single command
 ```bash
-ai-happy-design command paint.set_solid -p '{"nodeId":"1:2","color":"#2563EB"}'
+ahd-figma command paint.set_solid -p '{"nodeId":"1:2","color":"#2563EB"}'
 ```
 
 ### Batch operations (fastest)
 ```bash
 # From file — send 100+ operations in one shot:
-ai-happy-design batch -f payload.json
+ahd-figma batch -f payload.json
 
 # Inline:
-ai-happy-design batch -o '[{"name":"card","command":"node.create_frame","params":{"width":320,"height":200}}]'
+ahd-figma batch -o '[{"name":"card","command":"node.create_frame","params":{"width":320,"height":200}}]'
 ```
 
 ### List available actions
 ```bash
-ai-happy-design actions           # All domains and actions
-ai-happy-design actions document  # Just document actions
-ai-happy-design tools --llm       # Full LLM-focused catalog with examples
+ahd-figma actions           # All domains and actions
+ahd-figma actions document  # Just document actions
+ahd-figma tools --llm       # Full LLM-focused catalog with examples
 ```
 
 ### Relay management
@@ -236,10 +239,10 @@ ai-happy-design relay stop       # Stop
 Export any node as PNG, JPG, SVG, or PDF:
 
 ```bash
-ai-happy-design command export.image '{"nodeId":"47:765","format":"PNG","scale":2}' -o output.png
-ai-happy-design command export.image '{"nodeId":"47:765","format":"JPG","scale":1}' -o output.jpg
-ai-happy-design command export.svg '{"nodeId":"47:765"}' -o output.svg
-ai-happy-design command export.pdf '{"nodeId":"47:765"}' -o output.pdf
+ahd-figma command export.image '{"nodeId":"47:765","format":"PNG","scale":2}' -o output.png
+ahd-figma command export.image '{"nodeId":"47:765","format":"JPG","scale":1}' -o output.jpg
+ahd-figma command export.svg '{"nodeId":"47:765"}' -o output.svg
+ahd-figma command export.pdf '{"nodeId":"47:765"}' -o output.pdf
 ```
 
 SVG exports are saved as raw SVG text. PNG/JPG/PDF are decoded from base64. The `-o` flag specifies the output path; without it, a filename is auto-generated from the node name.
@@ -250,7 +253,7 @@ Write one high-level command, get a complete Figma slide or banner. Composites a
 
 ```bash
 # One slide command → 7-15 Figma operations
-ai-happy-design batch '[{
+ahd-figma batch '[{
   "name": "s1",
   "command": "slide",
   "params": {
@@ -279,13 +282,23 @@ Extract slides and banners from styled HTML files directly into Figma:
 
 ```bash
 # Parse HTML/CSS → composite batch JSON
-ai-happy-design extract social-posts.html --width 1080 --height 1350
+ahd-figma extract social-posts.html --width 1080 --height 1350
 
 # Full pipeline: HTML → Figma in one line
-ai-happy-design extract input.html -o /tmp/ops.json && ai-happy-design batch /tmp/ops.json
+ahd-figma extract input.html -o /tmp/ops.json && ahd-figma batch /tmp/ops.json
 ```
 
 The extract command parses `<style>` blocks, inline styles, gradients, colors, and font weights. Each `.slide` becomes a `slide` composite command, each `.email-banner` becomes a `banner`.
+
+For high-fidelity recreation from screenshots or HTML/CSS references, use the measured workflow:
+
+1. Inspect the reference with `node.get_css` when matching existing Figma nodes, or summarize the HTML/CSS structure yourself.
+2. Measure critical copy with `text.measure`; fit constrained labels with `text.fit_box`.
+3. Use `text.create_rich_block` for grouped headings, prices, bullets, and notes.
+4. Use `layout.pricing_grid` for CSS-like card grids instead of hand-positioning every text node.
+5. Export, compare visually, then adjust spacing, typography, and content in the same batch file.
+
+See `docs/examples/html-css-recreation-workflow.json` for a compact executable-style payload.
 
 ## Benchmarking (v0.10+)
 
@@ -293,13 +306,13 @@ Provider-agnostic performance measurement — no LLM API calls built in:
 
 ```bash
 # Time batch execution against Figma
-ai-happy-design benchmark exec ops.json --runs 3
+ahd-figma benchmark exec ops.json --runs 3
 
 # Time external LLM + execution (pipe any LLM output)
 START=$(date +%s%N)
 BATCH=$(curl -sS your-llm-api... | jq -r '.choices[0].message.content')
 MS=$(( ($(date +%s%N) - START) / 1000000 ))
-echo "$BATCH" | ai-happy-design benchmark pipe --phase-a-ms $MS
+echo "$BATCH" | ahd-figma benchmark pipe --phase-a-ms $MS
 ```
 
 ## Performance
@@ -318,10 +331,11 @@ Batch output includes per-operation `elapsedMs` and a `timing` summary with `tot
 ## Do's and Don'ts
 
 **Do:**
-- Call `describe(action="catalog")` before building commands
+- Discover with `ahd-figma tools --llm --json`, MCP `tools/list`, or `ahd_describe`
 - Call `document.find_free_space` before creating new frames — it returns exact coordinates
 - Call `design.compute_tokens` to get sizing for your canvas
-- Use batch (`bulk.execute`) for multi-element designs (3+ elements)
+- Use CLI batch for multi-element designs (3+ elements)
+- Use `document.get_focused_node` and `node.get_css` before matching existing Figma context
 - Use **absolute x/y positioning** for main layout + auto-layout only for badges/buttons
 - Always pass `lineHeightUnit: "PERCENT"` with `text.set_line_height` (default is PIXELS)
 - Export at scale=2 for crisp output
@@ -340,13 +354,13 @@ Batch output includes per-operation `elapsedMs` and a `timing` summary with `tot
 
 | Problem | Fix |
 |---------|-----|
-| Plugin "Disconnected" | Start relay: `ai-happy-design relay start` |
-| Commands fail | Run `describe(action="catalog")` to rediscover tools |
+| Plugin "Disconnected" | Start relay: `ahd-figma relay start` |
+| Commands fail | Run `ahd-figma tools --llm --json` or MCP `tools/list` to rediscover tools |
 | Wrong port | Edit Relay URL in plugin UI |
 | Channel mismatch | Copy key from plugin, pass via `--channel` |
-| Plugin won't load | Run `ai-happy-design setup --force` to re-extract |
-| Binary killed on macOS (source build) | Run `codesign -s - /path/to/ai-happy-design` |
-| MCP not loading in editor | Run `ai-happy-design register --force` to re-register |
+| Plugin won't load | Run `ahd-figma setup --force` to re-extract |
+| Binary killed on macOS (source build) | Run `codesign -s - /path/to/ahd-figma` |
+| MCP not loading in editor | Run `ahd-figma register --force` to re-register |
 
 ## Prerequisites
 
@@ -358,18 +372,18 @@ Batch output includes per-operation `elapsedMs` and a `timing` summary with `tot
 
 | Command | Description |
 |---------|-------------|
-| `ai-happy-design setup` | Extract and install the Figma plugin |
-| `ai-happy-design register` | Auto-register MCP with detected AI editors |
-| `ai-happy-design mcp` | Start MCP server (stdio transport, for AI editors) |
-| `ai-happy-design ws` | Start WebSocket relay only |
-| `ai-happy-design command <action>` | Execute a single command |
-| `ai-happy-design batch` | Execute a batch of commands |
-| `ai-happy-design actions` | List all domain.action pairs |
-| `ai-happy-design tools` | Print tool catalog |
-| `ai-happy-design extract <file.html>` | Parse HTML/CSS into batch JSON |
-| `ai-happy-design benchmark exec/pipe` | Provider-agnostic performance benchmarking |
+| `ahd-figma setup` | Extract and install the Figma plugin |
+| `ahd-figma register` | Auto-register MCP with detected AI editors |
+| `ahd-figma mcp` | Start MCP server (stdio transport, for AI editors) |
+| `ahd-figma ws` | Start WebSocket relay only |
+| `ahd-figma command <action>` | Execute a single command |
+| `ahd-figma batch` | Execute a batch of commands |
+| `ahd-figma actions` | List all domain.action pairs |
+| `ahd-figma tools` | Print tool catalog |
+| `ahd-figma extract <file.html>` | Parse HTML/CSS into batch JSON |
+| `ahd-figma benchmark exec/pipe` | Provider-agnostic performance benchmarking |
 | `ai-happy-design relay start/stop/status/logs` | Manage the relay process |
-| `ai-happy-design upgrade` | Upgrade to the latest version |
+| `ahd-figma upgrade` | Upgrade to the latest version |
 
 ## Usage Scenarios
 
@@ -384,11 +398,11 @@ Or if the skill is auto-loaded (via skillshare or Claude Code settings):
 > **You:** "Design a 5-slide Instagram carousel about Muslim chaplains in Figma"
 
 The AI reads the skill, then uses the CLI:
-1. `ai-happy-design command design.compute_tokens '{"width":1080,"height":1350}'` — sizing
-2. `ai-happy-design command document.find_free_space '{"width":1080,"height":1350}'` — placement
+1. `ahd-figma command design.compute_tokens '{"width":1080,"height":1350}'` — sizing
+2. `ahd-figma command document.find_free_space '{"width":1080,"height":1350}'` — placement
 3. Writes composite `slide` commands to a JSON file
-4. `ai-happy-design batch /tmp/slides.json` — creates everything in Figma
-5. `ai-happy-design command export.image '{"nodeId":"...","scale":2}'` — verifies
+4. `ahd-figma batch /tmp/slides.json` — creates everything in Figma
+5. `ahd-figma command export.image '{"nodeId":"...","scale":2}'` — verifies
 
 ### Scenario 2: CLI Batch from a JSON File
 
@@ -407,7 +421,7 @@ cat > /tmp/slides.json << 'EOF'
 EOF
 
 # Execute against Figma
-ai-happy-design batch /tmp/slides.json
+ahd-figma batch /tmp/slides.json
 ```
 
 ### Scenario 3: HTML File → Figma
@@ -416,11 +430,11 @@ Have a designer's HTML spec? Extract and execute in one pipeline:
 
 ```bash
 # Two-step (inspect the JSON first)
-ai-happy-design extract mockup.html --width 1080 --height 1350 -o /tmp/ops.json
-ai-happy-design batch /tmp/ops.json
+ahd-figma extract mockup.html --width 1080 --height 1350 -o /tmp/ops.json
+ahd-figma batch /tmp/ops.json
 
 # One-liner
-ai-happy-design extract mockup.html -o /tmp/ops.json && ai-happy-design batch /tmp/ops.json
+ahd-figma extract mockup.html -o /tmp/ops.json && ahd-figma batch /tmp/ops.json
 ```
 
 ### Scenario 4: LLM Generates JSON, CLI Executes
@@ -435,7 +449,7 @@ curl -sS https://api.cerebras.ai/v1/chat/completions \
   -d '{"model":"qwen-3-235b-a22b-instruct-2507","messages":[
     {"role":"system","content":"Output ONLY a JSON array of slide composite commands."},
     {"role":"user","content":"Create a fundraiser slide, 1080x1350, dark blue theme"}
-  ]}' | jq -r '.choices[0].message.content' | ai-happy-design batch
+  ]}' | jq -r '.choices[0].message.content' | ahd-figma batch
 
 # OpenAI
 curl -sS https://api.openai.com/v1/chat/completions \
@@ -444,7 +458,7 @@ curl -sS https://api.openai.com/v1/chat/completions \
   -d '{"model":"gpt-4o","messages":[
     {"role":"system","content":"Output ONLY a JSON array of slide composite commands."},
     {"role":"user","content":"Create a fundraiser slide"}
-  ]}' | jq -r '.choices[0].message.content' | ai-happy-design batch
+  ]}' | jq -r '.choices[0].message.content' | ahd-figma batch
 ```
 
 ### Scenario 5: Multi-File Batch
@@ -452,9 +466,9 @@ curl -sS https://api.openai.com/v1/chat/completions \
 Execute multiple JSON files at once, or an entire directory:
 
 ```bash
-ai-happy-design batch slides.json banners.json     # two files
-ai-happy-design batch ./campaign/                    # all .json in directory
-ai-happy-design batch *.json --parallel              # concurrent (max 4)
+ahd-figma batch slides.json banners.json     # two files
+ahd-figma batch ./campaign/                    # all .json in directory
+ahd-figma batch *.json --parallel              # concurrent (max 4)
 ```
 
 ### Scenario 6: Benchmark Your Pipeline
@@ -463,13 +477,13 @@ Measure end-to-end performance with any LLM provider:
 
 ```bash
 # Just measure execution speed
-ai-happy-design benchmark exec ops.json --runs 3
+ahd-figma benchmark exec ops.json --runs 3
 
 # Measure LLM generation + execution
 START=$(date +%s%N)
 JSON=$(curl -sS your-llm... | jq -r '.choices[0].message.content')
 MS=$(( ($(date +%s%N) - START) / 1000000 ))
-echo "$JSON" | ai-happy-design benchmark pipe --phase-a-ms $MS
+echo "$JSON" | ahd-figma benchmark pipe --phase-a-ms $MS
 ```
 
 ## Documentation

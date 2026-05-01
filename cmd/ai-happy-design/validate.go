@@ -80,6 +80,8 @@ Exit code 0 = valid, 1 = validation errors found.`,
 			data = fixed
 		}
 
+		data = unwrapOperationsPayload(data)
+
 		// Structural validation (existing checks)
 		structuralErrs := validateBatchOps(data)
 
@@ -133,6 +135,16 @@ Exit code 0 = valid, 1 = validation errors found.`,
 		}
 		return nil
 	},
+}
+
+func unwrapOperationsPayload(data []byte) []byte {
+	var wrapped struct {
+		Operations json.RawMessage `json:"operations"`
+	}
+	if err := json.Unmarshal(data, &wrapped); err == nil && len(wrapped.Operations) > 0 {
+		return wrapped.Operations
+	}
+	return data
 }
 
 var interpolationRef = regexp.MustCompile(`\$\{\{steps\.([a-zA-Z0-9_]+)\.result\.[a-z]+\}\}`)

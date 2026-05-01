@@ -177,8 +177,16 @@ async function resetInstance(params: any) {
   const node = await getNodeById(nodeId);
   if (node.type !== 'INSTANCE') throw new Error(`Not an instance: ${nodeId}`);
 
-  (node as InstanceNode).resetOverrides();
-  return { id: node.id, name: node.name };
+  const instanceAny = node as any;
+  if (typeof instanceAny.removeOverrides === 'function') {
+    instanceAny.removeOverrides();
+    return { id: node.id, name: node.name, resetMethod: 'removeOverrides' };
+  }
+  if (typeof instanceAny.resetOverrides === 'function') {
+    instanceAny.resetOverrides();
+    return { id: node.id, name: node.name, resetMethod: 'resetOverrides' };
+  }
+  throw new Error('Instance override reset is unavailable in this Figma runtime');
 }
 
 async function swapInstance(params: any) {

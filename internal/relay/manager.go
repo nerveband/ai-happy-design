@@ -367,8 +367,8 @@ func Stop() (*StopResult, error) {
 
 	if cmdline, cmdErr := processCommand(state.PID); cmdErr == nil {
 		lower := strings.ToLower(cmdline)
-		if cmdline != "" && !strings.Contains(lower, "ai-happy-design") {
-			return nil, fmt.Errorf("refusing to stop pid %d because it does not look like ai-happy-design: %s", state.PID, cmdline)
+		if cmdline != "" && !looksLikeAHDProcess(lower) {
+			return nil, fmt.Errorf("refusing to stop pid %d because it does not look like ai-happy-design/ahd-figma: %s", state.PID, cmdline)
 		}
 	}
 
@@ -429,7 +429,7 @@ func IsPortInUse(port int) (bool, error) {
 	return false, nil
 }
 
-// PortOwner returns best-effort listener owner and whether it looks like ai-happy-design.
+// PortOwner returns best-effort listener owner and whether it looks like ai-happy-design/ahd-figma.
 func PortOwner(port int) (string, bool) {
 	if port <= 0 {
 		return "", false
@@ -456,7 +456,11 @@ func PortOwner(port int) (string, bool) {
 	pid := fields[1]
 	summary := fmt.Sprintf("%s (pid %s)", command, pid)
 	lower := strings.ToLower(command)
-	return summary, strings.Contains(lower, "ai-happy-design")
+	return summary, looksLikeAHDProcess(lower)
+}
+
+func looksLikeAHDProcess(lower string) bool {
+	return strings.Contains(lower, "ai-happy-design") || strings.Contains(lower, "ahd-figma")
 }
 
 func processCommand(pid int) (string, error) {

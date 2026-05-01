@@ -18,7 +18,8 @@ make build
 ```
 
 Outputs:
-- `./bin/ai-happy-design`
+- `./bin/ai-happy-design` (legacy-compatible name)
+- `./bin/ahd-figma`
 - `plugin/dist/code.js`
 - `plugin/dist/ui.html`
 - `internal/plugin/files/manifest.json`
@@ -45,17 +46,15 @@ cd ..
 ### MCP mode (recommended for LLM integration)
 
 ```bash
-./bin/ai-happy-design mcp
+./bin/ahd-figma mcp
 ```
 
-This starts:
-- MCP stdio server
-- embedded WebSocket relay (default port `3055`)
+This starts the schema-backed MCP stdio server. Tool and resource discovery come from the same schema registry used by CLI validation and discovery.
 
 ### Relay-only mode (for manual CLI testing)
 
 ```bash
-./bin/ai-happy-design ws
+./bin/ahd-figma ws
 ```
 
 ### One-stop CLI mode (no manual relay start needed)
@@ -67,22 +66,22 @@ For direct CLI usage, relay auto-starts on demand for:
 Disable auto-start only when needed:
 
 ```bash
-./bin/ai-happy-design --no-auto-relay command document.get_info
+./bin/ahd-figma --no-auto-relay command document.get_info
 ```
 
 Relay lifecycle commands:
 
 ```bash
-./bin/ai-happy-design relay start
-./bin/ai-happy-design relay status
-./bin/ai-happy-design relay logs --lines 80
-./bin/ai-happy-design relay stop
+./bin/ahd-figma relay start
+./bin/ahd-figma relay status
+./bin/ahd-figma relay logs --lines 80
+./bin/ahd-figma relay stop
 ```
 
 Optional persistent relay on macOS:
 
 ```bash
-./bin/ai-happy-design relay install-agent
+./bin/ahd-figma relay install-agent
 ```
 
 ## 6. Connect Plugin
@@ -96,8 +95,9 @@ Open plugin UI in Figma.
 In another terminal:
 
 ```bash
-./bin/ai-happy-design tools --json
-./bin/ai-happy-design command document.get_info
+./bin/ahd-figma tools --json
+./bin/ahd-figma command document.get_info
+./bin/ahd-figma command document.get_focused_node
 ```
 
 If only one active plugin channel exists, channel arg is optional.
@@ -105,5 +105,5 @@ If only one active plugin channel exists, channel arg is optional.
 You can still pass an explicit channel:
 
 ```bash
-./bin/ai-happy-design command happy-unicorn-42 document.get_info
+./bin/ahd-figma command happy-unicorn-42 document.get_info
 ```

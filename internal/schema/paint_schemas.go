@@ -19,7 +19,7 @@ func init() {
 		Params: []Param{
 			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
 			{Name: "gradientType", Type: "string", Enum: []string{"LINEAR", "RADIAL", "ANGULAR", "DIAMOND"}, Default: "LINEAR"},
-			{Name: "stops", Type: "string", Required: true, Desc: "JSON array of gradient stops: [{position:0, color:\"#FF0000\"}, {position:1, color:\"#0000FF\"}]"},
+			{Name: "stops", Type: "array", Required: true, Desc: "Gradient stops: [{position:0, color:\"#FF0000\"}, {position:1, color:\"#0000FF\"}]"},
 			{Name: "angle", Type: "number", Desc: "Gradient angle in degrees (0=top, 90=right)", Min: Ptr(0), Max: Ptr(360)},
 		},
 	})

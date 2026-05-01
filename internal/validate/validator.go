@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strings"
 
@@ -207,11 +208,30 @@ func validateParam(step int, name string, p *schema.Param, val interface{}, para
 	case "string":
 		str, ok := val.(string)
 		if !ok {
+			if p.Pattern != "" && strings.Contains(p.Pattern, "#[0-9A-Fa-f]") {
+				if hex, converted := figmaRGBToHex(val); converted {
+					params[p.Name] = hex
+					issues = append(issues, Issue{
+						Step: step, Name: name, Phase: "schema", Code: "TYPE_MISMATCH",
+						Param: p.Name, Got: val,
+						Message: fmt.Sprintf("%s was a Figma RGB object; converted to hex", p.Name),
+						Fix:     hex,
+						Applied: true,
+					})
+					str = hex
+					ok = true
+				}
+			}
+		}
+		if !ok {
 			issues = append(issues, Issue{
 				Step: step, Name: name, Phase: "schema", Code: "TYPE_MISMATCH",
 				Param: p.Name, Got: val,
 				Message: fmt.Sprintf("%s must be a string, got %T", p.Name, val),
 			})
+			return issues
+		}
+		if isInterpolationRef(str) {
 			return issues
 		}
 
@@ -271,6 +291,46 @@ func validateParam(step int, name string, p *schema.Param, val interface{}, para
 		}
 	}
 	return issues
+}
+
+func isInterpolationRef(s string) bool {
+	s = strings.TrimSpace(s)
+	return strings.HasPrefix(s, "${{") && strings.HasSuffix(s, "}}")
+}
+
+func figmaRGBToHex(v interface{}) (string, bool) {
+	m, ok := v.(map[string]interface{})
+	if !ok {
+		return "", false
+	}
+	r, okR := toFloat64(m["r"])
+	g, okG := toFloat64(m["g"])
+	b, okB := toFloat64(m["b"])
+	if !okR || !okG || !okB {
+		return "", false
+	}
+	a, hasAlpha := toFloat64(m["a"])
+	rb := colorByte(r)
+	gb := colorByte(g)
+	bb := colorByte(b)
+	if hasAlpha {
+		ab := colorByte(a)
+		return fmt.Sprintf("#%02X%02X%02X%02X", rb, gb, bb, ab), true
+	}
+	return fmt.Sprintf("#%02X%02X%02X", rb, gb, bb), true
+}
+
+func colorByte(v float64) int {
+	if v <= 1 {
+		v *= 255
+	}
+	if v < 0 {
+		v = 0
+	}
+	if v > 255 {
+		v = 255
+	}
+	return int(math.Round(v))
 }
 
 func toFloat64(v interface{}) (float64, bool) {

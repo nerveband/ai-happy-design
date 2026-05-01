@@ -1,4 +1,5 @@
 import { getNodeById, getSceneNodeById } from '../utils/getNode';
+import { loadFont, resolveFontFamily } from '../utils/fonts';
 
 export async function handleLayout(action: string, params: any): Promise<any> {
   switch (action) {
@@ -38,6 +39,15 @@ export async function handleLayout(action: string, params: any): Promise<any> {
     case 'remove_grids':
     case 'clear_grids':
     case 'remove_layout_grids': return removeGrids(params);
+    case 'set_grid_container':
+    case 'grid_container': return setGridContainer(params);
+    case 'set_grid_tracks':
+    case 'grid_tracks': return setGridTracks(params);
+    case 'set_grid_child_position':
+    case 'grid_child_position': return setGridChildPosition(params);
+    case 'get_grid_layout':
+    case 'grid_layout': return getGridLayout(params);
+    case 'pricing_grid': return createPricingGrid(params);
     default: throw new Error('Unknown layout action: ' + action + '. Available: set_auto_layout, set_padding, set_spacing, set_alignment, set_sizing, set_constraints, set_layout_wrap, set_wrap, remove_auto_layout, check_overlaps, set_grid, get_grids, remove_grids');
   }
 }
@@ -303,6 +313,225 @@ async function removeGrids(params: any) {
     node.layoutGrids = [];
   }
   return { id: node.id, name: node.name, gridCount: node.layoutGrids.length };
+}
+
+function requireGridContainer(node: any, nodeId: string) {
+  var required = ['layoutMode', 'gridRowCount', 'gridColumnCount', 'gridRowGap', 'gridColumnGap'];
+  for (var i = 0; i < required.length; i++) {
+    if (!(required[i] in node)) {
+      throw new Error('Node ' + nodeId + ' does not support Figma grid layout containers');
+    }
+  }
+}
+
+function applyTrackSizes(tracks: any, sizes: any) {
+  if (sizes == null) return;
+  var parsed = typeof sizes === 'string' ? JSON.parse(sizes) : sizes;
+  if (!Array.isArray(parsed)) throw new Error('Grid track sizes must be an array');
+  for (var i = 0; i < parsed.length && i < tracks.length; i++) {
+    var item = parsed[i];
+    if (!item || typeof item !== 'object') continue;
+    if (item.type) tracks[i].type = String(item.type).toUpperCase();
+    if (item.value != null) tracks[i].value = item.value;
+  }
+}
+
+async function setGridContainer(params: any) {
+  var node = await getFrameNode(params.nodeId);
+  var gridNode = node as any;
+  requireGridContainer(gridNode, params.nodeId);
+
+  gridNode.layoutMode = 'GRID';
+  if (params.gridRowCount != null) gridNode.gridRowCount = params.gridRowCount;
+  if (params.gridColumnCount != null) gridNode.gridColumnCount = params.gridColumnCount;
+  if (params.gridRowGap != null) gridNode.gridRowGap = params.gridRowGap;
+  if (params.gridColumnGap != null) gridNode.gridColumnGap = params.gridColumnGap;
+  applyTrackSizes(gridNode.gridRowSizes, params.gridRowsSizing || params.gridRowSizes);
+  applyTrackSizes(gridNode.gridColumnSizes, params.gridColumnsSizing || params.gridColumnSizes);
+
+  return getGridLayout(params);
+}
+
+async function setGridTracks(params: any) {
+  var node = await getFrameNode(params.nodeId);
+  var gridNode = node as any;
+  requireGridContainer(gridNode, params.nodeId);
+  if (gridNode.layoutMode !== 'GRID') gridNode.layoutMode = 'GRID';
+
+  applyTrackSizes(gridNode.gridRowSizes, params.gridRowsSizing || params.gridRowSizes);
+  applyTrackSizes(gridNode.gridColumnSizes, params.gridColumnsSizing || params.gridColumnSizes);
+  return getGridLayout(params);
+}
+
+async function setGridChildPosition(params: any) {
+  var node = await getSceneNodeById(params.nodeId);
+  var gridChild = node as any;
+  if (typeof gridChild.setGridChildPosition !== 'function') {
+    throw new Error('Node ' + params.nodeId + ' does not support Figma grid child positioning');
+  }
+
+  var row = params.gridRowAnchorIndex ?? params.rowIndex ?? params.row ?? 0;
+  var column = params.gridColumnAnchorIndex ?? params.columnIndex ?? params.column ?? 0;
+  gridChild.setGridChildPosition(row, column);
+  if (params.gridRowSpan != null) gridChild.gridRowSpan = params.gridRowSpan;
+  if (params.gridColumnSpan != null) gridChild.gridColumnSpan = params.gridColumnSpan;
+  if (params.gridChildHorizontalAlign != null && 'gridChildHorizontalAlign' in gridChild) {
+    gridChild.gridChildHorizontalAlign = params.gridChildHorizontalAlign;
+  }
+  if (params.gridChildVerticalAlign != null && 'gridChildVerticalAlign' in gridChild) {
+    gridChild.gridChildVerticalAlign = params.gridChildVerticalAlign;
+  }
+
+  return {
+    id: node.id,
+    name: node.name,
+    gridRowAnchorIndex: gridChild.gridRowAnchorIndex,
+    gridColumnAnchorIndex: gridChild.gridColumnAnchorIndex,
+    gridRowSpan: gridChild.gridRowSpan,
+    gridColumnSpan: gridChild.gridColumnSpan,
+    gridChildHorizontalAlign: gridChild.gridChildHorizontalAlign,
+    gridChildVerticalAlign: gridChild.gridChildVerticalAlign,
+  };
+}
+
+async function getGridLayout(params: any) {
+  var node = await getFrameNode(params.nodeId);
+  var gridNode = node as any;
+  requireGridContainer(gridNode, params.nodeId);
+  return {
+    id: node.id,
+    name: node.name,
+    layoutMode: gridNode.layoutMode,
+    gridRowCount: gridNode.gridRowCount,
+    gridColumnCount: gridNode.gridColumnCount,
+    gridRowGap: gridNode.gridRowGap,
+    gridColumnGap: gridNode.gridColumnGap,
+    gridRowSizes: JSON.parse(JSON.stringify(gridNode.gridRowSizes || [])),
+    gridColumnSizes: JSON.parse(JSON.stringify(gridNode.gridColumnSizes || [])),
+  };
+}
+
+function fontStyleForWeight(weight: any, fallback: string) {
+  if (typeof weight === 'string' && weight.trim() && Number.isNaN(parseInt(weight, 10))) return weight;
+  var n = typeof weight === 'string' ? parseInt(weight, 10) : weight;
+  var weightMap: Record<number, string> = {
+    100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium',
+    600: 'Semi Bold', 700: 'Bold', 800: 'Extra Bold', 900: 'Black',
+  };
+  return weightMap[n] || fallback;
+}
+
+async function addGridText(parent: BaseNode & ChildrenMixin, name: string, content: string, style: any, width: number) {
+  var family = resolveFontFamily(style.fontFamily || 'Inter');
+  var fontStyle = style.fontStyle || fontStyleForWeight(style.fontWeight, 'Regular');
+  await loadFont(family, fontStyle);
+  var text = figma.createText();
+  text.name = name;
+  text.fontName = { family, style: fontStyle };
+  text.fontSize = style.fontSize || 16;
+  text.characters = String(content || '');
+  text.resize(width, text.height);
+  text.textAutoResize = 'HEIGHT';
+  if (style.lineHeight !== undefined) {
+    var lh = style.lineHeight <= 4 ? style.lineHeight * 100 : style.lineHeight;
+    text.lineHeight = { value: lh, unit: 'PERCENT' };
+  }
+  if (style.letterSpacing !== undefined) text.letterSpacing = { value: style.letterSpacing, unit: 'PIXELS' };
+  if (style.textTransform === 'uppercase') text.textCase = 'UPPER';
+  if (style.color) {
+    var c = parseHexColor(style.color);
+    text.fills = [{ type: 'SOLID', color: { r: c.r, g: c.g, b: c.b }, opacity: c.a }];
+  }
+  parent.appendChild(text);
+  return text;
+}
+
+function mergeStyle(base: any, override: any) {
+  var out: any = {};
+  base = base || {};
+  override = override || {};
+  for (var key in base) out[key] = base[key];
+  for (var key2 in override) out[key2] = override[key2];
+  return out;
+}
+
+function setFrameFill(frame: FrameNode, color: any) {
+  if (color === 'transparent' || color === false) {
+    frame.fills = [];
+    return;
+  }
+  if (!color) return;
+  var c = parseHexColor(color);
+  frame.fills = [{ type: 'SOLID', color: { r: c.r, g: c.g, b: c.b }, opacity: c.a }];
+}
+
+async function createPricingGrid(params: any) {
+  var parent = params.parentId ? await getFrameNode(params.parentId) : figma.currentPage;
+  var cards = params.cards || [];
+  if (!Array.isArray(cards) || cards.length === 0) throw new Error('cards array is required');
+  var x = params.x || 0;
+  var y = params.y || 0;
+  var width = params.width || 1000;
+  var columns = params.columns || 4;
+  var gap = params.gap == null ? 28 : params.gap;
+  var rowGap = params.rowGap == null ? 42 : params.rowGap;
+  var cardWidth = (width - gap * (columns - 1)) / columns;
+  var fontFamily = params.fontFamily || 'Inter';
+  var gold = params.gold || '#E5AD43';
+  var cream = params.cream || '#F8F4EC';
+  var rule = params.rule || '#D89E36';
+  var titleStyle = mergeStyle({ fontFamily: fontFamily, fontSize: 36, fontWeight: 700, lineHeight: 0.95, color: gold, letterSpacing: 1.5, textTransform: 'uppercase' }, params.titleStyle);
+  var priceStyle = mergeStyle({ fontFamily: fontFamily, fontSize: 24, fontWeight: 700, lineHeight: 1.05, color: cream }, params.priceStyle);
+  var bodyStyle = mergeStyle({ fontFamily: fontFamily, fontSize: 19, fontWeight: 400, lineHeight: 1.22, color: cream }, params.bodyStyle);
+  var noteStyle = mergeStyle({ fontFamily: fontFamily, fontSize: 17, fontWeight: 500, lineHeight: 1.2, color: cream }, params.noteStyle);
+  var created: any[] = [];
+  var rowHeights: number[] = [];
+
+  for (var i = 0; i < cards.length; i++) {
+    var row = Math.floor(i / columns);
+    var col = i % columns;
+    var card = cards[i];
+    var cx = x + col * (cardWidth + gap);
+    var cy = y;
+    for (var r = 0; r < row; r++) cy += (rowHeights[r] || 286) + rowGap;
+    var frame = figma.createFrame();
+    frame.name = card.name || String(card.tier || 'Pricing card');
+    frame.x = cx;
+    frame.y = cy;
+    frame.resize(cardWidth, card.minHeight || params.cardMinHeight || 286);
+    frame.layoutMode = 'VERTICAL';
+    frame.primaryAxisSizingMode = 'AUTO';
+    frame.counterAxisSizingMode = 'FIXED';
+    frame.itemSpacing = card.gap == null ? 7 : card.gap;
+    frame.paddingLeft = card.paddingLeft == null ? 0 : card.paddingLeft;
+    frame.paddingRight = card.paddingRight == null ? 18 : card.paddingRight;
+    frame.paddingTop = card.paddingTop == null ? 10 : card.paddingTop;
+    frame.paddingBottom = card.paddingBottom == null ? 10 : card.paddingBottom;
+    setFrameFill(frame, card.background || 'transparent');
+    var stroke = parseHexColor(card.rule || rule);
+    frame.strokes = [{ type: 'SOLID', color: { r: stroke.r, g: stroke.g, b: stroke.b }, opacity: stroke.a }];
+    frame.strokeLeftWeight = card.hideLeftRule ? 0 : (card.ruleWidth || 2);
+    frame.strokeRightWeight = 0;
+    frame.strokeTopWeight = 0;
+    frame.strokeBottomWeight = 0;
+    parent.appendChild(frame);
+    var innerWidth = cardWidth - frame.paddingLeft - frame.paddingRight;
+    var heading = card.heading || card.title || card.tier;
+    if (heading) await addGridText(frame, frame.name + ' title', String(heading), titleStyle, innerWidth);
+    if (card.price) await addGridText(frame, frame.name + ' price', String(card.price), priceStyle, innerWidth);
+    var benefits = card.benefits || card.bullets || [];
+    if (Array.isArray(benefits) && benefits.length > 0) {
+      await addGridText(frame, frame.name + ' benefits', benefits.map(function(b: any) { return '• ' + String(b); }).join('\n'), bodyStyle, innerWidth);
+    }
+    if (card.eligibility) {
+      var eligibility = String(card.eligibility);
+      if (eligibility.toLowerCase().indexOf('eligibility:') !== 0) eligibility = 'Eligibility: ' + eligibility;
+      await addGridText(frame, frame.name + ' eligibility', eligibility, noteStyle, innerWidth);
+    }
+    rowHeights[row] = Math.max(rowHeights[row] || 0, frame.height);
+    created.push({ id: frame.id, name: frame.name, x: frame.x, y: frame.y, width: frame.width, height: frame.height });
+  }
+  return { cards: created, count: created.length, rows: rowHeights.length, rowHeights: rowHeights };
 }
 
 async function checkOverlaps(params: any) {

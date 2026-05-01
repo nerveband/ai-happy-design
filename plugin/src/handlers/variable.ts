@@ -30,7 +30,18 @@ export async function handleVariable(action: string, params: any): Promise<any> 
     case 'rename_mode': return renameMode(params);
     case 'delete_mode':
     case 'remove_mode': return deleteMode(params);
-    default: throw new Error('Unknown variable action: ' + action + '. Available: create, get_all, set_value, bind, unbind, create_collection, get_collections, delete, resolve_for_consumer, add_mode, rename_mode, delete_mode');
+    case 'extend':
+    case 'extend_collection': return extendCollection(params);
+    case 'extend_library':
+    case 'extend_library_collection': return extendLibraryCollection(params);
+    case 'get_values_for_collection':
+    case 'values_for_collection': return getValuesForCollection(params);
+    case 'remove_mode_override': return removeModeOverride(params);
+    case 'remove_collection_overrides':
+    case 'remove_overrides_for_variable': return removeCollectionOverrides(params);
+    case 'overrides':
+    case 'get_overrides': return getOverrides(params);
+    default: throw new Error('Unknown variable action: ' + action + '. Available: create, get_all, set_value, bind, unbind, create_collection, get_collections, delete, resolve_for_consumer, add_mode, rename_mode, delete_mode, extend_collection, extend_library_collection, get_values_for_collection, remove_mode_override, remove_collection_overrides, get_overrides');
   }
 }
 
@@ -50,6 +61,38 @@ async function getOrCreateCollection(collectionId?: string, collectionName?: str
 
   if (collections.length > 0) return collections[0];
   return figma.variables.createVariableCollection('Default Collection');
+}
+
+function variablePlanHint(err: any): Error {
+  var message = err && err.message ? String(err.message) : String(err);
+  if (message.indexOf('Limited to') >= 0 || message.indexOf('outside of enterprise plan') >= 0 || message.indexOf('pricing tier') >= 0) {
+    return new Error(message + ' Hint: this Figma plan or file mode does not allow the requested variable collection or mode operation.');
+  }
+  return new Error(message);
+}
+
+async function getCollectionById(collectionId: string) {
+  if (!collectionId) throw new Error('collectionId is required');
+  var collection = await figma.variables.getVariableCollectionByIdAsync(collectionId);
+  if (!collection) throw new Error('Collection not found: ' + collectionId);
+  return collection;
+}
+
+function serializeCollection(c: any) {
+  return {
+    id: c.id,
+    key: c.key,
+    name: c.name,
+    remote: c.remote,
+    isExtension: c.isExtension,
+    parentVariableCollectionId: c.parentVariableCollectionId,
+    rootVariableCollectionId: c.rootVariableCollectionId,
+    modes: c.modes.map(function(m: any) {
+      return { modeId: m.modeId, name: m.name, parentModeId: m.parentModeId };
+    }),
+    variableIds: c.variableIds,
+    variableOverrides: c.variableOverrides,
+  };
 }
 
 async function createVariable(params: any) {
@@ -322,4 +365,87 @@ async function deleteVariable(params: any) {
   const info = { id: variable.id, name: variable.name };
   variable.remove();
   return { deleted: info };
+}
+
+async function extendCollection(params: any) {
+  var collection = await getCollectionById(params.collectionId);
+  var collectionAny = collection as any;
+  if (typeof collectionAny.extend !== 'function') {
+    throw new Error('Variable collection extend is unavailable in this Figma runtime');
+  }
+  try {
+    var extended = collectionAny.extend(params.name || params.collectionName || (collection.name + ' Extension'));
+    return serializeCollection(extended);
+  } catch (err: any) {
+    throw variablePlanHint(err);
+  }
+}
+
+async function extendLibraryCollection(params: any) {
+  var variablesAny = figma.variables as any;
+  if (typeof variablesAny.extendLibraryCollectionByKeyAsync !== 'function') {
+    throw new Error('Figma API extendLibraryCollectionByKeyAsync is unavailable in this runtime');
+  }
+  var key = params.collectionKey || params.key;
+  if (!key) throw new Error('collectionKey is required');
+  try {
+    var extended = await variablesAny.extendLibraryCollectionByKeyAsync(key, params.name || params.collectionName || 'Library Extension');
+    return serializeCollection(extended);
+  } catch (err: any) {
+    throw variablePlanHint(err);
+  }
+}
+
+async function getValuesForCollection(params: any) {
+  var variableId = params.variableId;
+  if (!variableId) throw new Error('variableId is required');
+  var variable = await figma.variables.getVariableByIdAsync(variableId);
+  if (!variable) throw new Error('Variable not found: ' + variableId);
+  var collection = await getCollectionById(params.collectionId);
+  var variableAny = variable as any;
+  if (typeof variableAny.valuesByModeForCollectionAsync !== 'function') {
+    throw new Error('Variable valuesByModeForCollectionAsync is unavailable in this Figma runtime');
+  }
+  var values = await variableAny.valuesByModeForCollectionAsync(collection);
+  return { id: variable.id, name: variable.name, collectionId: collection.id, valuesByMode: values };
+}
+
+async function removeModeOverride(params: any) {
+  var variableId = params.variableId;
+  var modeId = params.extendedModeId || params.modeId;
+  if (!variableId) throw new Error('variableId is required');
+  if (!modeId) throw new Error('modeId or extendedModeId is required');
+  var variable = await figma.variables.getVariableByIdAsync(variableId);
+  if (!variable) throw new Error('Variable not found: ' + variableId);
+  var variableAny = variable as any;
+  if (typeof variableAny.removeOverrideForMode !== 'function') {
+    throw new Error('Variable removeOverrideForMode is unavailable in this Figma runtime');
+  }
+  variableAny.removeOverrideForMode(modeId);
+  return { id: variable.id, name: variable.name, removedModeOverride: modeId };
+}
+
+async function removeCollectionOverrides(params: any) {
+  var collection = await getCollectionById(params.collectionId);
+  var collectionAny = collection as any;
+  if (typeof collectionAny.removeOverridesForVariable !== 'function') {
+    throw new Error('Extended collection removeOverridesForVariable is unavailable in this Figma runtime');
+  }
+  var variableId = params.variableId;
+  if (!variableId) throw new Error('variableId is required');
+  var variable = await figma.variables.getVariableByIdAsync(variableId);
+  if (!variable) throw new Error('Variable not found: ' + variableId);
+  collectionAny.removeOverridesForVariable(variable);
+  return { collectionId: collection.id, variableId: variable.id, removed: true };
+}
+
+async function getOverrides(params: any) {
+  var collection = await getCollectionById(params.collectionId);
+  var collectionAny = collection as any;
+  return {
+    id: collection.id,
+    name: collection.name,
+    isExtension: collectionAny.isExtension,
+    variableOverrides: collectionAny.variableOverrides || {},
+  };
 }

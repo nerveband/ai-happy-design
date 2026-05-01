@@ -26,4 +26,14 @@ func init() {
 			{Name: "vertical", Type: "string", Enum: []string{"FIXED", "HUG", "FILL"}},
 		},
 	})
+
+	nodeID := Param{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`}
+	for _, s := range []Schema{
+		{Command: "layout.set_grid_container", Description: "Set Figma grid auto-layout container properties", Params: []Param{nodeID, {Name: "gridRowCount", Type: "number", Min: Ptr(1)}, {Name: "gridColumnCount", Type: "number", Min: Ptr(1)}, {Name: "gridRowGap", Type: "number", Min: Ptr(0)}, {Name: "gridColumnGap", Type: "number", Min: Ptr(0)}, {Name: "gridRowsSizing", Type: "array"}, {Name: "gridColumnsSizing", Type: "array"}}},
+		{Command: "layout.set_grid_tracks", Description: "Set Figma grid auto-layout row and column track sizing", Params: []Param{nodeID, {Name: "gridRowsSizing", Type: "array"}, {Name: "gridColumnsSizing", Type: "array"}}},
+		{Command: "layout.set_grid_child_position", Description: "Set a direct child position and span inside a Figma grid auto-layout container", Params: []Param{nodeID, {Name: "gridRowAnchorIndex", Type: "number", Min: Ptr(0)}, {Name: "gridColumnAnchorIndex", Type: "number", Min: Ptr(0)}, {Name: "gridRowSpan", Type: "number", Min: Ptr(1)}, {Name: "gridColumnSpan", Type: "number", Min: Ptr(1)}, {Name: "gridChildHorizontalAlign", Type: "string"}, {Name: "gridChildVerticalAlign", Type: "string"}}},
+		{Command: "layout.get_grid_layout", Description: "Get Figma grid auto-layout container properties", Params: []Param{nodeID}},
+	} {
+		Register(s)
+	}
 }

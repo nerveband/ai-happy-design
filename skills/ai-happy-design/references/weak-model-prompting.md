@@ -10,8 +10,8 @@ All patterns below were validated in a real parallel generation session (36 slid
 ```
 Smaller/faster model (creative, parallel)
   → generates {"ops": [...]} JSON per design
-  → ai-happy-design validate --fix output.json   (fixes fences, type→command, top-level props)
-  → ai-happy-design batch output.json            (sends to Figma only if valid)
+  → ahd-figma validate --fix output.json   (fixes fences, type→command, top-level props)
+  → ahd-figma batch output.json            (sends to Figma only if valid)
 ```
 
 The CLI handles all normalization. **The model's only job is generating JSON.**
@@ -147,13 +147,13 @@ Use the CLI — no Python needed:
 
 ```bash
 # Fix common issues in-place, then validate
-ai-happy-design validate --fix output.json
+ahd-figma validate --fix output.json
 
 # Fix from stdin — also handles {"ops": [...]} dict wrapper automatically
-echo '{"ops":[...]}' | ai-happy-design validate --fix -
+echo '{"ops":[...]}' | ahd-figma validate --fix -
 
 # Full workflow
-ai-happy-design validate --fix output.json && ai-happy-design batch output.json
+ahd-figma validate --fix output.json && ahd-figma batch output.json
 ```
 
 The `--fix` flag handles what the Python `normalize_ops()` function used to do. No custom normalization code needed.

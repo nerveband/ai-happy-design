@@ -13,6 +13,7 @@ import (
 
 var schemaJSON bool
 var schemaAllLLMSTxt bool
+var schemaLLMSTxt bool
 
 var schemaCmd = &cobra.Command{
 	Use:   "schema [command.action]",
@@ -20,11 +21,16 @@ var schemaCmd = &cobra.Command{
 	Long:  "Print the exact parameter schema for a command. LLMs can use this to generate valid JSON.\nUse --all --llms-txt to generate llms-full.txt for aihappydesign.com.",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if schemaAllLLMSTxt {
+		if schemaAllLLMSTxt || schemaLLMSTxt {
 			return printLLMSTxt()
 		}
 
 		if len(args) == 0 {
+			if schemaJSON {
+				out, _ := json.MarshalIndent(schema.All, "", "  ")
+				fmt.Println(string(out))
+				return nil
+			}
 			// List all commands
 			for _, s := range schema.All {
 				aliases := ""
@@ -38,7 +44,7 @@ var schemaCmd = &cobra.Command{
 
 		s := schema.Lookup(args[0])
 		if s == nil {
-			return fmt.Errorf("unknown command: %s. Run 'ai-happy-design schema' to list all commands.", args[0])
+			return fmt.Errorf("unknown command: %s. Run 'ahd-figma schema' to list all commands.", args[0])
 		}
 
 		if schemaJSON {
@@ -101,7 +107,7 @@ func buildConstraints(p schema.Param) string {
 func printLLMSTxt() error {
 	fmt.Println("# AI Happy Design — Full Command Reference")
 	fmt.Println()
-	fmt.Println("Auto-generated from CLI schemas. Use `ai-happy-design schema <command> --json` for machine-readable format.")
+	fmt.Println("Auto-generated from CLI schemas. Use `ahd-figma schema <command> --json` for machine-readable format.")
 	fmt.Println()
 
 	for _, s := range schema.All {
@@ -137,5 +143,6 @@ func printLLMSTxt() error {
 func init() {
 	schemaCmd.Flags().BoolVar(&schemaJSON, "json", false, "Output in JSON format")
 	schemaCmd.Flags().BoolVar(&schemaAllLLMSTxt, "all", false, "Print all schemas (use with --llms-txt)")
+	schemaCmd.Flags().BoolVar(&schemaLLMSTxt, "llms-txt", false, "Print full command reference as llms-full.txt markdown")
 	rootCmd.AddCommand(schemaCmd)
 }

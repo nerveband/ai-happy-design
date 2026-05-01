@@ -1,0 +1,464 @@
+{
+  "operations": [
+    {
+      "name": "poster",
+      "command": "node.create_frame",
+      "params": {
+        "name": "CAIR Georgia Gala Partnership Packages - AHD Recreation",
+        "x": 640,
+        "y": 3200,
+        "width": 1600,
+        "height": 1024,
+        "color": "#050606",
+        "cornerRadius": 0
+      }
+    },
+    {
+      "name": "ten_bg",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Background numeral 10",
+        "text": "10",
+        "x": 955,
+        "y": -55,
+        "width": 560,
+        "fontSize": 430,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Black",
+        "color": "#C08A2E"
+      }
+    },
+    {
+      "name": "ten_bg_opacity",
+      "command": "node.set_opacity",
+      "params": {
+        "nodeId": "${{steps.ten_bg.result.id}}",
+        "opacity": 0.16
+      }
+    },
+    {
+      "name": "brand",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "CAIR-GEORGIA brand",
+        "text": "CAIR-GEORGIA",
+        "x": 40,
+        "y": 34,
+        "width": 600,
+        "fontSize": 62,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Black",
+        "color": "#FFFFFF"
+      }
+    },
+    {
+      "name": "subtitle",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "10th anniversary gala partnership",
+        "text": "1 0 T H   A N N I V E R S A R Y   G A L A   P A R T N E R S H I P",
+        "x": 42,
+        "y": 132,
+        "width": 860,
+        "fontSize": 25,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Bold",
+        "color": "#F6F2EA"
+      }
+    },
+    {
+      "name": "title",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Partnership packages title",
+        "text": "P A R T N E R S H I P   P A C K A G E S",
+        "x": 42,
+        "y": 178,
+        "width": 1000,
+        "fontSize": 58,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Medium",
+        "color": "#E5AD43"
+      }
+    },
+    {
+      "name": "rule_top",
+      "command": "shape.create_rectangle",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Top gold rule",
+        "x": 41,
+        "y": 265,
+        "width": 1515,
+        "height": 2,
+        "color": "#D89E36"
+      }
+    },
+    {
+      "name": "rule_mid",
+      "command": "shape.create_rectangle",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Middle gold rule",
+        "x": 41,
+        "y": 625,
+        "width": 1515,
+        "height": 2,
+        "color": "#D89E36"
+      }
+    },
+    {
+      "name": "rule_bottom",
+      "command": "shape.create_rectangle",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Footer gold rule",
+        "x": 41,
+        "y": 960,
+        "width": 1515,
+        "height": 2,
+        "color": "#D89E36"
+      }
+    },
+    {
+      "name": "col_rule_1",
+      "command": "shape.create_rectangle",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Column separator 1",
+        "x": 412,
+        "y": 292,
+        "width": 2,
+        "height": 310,
+        "color": "#D89E36"
+      }
+    },
+    {
+      "name": "col_rule_2",
+      "command": "shape.create_rectangle",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Column separator 2",
+        "x": 795,
+        "y": 292,
+        "width": 2,
+        "height": 310,
+        "color": "#D89E36"
+      }
+    },
+    {
+      "name": "col_rule_3",
+      "command": "shape.create_rectangle",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Column separator 3",
+        "x": 1185,
+        "y": 292,
+        "width": 2,
+        "height": 310,
+        "color": "#D89E36"
+      }
+    },
+    {
+      "name": "bottom_col_rule_1",
+      "command": "shape.create_rectangle",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Bottom column separator 1",
+        "x": 412,
+        "y": 650,
+        "width": 2,
+        "height": 286,
+        "color": "#D89E36"
+      }
+    },
+    {
+      "name": "bottom_col_rule_2",
+      "command": "shape.create_rectangle",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Bottom column separator 2",
+        "x": 886,
+        "y": 650,
+        "width": 2,
+        "height": 286,
+        "color": "#D89E36"
+      }
+    },
+    {
+      "name": "diamond",
+      "command": "shape.create_rectangle",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Center diamond",
+        "x": 596,
+        "y": 260,
+        "width": 10,
+        "height": 10,
+        "color": "#050606",
+        "cornerRadius": 1
+      }
+    },
+    {
+      "name": "diamond_rotate",
+      "command": "node.rotate",
+      "params": {
+        "nodeId": "${{steps.diamond.result.id}}",
+        "rotation": 45
+      }
+    },
+    {
+      "name": "diamond_stroke",
+      "command": "paint.set_stroke",
+      "params": {
+        "nodeId": "${{steps.diamond.result.id}}",
+        "color": "#E5AD43",
+        "strokeWeight": 2
+      }
+    },
+    {
+      "name": "diamond_text",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Diamond package copy",
+        "text": "$10,000\n• 1-2 Minute video message from Sponsor\n• Full page ad in program booklet\n• Double booth in prefunction area\n• Two guest tables - 10 seats each\n• Social media spotlight\n• Logo and recognition during program\n• Logo on CAIR-Georgia website for a year",
+        "x": 40,
+        "y": 296,
+        "width": 335,
+        "fontSize": 20,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Regular",
+        "color": "#F8F4EC"
+      }
+    },
+    {
+      "name": "diamond_heading",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Diamond heading gold",
+        "text": "DIAMOND",
+        "x": 40,
+        "y": 296,
+        "width": 250,
+        "fontSize": 38,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Bold",
+        "color": "#E5AD43"
+      }
+    },
+    {
+      "name": "platinum_text",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Platinum package copy",
+        "text": "$5,000\n• Half page ad in program booklet\n• Double booth in prefunction area\n• One guest table - 10 seats\n• Social media spotlight\n• Logo and recognition during program\n• Logo on CAIR-Georgia website for a year",
+        "x": 452,
+        "y": 296,
+        "width": 315,
+        "fontSize": 20,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Regular",
+        "color": "#F8F4EC"
+      }
+    },
+    {
+      "name": "platinum_heading",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Platinum heading gold",
+        "text": "PLATINUM",
+        "x": 452,
+        "y": 296,
+        "width": 280,
+        "fontSize": 38,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Bold",
+        "color": "#E5AD43"
+      }
+    },
+    {
+      "name": "gold_text",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Gold package copy",
+        "text": "$2,500\n• Quarter page ad in program booklet\n• One booth in prefunction area\n• One guest table - 10 seats\n• Social media spotlight\n• Logo and recognition in program\n• Logo on CAIR-Georgia website for a year",
+        "x": 840,
+        "y": 296,
+        "width": 305,
+        "fontSize": 20,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Regular",
+        "color": "#F8F4EC"
+      }
+    },
+    {
+      "name": "gold_heading",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Gold heading gold",
+        "text": "GOLD",
+        "x": 840,
+        "y": 296,
+        "width": 170,
+        "fontSize": 38,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Bold",
+        "color": "#E5AD43"
+      }
+    },
+    {
+      "name": "silver_text",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Silver package copy",
+        "text": "$1,600\n• One booth\n• One table\n• Booklet mention\n• Logo and recognition in program\n• Social media spotlight\n• Logo on CAIR-Georgia website for a year\n\nEligibility: Medium businesses,\nlaw firms, masajid",
+        "x": 1225,
+        "y": 296,
+        "width": 310,
+        "fontSize": 20,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Regular",
+        "color": "#F8F4EC"
+      }
+    },
+    {
+      "name": "silver_heading",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Silver heading gold",
+        "text": "SILVER",
+        "x": 1225,
+        "y": 296,
+        "width": 200,
+        "fontSize": 38,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Bold",
+        "color": "#E5AD43"
+      }
+    },
+    {
+      "name": "bronze_text",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Bronze package copy",
+        "text": "$1,000\n• One booth\n• 5 tickets\n• Logo and recognition during program\n• Social media spotlight\n• Logo on CAIR-Georgia website for a year\n\nEligibility: Masajid, Islamic Schools,\nlocal nonprofits only",
+        "x": 40,
+        "y": 653,
+        "width": 335,
+        "fontSize": 20,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Regular",
+        "color": "#F8F4EC"
+      }
+    },
+    {
+      "name": "bronze_heading",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Bronze heading gold",
+        "text": "BRONZE",
+        "x": 40,
+        "y": 653,
+        "width": 220,
+        "fontSize": 34,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Bold",
+        "color": "#E5AD43"
+      }
+    },
+    {
+      "name": "community_text",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Community organization copy",
+        "text": "$500\n• One booth OR half page ad in program booklet\n• 2 tickets\n• Social media spotlight\n• Logo on CAIR-Georgia website for a year\n\nEligibility: Small community business\nor small nonprofit only",
+        "x": 495,
+        "y": 653,
+        "width": 350,
+        "fontSize": 20,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Regular",
+        "color": "#F8F4EC"
+      }
+    },
+    {
+      "name": "community_heading",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Community heading gold",
+        "text": "COMMUNITY\nORGANIZATION",
+        "x": 495,
+        "y": 653,
+        "width": 350,
+        "fontSize": 34,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Bold",
+        "color": "#E5AD43"
+      }
+    },
+    {
+      "name": "showcase_text",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Business showcase opportunity copy",
+        "text": "(limit of 10)\n\n• Business provides free samples for all attendees in prefunction space\n• If offering samples for sale, price per unit not to exceed $2\n• One booth\n• Two guest tickets\n• Half page ad in program booklet\n• Social media spotlight",
+        "x": 952,
+        "y": 653,
+        "width": 560,
+        "fontSize": 20,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Regular",
+        "color": "#F8F4EC"
+      }
+    },
+    {
+      "name": "showcase_heading",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Business showcase heading gold",
+        "text": "BUSINESS SHOWCASE OPPORTUNITY",
+        "x": 952,
+        "y": 653,
+        "width": 560,
+        "fontSize": 26,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Bold",
+        "color": "#E5AD43"
+      }
+    },
+    {
+      "name": "footer",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Footer contact info",
+        "text": "CAIRGEORGIA.ORG           |           404-239-2086           |           INFO@GA.CAIR.COM",
+        "x": 345,
+        "y": 980,
+        "width": 910,
+        "fontSize": 22,
+        "fontFamily": "Brandon Grotesque",
+        "fontStyle": "Bold",
+        "color": "#E5AD43"
+      }
+    }
+  ]
+}

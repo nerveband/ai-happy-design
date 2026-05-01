@@ -4,20 +4,20 @@
 Use `command` for one action.
 
 ```bash
-./bin/ai-happy-design command paint.set_solid -p '{"nodeId":"1:2","color":"#2563EB"}'
+./bin/ahd-figma command paint.set_solid -p '{"nodeId":"1:2","color":"#2563EB"}'
 ```
 
 Equivalent with explicit channel:
 
 ```bash
-./bin/ai-happy-design command happy-unicorn-42 paint.set_solid -p '{"nodeId":"1:2","color":"#2563EB"}'
+./bin/ahd-figma command happy-unicorn-42 paint.set_solid -p '{"nodeId":"1:2","color":"#2563EB"}'
 ```
 
 ## Multi-Operation Payload (CLI)
 Use `batch` to send multiple operations over one connection.
 
 ```bash
-./bin/ai-happy-design batch -o '[
+./bin/ahd-figma batch -o '[
   {"name":"createCard","command":"shape.create_rectangle","params":{"x":40,"y":40,"width":220,"height":120}},
   {"command":"paint.set_solid","params":{"nodeId":"${{steps.createCard.result.id}}","color":"#2563EB"}},
   {"command":"node.set_opacity","params":{"nodeId":"${{steps.0.result.id}}","opacity":0.9}}
@@ -27,11 +27,11 @@ Use `batch` to send multiple operations over one connection.
 Use file input for larger payloads:
 
 ```bash
-./bin/ai-happy-design batch -f operations.json
+./bin/ahd-figma batch -f operations.json
 ```
 
-## Multi-Operation Payload (MCP)
-Use tool `bulk` with action `execute` and pass `operations` as JSON string.
+## Multi-Operation Payload Shape
+Use CLI `batch` for large multi-step creation. MCP exposes schema-backed command tools for small direct edits.
 
 Example operations payload:
 
@@ -44,7 +44,23 @@ Example operations payload:
 
 ## Strategy: When to use what
 - `command`: use for direct, isolated changes.
-- `batch`/`bulk.execute`: use for related changes that should happen in one logical run.
+- `batch`: use for related changes that should happen in one logical run.
+
+## High-Fidelity Recreation Payloads
+For screenshot or HTML/CSS-like recreation, keep the batch declarative and measured:
+
+1. Add measurement steps first: `text.measure` for real rendered text dimensions and `text.fit_box` for constrained headlines or long tier names.
+2. Create the main frame and semantic sections.
+3. Use `text.create_rich_block` for copy groups that combine headings, prices, bullets, and notes.
+4. Use `layout.pricing_grid` for repeated pricing/package cards instead of manually positioning every text node.
+5. Export the result, compare it with the reference, then update the same payload and rerun.
+
+Example:
+
+```bash
+./bin/ahd-figma validate docs/examples/html-css-recreation-workflow.json
+./bin/ahd-figma batch -f docs/examples/html-css-recreation-workflow.json
+```
 
 ## Execution Behavior
 - Operations run sequentially in order.
@@ -81,6 +97,11 @@ If `--fail-fast` is not set, subsequent steps still run.
 - `--fail-fast` stop on first failed step (default `false`)
 - `--interpolate` enable/disable placeholder interpolation (default `true`)
 
+## Validation Behavior
+- `ahd-figma validate` accepts either a plain JSON array or a wrapped `{ "operations": [...] }` payload.
+- Interpolation references like `${{steps.createCard.result.id}}` pass pre-execution ID pattern validation.
+- Figma RGB objects like `{ "r": 1, "g": 0.5, "b": 0 }` auto-convert to hex for color params.
+
 ## Channel Resolution
 For `command` and `batch`, channel resolution order is:
 1. positional channel arg
@@ -89,7 +110,7 @@ For `command` and `batch`, channel resolution order is:
 4. relay preferred/active channel
 
 ## Discoverability for LLMs
-- Use `./bin/ai-happy-design tools --json` to enumerate tool/action capabilities.
-- Use `./bin/ai-happy-design tools --llm --json` for enriched examples and recommended chaining strategy.
-- In MCP mode, call `describe(action="catalog")` for the same LLM-oriented catalog.
+- Use `./bin/ahd-figma tools --json` to enumerate tool/action capabilities.
+- Use `./bin/ahd-figma tools --llm --json` for enriched examples and recommended chaining strategy.
+- In MCP mode, use `tools/list`, read `ahd://schema` or `ahd://tools`, or call `ahd_describe`.
 - Prefer domain actions (e.g., `paint.set_solid`) for consistency.

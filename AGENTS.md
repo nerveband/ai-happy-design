@@ -14,7 +14,7 @@ A single Go binary + Figma plugin that gives LLMs full Figma canvas access throu
 
 ### 1) Go Binary
 - Entry: `cmd/ai-happy-design/main.go`
-- Modes: `ws` (relay only), `command`, `batch`, `tools`, `schema`, `validate`, `guide`
+- Modes: `mcp` (schema-backed stdio server), `ws` (relay only), `command`, `batch`, `tools`, `schema`, `validate`, `guide`
 
 ### 2) Relay Layer
 - Server: `internal/ws/server.go`
@@ -101,17 +101,19 @@ Use `await figma.getNodeByIdAsync(...)`. Avoid deprecated sync getters.
 
 | CLI Command | Returns |
 |-------------|---------|
-| `ai-happy-design schema` | List all commands with descriptions |
-| `ai-happy-design schema <command> --json` | Exact JSON schema for a command |
-| `ai-happy-design validate` | Dry-run validation (schema + design lint) |
-| `ai-happy-design guide` | Design intelligence (visual hierarchy, composition, effects) |
-| `ai-happy-design schema --all` | Full command reference (for llms-full.txt) |
+| `ahd-figma schema` | List all commands with descriptions |
+| `ahd-figma schema <command> --json` | Exact JSON schema for a command |
+| `ahd-figma validate` | Dry-run validation (schema + design lint) |
+| `ahd-figma guide` | Design intelligence (visual hierarchy, composition, effects) |
+| `ahd-figma schema --all` | Full command reference (for llms-full.txt) |
+| MCP `tools/list` / `resources/list` | Schema-backed tool and resource discovery |
+| MCP `ahd_describe` | LLM catalog or guide content |
 
 ### When updating design rules:
 
 1. Edit ONLY `internal/tools/catalog_llm.go`
 2. Run `go build ./...` to verify compilation
-3. Rebuild binary: `make build && cp bin/ai-happy-design ~/bin/`
+3. Rebuild binary: `make build && cp bin/ahd-figma ~/bin/ && cp bin/ai-happy-design ~/bin/`
 4. Restart relay if running
 5. **Do NOT duplicate rules** into SKILL.md, AGENTS.md, or reference files — they all point to the CLI
 
@@ -128,8 +130,8 @@ make build                              # Go binary
 go test ./...                           # Go tests (schema, validate, designlint, tools)
 go build ./...                          # Verify compilation
 cd plugin && npm run check && cd ..     # Plugin typecheck + build + syntax verification
-ai-happy-design schema text.create      # Verify schema system
-ai-happy-design validate                # Verify validation pipeline
+ahd-figma schema text.create      # Verify schema system
+ahd-figma validate                # Verify validation pipeline
 ```
 
 ## Development Practices (Learned)
@@ -138,7 +140,7 @@ ai-happy-design validate                # Verify validation pipeline
 1. Edit `catalog_llm.go`
 2. Run `go build ./...` to verify compilation
 3. Rebuild binary: `make build`
-4. Copy to bin: `cp bin/ai-happy-design ~/bin/`
+4. Copy to bin: `cp bin/ahd-figma ~/bin/ && cp bin/ai-happy-design ~/bin/`
 5. Restart relay if running
 
 ### When modifying plugin handlers:
@@ -149,9 +151,9 @@ ai-happy-design validate                # Verify validation pipeline
 
 ### Batch testing:
 - Create payload JSON in `docs/examples/`
-- Run: `ai-happy-design batch -f docs/examples/payload.json`
+- Run: `ahd-figma batch -f docs/examples/payload.json`
 - Check for step failures in output
-- Export result: `ai-happy-design command export.image -p '{"nodeId":"...","scale":2}'`
+- Export result: `ahd-figma command export.image -p '{"nodeId":"...","scale":2}'`
 
 ### Common gotchas:
 - esbuild MUST run from `plugin/` directory (relative paths)
@@ -212,7 +214,7 @@ git push origin v<next-version>
 GITHUB_TOKEN=$(gh auth token) goreleaser release --clean
 
 # 4. Upgrade local binary to the released version
-ai-happy-design upgrade
+ahd-figma upgrade
 
 # 5. Update the ai-happy-design skill (if CLI features changed)
 # - Edit ~/.claude/skills/ai-happy-design/SKILL.md with new features

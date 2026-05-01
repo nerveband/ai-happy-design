@@ -60,6 +60,7 @@ export class WSClient {
         type: 'join',
         channel: this.options.channelKey,
         role: 'plugin',
+        version: '0.0.0-dev',
       });
 
       // Start ping

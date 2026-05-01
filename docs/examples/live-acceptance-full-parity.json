@@ -1,0 +1,85 @@
+{
+  "operations": [
+    {
+      "name": "acceptance_frame",
+      "command": "node.create_frame",
+      "params": {
+        "name": "AHD Full Parity Acceptance",
+        "x": 160,
+        "y": 160,
+        "width": 420,
+        "height": 280,
+        "color": "#F8FAFC",
+        "cornerRadius": 24,
+        "layoutMode": "VERTICAL",
+        "padding": 28,
+        "itemSpacing": 14
+      }
+    },
+    {
+      "name": "acceptance_title",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.acceptance_frame.result.id}}",
+        "name": "Acceptance title",
+        "text": "Full parity live gate",
+        "x": 28,
+        "y": 28,
+        "width": 360,
+        "fontSize": 28,
+        "fontFamily": "Inter",
+        "fontStyle": "Bold",
+        "color": "#111827"
+      }
+    },
+    {
+      "name": "acceptance_body",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.acceptance_frame.result.id}}",
+        "name": "Acceptance body",
+        "text": "CLI, MCP, schema validation, plugin bridge, CSS readback, export, and lint are checked together.",
+        "x": 28,
+        "y": 86,
+        "width": 356,
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontStyle": "Regular",
+        "color": "#374151"
+      }
+    },
+    {
+      "name": "acceptance_badge",
+      "command": "node.create_frame",
+      "params": {
+        "parentId": "${{steps.acceptance_frame.result.id}}",
+        "name": "Acceptance badge",
+        "x": 28,
+        "y": 160,
+        "width": 184,
+        "height": 42,
+        "color": "#2563EB",
+        "cornerRadius": 21,
+        "layoutMode": "VERTICAL",
+        "padding": 10,
+        "itemSpacing": 0
+      }
+    },
+    {
+      "name": "acceptance_badge_text",
+      "command": "text.create",
+      "params": {
+        "parentId": "${{steps.acceptance_badge.result.id}}",
+        "name": "Acceptance badge text",
+        "text": "Live verified",
+        "x": 10,
+        "y": 10,
+        "width": 148,
+        "fontSize": 15,
+        "fontFamily": "Inter",
+        "fontStyle": "Bold",
+        "color": "#FFFFFF"
+      }
+    }
+  ]
+}

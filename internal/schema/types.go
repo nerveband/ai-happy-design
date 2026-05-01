@@ -3,7 +3,7 @@ package schema
 // Param defines a single parameter for a command schema.
 type Param struct {
 	Name           string      `json:"name"`
-	Type           string      `json:"type"`           // "string", "number", "boolean", "array", "object"
+	Type           string      `json:"type"` // "string", "number", "boolean", "array", "object"
 	Required       bool        `json:"required,omitempty"`
 	Aliases        []string    `json:"aliases,omitempty"`
 	Desc           string      `json:"description"`
@@ -18,10 +18,13 @@ type Param struct {
 
 // Schema defines the full schema for a command.action pair.
 type Schema struct {
-	Command     string   `json:"command"`
-	Aliases     []string `json:"aliases,omitempty"`
-	Description string   `json:"description"`
-	Params      []Param  `json:"params"`
+	Command       string   `json:"command"`
+	Aliases       []string `json:"aliases,omitempty"`
+	Description   string   `json:"description"`
+	Params        []Param  `json:"params"`
+	Safety        string   `json:"safety,omitempty"`      // "read", "write", "destructive", "local"
+	Idempotency   string   `json:"idempotency,omitempty"` // "idempotent", "non_idempotent", "unknown"
+	RequiresFigma bool     `json:"requiresFigma,omitempty"`
 }
 
 // Ptr returns a pointer to a float64 (helper for Min/Max).

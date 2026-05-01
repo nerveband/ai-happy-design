@@ -1,26 +1,26 @@
 ---
 name: ai-happy-design
-description: Design in Figma using the ai-happy-design CLI. Use when asked to create, edit, or export Figma designs — social media posts, cards, layouts, UI mockups, posters, or any visual design. Triggers on "design in Figma", "create a Figma layout", "make an Instagram post", "export from Figma", "Figma design", or any task involving ai-happy-design. Also use when asked to batch-create multi-element Figma compositions. Always use the CLI (`ai-happy-design command` / `ai-happy-design batch`) unless the user explicitly requests MCP mode.
+description: Design in Figma using the ahd-figma CLI. Use when asked to create, edit, inspect, or export Figma designs — social media posts, cards, layouts, UI mockups, posters, or any visual design. Triggers on "design in Figma", "create a Figma layout", "make an Instagram post", "export from Figma", "Figma design", or any task involving AI Happy Design. Also use when asked to batch-create multi-element Figma compositions. Always use the CLI (`ahd-figma command` / `ahd-figma batch`) unless the user explicitly requests MCP mode.
 ---
 
 # AI Happy Design
 
-Design in Figma via the `ai-happy-design` CLI. One Go binary provides CLI commands, MCP tools, and a WebSocket relay to a Figma plugin. **Always use CLI mode by default.** Only use MCP mode if the user explicitly asks for it.
+Design in Figma via the `ahd-figma` CLI. `ai-happy-design` remains a legacy-compatible alias. One Go binary provides CLI commands, schema-backed MCP tools, and a WebSocket relay to a Figma plugin. **Always use CLI mode by default for multi-step design creation.**
 
 ## CLI Usage
 
 **Single command:**
 ```bash
-ai-happy-design command <action> '<json-params>'
+ahd-figma command <action> '<json-params>'
 ```
 
 **Batch (multiple operations):**
 ```bash
-ai-happy-design batch '<json-array>'
+ahd-figma batch '<json-array>'
 # or from file:
-ai-happy-design batch ops.json
+ahd-figma batch ops.json
 # or piped:
-cat ops.json | ai-happy-design batch
+cat ops.json | ahd-figma batch
 ```
 
 **Useful flags:**
@@ -52,14 +52,14 @@ Full CSS-to-Figma mapping: See [references/css-to-figma.md](references/css-to-fi
 
 ## Workflow
 
-1. **Get design tokens**: `ai-happy-design command design.compute_tokens '{"width": 1080, "height": 1080}'`
+1. **Get design tokens**: `ahd-figma command design.compute_tokens '{"width": 1080, "height": 1080}'`
    - Output includes `template`, `tips`, and `aliases` for the next batch step.
-2. **Find free space**: `ai-happy-design command document.find_free_space '{"width": 1080, "height": 1080}'`
+2. **Find free space**: `ahd-figma command document.find_free_space '{"width": 1080, "height": 1080}'`
 3. **Think in CSS**: Picture the design as a webpage. What HTML elements? What CSS?
 4. **Create in one step**: Use `node.create_frame` with all params — no need for separate commands
-5. **Batch create**: Build a JSON array of operations. Send via `ai-happy-design batch` (semantic aliases like `sz:"hero"`, `padding:"side"`, `w:"content"` are resolved automatically)
+5. **Batch create**: Build a JSON array of operations. Send via `ahd-figma batch` (semantic aliases like `sz:"hero"`, `padding:"side"`, `w:"content"` are resolved automatically)
 6. **Balance check**: All siblings MUST match — same height, padding, spacing, radius, text sizes
-7. **Export & verify**: `ai-happy-design command export.image '{"nodeId": "...", "scale": 2}' -o output.png`
+7. **Export & verify**: `ahd-figma command export.image '{"nodeId": "...", "scale": 2}' -o output.png`
 
 **Auto-placement**: Batch mode auto-calls `find_free_space` before placing root frames, so your design won't overlap existing work. Use `--allow-overlap` to skip.
 
@@ -68,7 +68,7 @@ Full CSS-to-Figma mapping: See [references/css-to-figma.md](references/css-to-fi
 Create fully-configured frames in a single command:
 
 ```bash
-ai-happy-design command node.create_frame '{
+ahd-figma command node.create_frame '{
   "name": "Card",
   "x": 0, "y": 0, "width": 400, "height": 300,
   "parentId": "123:456",
@@ -95,7 +95,7 @@ For structural/wrapper frames, use `"noFill": true` to remove the default white 
 Always call `design.compute_tokens` first to get sizes proportional to the canvas:
 
 ```bash
-ai-happy-design command design.compute_tokens '{"width": 1080, "height": 1080}'
+ahd-figma command design.compute_tokens '{"width": 1080, "height": 1080}'
 ```
 
 Returns a modular type scale (perfect fourth = 1.333 ratio), plus starter `template`, `tips`, and alias quick reference:
@@ -116,7 +116,7 @@ For print: add `"dpi": 300` to get point-based sizes.
 Build a JSON array with named steps and `${{steps.name.result.id}}` interpolation:
 
 ```bash
-ai-happy-design batch '[
+ahd-figma batch '[
   {"name":"root","command":"frame","params":{"name":"Post","x":0,"y":0,"w":1080,"h":1080,"bg":"#1a1a1a"}},
   {"name":"content","command":"frame","params":{"name":"Content","pid":"${{steps.root.result.id}}","w":1080,"h":1080,"noFill":true,"layoutMode":"VERTICAL","itemSpacing":24,"padding":64,"primaryAxisAlign":"CENTER","counterAxisAlign":"CENTER"}},
   {"command":"text","params":{"text":"Hello World","pid":"${{steps.content.result.id}}","sz":80,"fontStyle":"Bold","color":"#ffffff","textAlign":"CENTER","w":952}}
@@ -156,7 +156,7 @@ When the JSON payload is large (10+ operations), write it to a temp file and pas
 
 ```bash
 # Write ops to file, then batch from file
-ai-happy-design batch /tmp/figma-ops.json
+ahd-figma batch /tmp/figma-ops.json
 ```
 
 This avoids shell quoting issues with large JSON payloads.
@@ -285,7 +285,7 @@ The #1 cause of designs looking broken is unbalanced siblings.
 - **Consistent radius**: All sibling cards get the same cornerRadius
 - **Text parity**: Same-level text across siblings = same fontSize, weight, color
 - **Width formula**: `cardWidth = (rowWidth - (numCards - 1) * gap) / numCards`
-- **Check overlaps**: `ai-happy-design command layout.check_overlaps '{"nodeId": "..."}'`
+- **Check overlaps**: `ahd-figma command layout.check_overlaps '{"nodeId": "..."}'`
 
 ## Typography
 
@@ -293,7 +293,7 @@ Font sizes MUST be proportional to canvas width. Use `design.compute_tokens` for
 
 **Text creation** supports all properties in one call:
 ```bash
-ai-happy-design command text.create '{
+ahd-figma command text.create '{
   "text": "Hello World",
   "parentId": "...",
   "fontSize": 48,
@@ -308,7 +308,7 @@ ai-happy-design command text.create '{
 }'
 ```
 
-**List available fonts**: `ai-happy-design command text.list_fonts` or `ai-happy-design command text.list_fonts '{"family": "Inter"}'`
+**List available fonts**: `ahd-figma command text.list_fonts` or `ahd-figma command text.list_fonts '{"family": "Inter"}'`
 
 **Key rules**:
 - Always set `width` on text nodes (prevents "hug contents" overflow)
@@ -340,7 +340,7 @@ ai-happy-design command text.create '{
 
 The relay auto-starts on port 3055 and auto-shuts down after 15 minutes of inactivity. CLI auto-restarts it on next command.
 
-**Custom port**: `ai-happy-design --port 4000 ws` (or `PORT=4000`). The CLI will guide you to update the Figma plugin relay URL.
+**Custom port**: `ahd-figma --port 4000 ws` (or `PORT=4000`). The CLI will guide you to update the Figma plugin relay URL.
 
 **Check status**: `curl http://localhost:3055/status` — shows channels, uptime, idle timeout remaining.
 
@@ -356,18 +356,20 @@ The relay auto-starts on port 3055 and auto-shuts down after 15 minutes of inact
 ## Key CLI Commands
 
 ```bash
-ai-happy-design command design.compute_tokens '{"width": W, "height": H}'
-ai-happy-design command document.find_free_space '{"width": W, "height": H}'
-ai-happy-design command document.find_nodes '{"query": "...", "type": "FRAME"}'
-ai-happy-design command text.list_fonts
-ai-happy-design command text.list_fonts '{"family": "Inter"}'
-ai-happy-design command export.image '{"nodeId": "...", "scale": 2}' -o output.png
-ai-happy-design command layout.check_overlaps '{"nodeId": "..."}'
-ai-happy-design batch '<json-array-of-operations>'
-ai-happy-design batch operations.json
-ai-happy-design --port 4000 command ...              # custom port
-ai-happy-design actions                              # list all available actions
-ai-happy-design tools                                # full tool catalog
+ahd-figma command design.compute_tokens '{"width": W, "height": H}'
+ahd-figma command document.find_free_space '{"width": W, "height": H}'
+ahd-figma command document.find_nodes '{"query": "...", "type": "FRAME"}'
+ahd-figma command document.get_focused_node
+ahd-figma command node.get_css '{"nodeId": "..."}'
+ahd-figma command text.list_fonts
+ahd-figma command text.list_fonts '{"family": "Inter"}'
+ahd-figma command export.image '{"nodeId": "...", "scale": 2}' -o output.png
+ahd-figma command layout.check_overlaps '{"nodeId": "..."}'
+ahd-figma batch '<json-array-of-operations>'
+ahd-figma batch operations.json
+ahd-figma --port 4000 command ...              # custom port
+ahd-figma actions                              # list all available actions
+ahd-figma tools                                # full tool catalog
 ```
 
 ## Common Pitfalls

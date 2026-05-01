@@ -1,0 +1,13 @@
+package schema
+
+func init() {
+	parentID := Param{Name: "parentId", Type: "string", Aliases: []string{"pid"}, Pattern: `^[0-9]+:[0-9]+$`}
+	for _, s := range []Schema{
+		{Command: "text.create_rich_block", Aliases: []string{"text.rich"}, Description: "Create a measured rich text block with heading, price, bullets, and notes", Params: []Param{parentID, {Name: "name", Type: "string"}, {Name: "x", Type: "number"}, {Name: "y", Type: "number"}, {Name: "width", Type: "number", Required: true}, {Name: "fontFamily", Type: "string"}, {Name: "heading", Type: "string"}, {Name: "price", Type: "string"}, {Name: "bullets", Type: "array"}, {Name: "benefits", Type: "array"}, {Name: "eligibility", Type: "string"}, {Name: "headingStyle", Type: "object"}, {Name: "priceStyle", Type: "object"}, {Name: "bodyStyle", Type: "object"}, {Name: "noteStyle", Type: "object"}}},
+		{Command: "text.measure", Description: "Measure rendered Figma text for a given font, size, and width", Params: []Param{{Name: "text", Type: "string", Required: true}, {Name: "width", Type: "number"}, {Name: "fontFamily", Type: "string"}, {Name: "fontStyle", Type: "string"}, {Name: "fontSize", Type: "number"}}},
+		{Command: "text.fit_box", Description: "Find the largest font size that fits text inside a fixed box", Params: []Param{{Name: "text", Type: "string", Required: true}, {Name: "width", Type: "number", Required: true}, {Name: "height", Type: "number", Required: true}, {Name: "fontFamily", Type: "string"}, {Name: "fontStyle", Type: "string"}, {Name: "minFontSize", Type: "number"}, {Name: "maxFontSize", Type: "number"}}},
+		{Command: "layout.pricing_grid", Description: "Create a CSS-like pricing grid with measured rich pricing cards", Params: []Param{parentID, {Name: "name", Type: "string"}, {Name: "x", Type: "number"}, {Name: "y", Type: "number"}, {Name: "width", Type: "number", Required: true}, {Name: "columns", Type: "number"}, {Name: "gap", Type: "number"}, {Name: "rowGap", Type: "number"}, {Name: "cards", Type: "array", Required: true}, {Name: "fontFamily", Type: "string"}, {Name: "gold", Type: "string", Pattern: `^#[0-9A-Fa-f]{3,8}$`}, {Name: "cream", Type: "string", Pattern: `^#[0-9A-Fa-f]{3,8}$`}, {Name: "rule", Type: "string", Pattern: `^#[0-9A-Fa-f]{3,8}$`}, {Name: "titleStyle", Type: "object"}, {Name: "priceStyle", Type: "object"}, {Name: "bodyStyle", Type: "object"}, {Name: "noteStyle", Type: "object"}, {Name: "paddingTop", Type: "number"}, {Name: "paddingBottom", Type: "number"}, {Name: "paddingLeft", Type: "number"}, {Name: "paddingRight", Type: "number"}, {Name: "cardMinHeight", Type: "number"}}},
+	} {
+		Register(s)
+	}
+}

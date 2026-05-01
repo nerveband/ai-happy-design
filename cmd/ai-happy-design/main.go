@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -25,9 +26,11 @@ import (
 	"github.com/nerveband/ai-happy-design/internal/config"
 	"github.com/nerveband/ai-happy-design/internal/designlint"
 	"github.com/nerveband/ai-happy-design/internal/extract"
+	"github.com/nerveband/ai-happy-design/internal/figmaapi"
 	"github.com/nerveband/ai-happy-design/internal/imgutil"
 	pluginpkg "github.com/nerveband/ai-happy-design/internal/plugin"
 	relaymgr "github.com/nerveband/ai-happy-design/internal/relay"
+	"github.com/nerveband/ai-happy-design/internal/schema"
 	"github.com/nerveband/ai-happy-design/internal/tools"
 	"github.com/nerveband/ai-happy-design/internal/validate"
 	"github.com/nerveband/ai-happy-design/internal/ws"
@@ -36,7 +39,7 @@ import (
 var version = "0.0.0-dev"
 
 var rootCmd = &cobra.Command{
-	Use:   "ai-happy-design",
+	Use:   filepath.Base(os.Args[0]),
 	Short: "AI Happy Design - Figma MCP server and CLI",
 	Long: `A single binary that works as both an MCP server for AI editors
 and a CLI for direct Figma manipulation via a WebSocket relay.
@@ -167,6 +170,10 @@ var commandChannel string
 var commandOutput string
 var commandBase64 bool
 var commandCompressImages bool
+var commandDryRun bool
+var commandFields string
+var globalOutputFormat string
+var globalJQFilter string
 
 var commandCmd = &cobra.Command{
 	Use:   "command <command> [params-json]",
@@ -216,9 +223,28 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 		}
 		params = batchutil.NormalizeBatchParams(command, params)
 
-		// Handle local-only commands that don't need Figma connection
-		if handled, err := handleLocalCommand(command, params); handled {
-			return err
+		if commandDryRun {
+			ops := []map[string]interface{}{{"command": command, "params": params}}
+			validation := validate.ValidateBatch(ops)
+			return printJSON(map[string]interface{}{
+				"ok":      validation.Blocked == 0,
+				"command": command,
+				"params":  ops[0]["params"],
+				"dryRun":  true,
+				"validation": map[string]interface{}{
+					"blocked":  validation.Blocked,
+					"fixed":    validation.Fixed,
+					"warnings": validation.Warnings,
+				},
+			})
+		}
+
+		// Handle local-only commands that don't need Figma connection.
+		if handled, result, err := handleLocalCommand(command, params); handled {
+			if err != nil {
+				return err
+			}
+			return printCommandResult(result)
 		}
 
 		// Resolve file:// and path references in imageData
@@ -323,16 +349,47 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 			delete(parsed, "data")
 			parsed["savedTo"] = outPath
 			parsed["fileSize"] = len(fileBytes)
-			return printJSON(parsed)
+			return printCommandResult(parsed)
 		}
 
 		var pretty interface{}
 		if err := json.Unmarshal(result, &pretty); err == nil {
-			return printJSON(pretty)
+			return printCommandResult(pretty)
 		}
 		fmt.Println(string(result))
 		return nil
 	},
+}
+
+func printCommandResult(v interface{}) error {
+	if commandFields != "" {
+		filtered, err := selectFields(v, commandFields)
+		if err != nil {
+			return err
+		}
+		v = filtered
+	}
+	return printJSON(v)
+}
+
+func selectFields(v interface{}, fields string) (interface{}, error) {
+	names := strings.Split(fields, ",")
+	out := map[string]interface{}{}
+	for _, name := range names {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		value, err := applySimpleJQ(v, "."+name)
+		if err != nil {
+			return nil, err
+		}
+		if value == nil && name == "scale" {
+			value, _ = applySimpleJQ(v, "._summary")
+		}
+		out[name] = value
+	}
+	return out, nil
 }
 
 var batchOperations string
@@ -834,24 +891,6 @@ func loadConfig() *config.Config {
 var relayLogsLines int
 var actionsJSON bool
 
-var actionCatalog = map[string][]string{
-	"document":      {"get_info", "get_selection", "set_selection", "scan_text", "scan_by_type", "get_styles", "find_by_name", "find_by_type", "focus", "zoom_to", "find_free_space"},
-	"node":          {"get_info", "create_frame", "move", "resize", "rotate", "set_opacity", "set_blend_mode", "set_visibility", "set_locked", "rename", "delete", "clone", "set_corner_radius", "get_tree"},
-	"layer":         {"set_order", "bring_forward", "send_backward", "bring_to_front", "send_to_back", "group", "ungroup", "move_to_parent", "insert_child"},
-	"layout":        {"set_auto_layout", "set_padding", "set_spacing", "set_alignment", "set_sizing", "set_constraints", "set_layout_wrap", "set_wrap", "remove_auto_layout"},
-	"export":        {"image", "svg", "pdf", "json"},
-	"design_system": {"analyze"},
-	"variable":      {"create", "get_all", "set_value", "bind", "unbind", "create_collection", "get_collections", "delete"},
-	"style":         {"create_paint", "create_text", "create_effect", "apply", "get_all", "remove"},
-	"component":     {"create", "create_instance", "create_set", "get_local", "get_remote", "get_overrides", "set_overrides", "detach_instance", "reset_instance", "swap_instance"},
-	"boolean":       {"union", "subtract", "intersect", "exclude", "flatten"},
-	"paint":         {"set_solid", "set_gradient", "set_image_fill", "set_image", "set_image_fill_from_url", "set_image_url", "add_fill", "remove_fill", "get_fills", "set_stroke"},
-	"effect":        {"set_effects", "add_shadow", "add_blur", "apply_style", "remove", "remove_effect", "get_effects"},
-	"page":          {"create", "delete", "rename", "set_current", "get_all", "get_current", "duplicate"},
-	"shape":         {"create_rectangle", "create_ellipse", "create_polygon", "create_star", "create_line", "create_from_svg", "create_image"},
-	"text":          {"create", "set_content", "set_font", "set_size", "set_weight", "set_color", "set_align", "set_spacing", "set_line_height", "set_letter_spacing", "set_decoration", "set_case", "set_paragraph_spacing", "get_content", "get_segments", "load_font", "set_style_id"},
-}
-
 var actionsCmd = &cobra.Command{
 	Use:   "actions [domain]",
 	Short: "List all available domain.action pairs",
@@ -860,6 +899,7 @@ With no arguments, lists all domains and their actions.
 With a domain argument, lists only that domain's actions.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		actionCatalog := schema.GroupedCommands()
 		if len(args) == 1 {
 			domain := args[0]
 			actions, ok := actionCatalog[domain]
@@ -1097,22 +1137,203 @@ func ensureRelayIfNeeded() error {
 
 // handleLocalCommand handles commands that can be processed locally without a Figma connection.
 // Returns (true, err) if handled, (false, nil) if should be routed to Figma.
-func handleLocalCommand(command string, params map[string]interface{}) (bool, error) {
+func handleLocalCommand(command string, params map[string]interface{}) (bool, interface{}, error) {
+	result, err := runLocalCommand(command, params)
+	if err == nil {
+		return true, result, nil
+	}
+	if err == errNotLocalCommand {
+		return false, nil, nil
+	}
+	return true, nil, err
+}
+
+var errNotLocalCommand = fmt.Errorf("not a local command")
+
+func runLocalCommand(command string, params map[string]interface{}) (interface{}, error) {
+	switch command {
+	case "tokens.export_json":
+		params["format"] = "json"
+	case "tokens.export_css":
+		params["format"] = "css"
+	case "tokens.export_tailwind":
+		params["format"] = "tailwind"
+	case "tokens.export_swift":
+		params["format"] = "swift"
+	case "tokens.export_android":
+		params["format"] = "android"
+	}
+	command = canonicalLocalCommand(command)
 	switch command {
 	case "design.compute_tokens":
 		w, _ := params["width"].(float64)
 		h, _ := params["height"].(float64)
 		if w <= 0 || h <= 0 {
-			return true, fmt.Errorf("width and height must be positive numbers")
+			return nil, fmt.Errorf("width and height must be positive numbers")
 		}
 		dpi, _ := params["dpi"].(float64)
-		tokens := tools.ComputeDesignTokens(w, h, dpi)
-		out, _ := json.MarshalIndent(tokens, "", "  ")
-		fmt.Println(string(out))
-		return true, nil
+		return tools.ComputeDesignTokens(w, h, dpi), nil
+	case "parity.compare_code":
+		return compareCodeSpec(params)
+	case "tokens.export":
+		return exportTokenPreset(params)
+	case "document.accessibility_audit":
+		return auditBatchAccessibility(params)
+	case "figma.oembed":
+		client := figmaRESTClient(params)
+		url, _ := params["url"].(string)
+		if url == "" {
+			return nil, fmt.Errorf("url is required")
+		}
+		return client.OEmbed(context.Background(), url)
+	case "figma.file_metadata":
+		client := figmaRESTClient(params)
+		fileKey, _ := params["fileKey"].(string)
+		if fileKey == "" {
+			return nil, fmt.Errorf("fileKey is required")
+		}
+		query := map[string]string{}
+		for _, key := range []string{"ids", "version", "geometry", "plugin_data"} {
+			if v, _ := params[key].(string); v != "" {
+				query[key] = v
+			}
+		}
+		return client.FileMetadata(context.Background(), fileKey, query)
+	case "figma.dev_resources_list":
+		client := figmaRESTClient(params)
+		fileKey, _ := params["fileKey"].(string)
+		if fileKey == "" {
+			return nil, fmt.Errorf("fileKey is required")
+		}
+		return client.ListDevResources(context.Background(), fileKey)
+	case "figma.dev_resource_create":
+		client := figmaRESTClient(params)
+		fileKey, _ := params["fileKey"].(string)
+		if fileKey == "" {
+			return nil, fmt.Errorf("fileKey is required")
+		}
+		return client.CreateDevResource(context.Background(), fileKey, restPayload(params, "fileKey", "token", "baseURL"))
+	case "figma.dev_resource_update":
+		client := figmaRESTClient(params)
+		fileKey, _ := params["fileKey"].(string)
+		resourceID, _ := params["resourceId"].(string)
+		if fileKey == "" || resourceID == "" {
+			return nil, fmt.Errorf("fileKey and resourceId are required")
+		}
+		return client.UpdateDevResource(context.Background(), fileKey, resourceID, restPayload(params, "fileKey", "resourceId", "token", "baseURL"))
+	case "figma.dev_resource_delete":
+		client := figmaRESTClient(params)
+		fileKey, _ := params["fileKey"].(string)
+		resourceID, _ := params["resourceId"].(string)
+		if fileKey == "" || resourceID == "" {
+			return nil, fmt.Errorf("fileKey and resourceId are required")
+		}
+		if err := client.DeleteDevResource(context.Background(), fileKey, resourceID); err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{"ok": true}, nil
+	case "figma.webhooks_list":
+		return figmaRESTClient(params).ListWebhooks(context.Background())
+	case "figma.webhook_create":
+		return figmaRESTClient(params).CreateWebhook(context.Background(), webhookPayload(params))
+	case "figma.webhook_get":
+		webhookID, _ := params["webhookId"].(string)
+		if webhookID == "" {
+			return nil, fmt.Errorf("webhookId is required")
+		}
+		return figmaRESTClient(params).GetWebhook(context.Background(), webhookID)
+	case "figma.webhook_update":
+		webhookID, _ := params["webhookId"].(string)
+		if webhookID == "" {
+			return nil, fmt.Errorf("webhookId is required")
+		}
+		return figmaRESTClient(params).UpdateWebhook(context.Background(), webhookID, webhookPayload(params))
+	case "figma.webhook_delete":
+		webhookID, _ := params["webhookId"].(string)
+		if webhookID == "" {
+			return nil, fmt.Errorf("webhookId is required")
+		}
+		if err := figmaRESTClient(params).DeleteWebhook(context.Background(), webhookID); err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{"ok": true}, nil
 	default:
-		return false, nil
+		return nil, errNotLocalCommand
 	}
+}
+
+func canonicalLocalCommand(command string) string {
+	if s := schema.Lookup(command); s != nil && !strings.Contains(command, ".") {
+		return s.Command
+	}
+	if s := schema.Lookup(command); s != nil {
+		switch command {
+		case "tokens.export_json":
+			return "tokens.export"
+		case "tokens.export_css":
+			return "tokens.export"
+		case "tokens.export_tailwind":
+			return "tokens.export"
+		case "tokens.export_swift":
+			return "tokens.export"
+		case "tokens.export_android":
+			return "tokens.export"
+		case "rest.oembed", "rest.file_metadata",
+			"dev_resource.list", "dev_resource.create", "dev_resource.update", "dev_resource.delete",
+			"webhook.list", "webhook.create", "webhook.get", "webhook.update", "webhook.delete":
+			return s.Command
+		}
+	}
+	return command
+}
+
+func figmaRESTClient(params map[string]interface{}) *figmaapi.Client {
+	baseURL, _ := params["baseURL"].(string)
+	if baseURL == "" {
+		baseURL = os.Getenv("AHD_FIGMA_API_BASE_URL")
+	}
+	token, _ := params["token"].(string)
+	return figmaapi.NewClient(figmaapi.Options{BaseURL: baseURL, Token: token})
+}
+
+func restPayload(params map[string]interface{}, omit ...string) map[string]interface{} {
+	skip := map[string]bool{}
+	for _, key := range omit {
+		skip[key] = true
+	}
+	out := map[string]interface{}{}
+	for key, value := range params {
+		if !skip[key] {
+			out[toSnakeCase(key)] = value
+		}
+	}
+	return out
+}
+
+func webhookPayload(params map[string]interface{}) map[string]interface{} {
+	out := restPayload(params, "webhookId", "token", "baseURL")
+	if eventType, _ := params["eventType"].(string); eventType != "" {
+		out["event_type"] = eventType
+	}
+	if contextID, _ := params["contextId"].(string); contextID != "" {
+		out["context_id"] = contextID
+	}
+	return out
+}
+
+func toSnakeCase(s string) string {
+	var b strings.Builder
+	for i, r := range s {
+		if r >= 'A' && r <= 'Z' {
+			if i > 0 {
+				b.WriteByte('_')
+			}
+			b.WriteRune(r + ('a' - 'A'))
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }
 
 func newConnectedClient(channelKey string, live bool) (*ws.Client, error) {
@@ -1719,12 +1940,121 @@ func uniqueStrings(in []string) []string {
 }
 
 func printJSON(v interface{}) error {
+	if globalJQFilter != "" {
+		filtered, err := applySimpleJQ(v, globalJQFilter)
+		if err != nil {
+			return err
+		}
+		v = filtered
+	}
+	switch globalOutputFormat {
+	case "", "json":
+	case "jsonl":
+		return printJSONLines(v)
+	case "text":
+		return printText(v)
+	default:
+		return fmt.Errorf("unsupported --output-format %q; use json, jsonl, or text", globalOutputFormat)
+	}
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return err
 	}
 	fmt.Println(string(data))
 	return nil
+}
+
+func printJSONLines(v interface{}) error {
+	switch typed := v.(type) {
+	case []interface{}:
+		for _, item := range typed {
+			data, err := json.Marshal(item)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(data))
+		}
+	case []map[string]interface{}:
+		for _, item := range typed {
+			data, err := json.Marshal(item)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(data))
+		}
+	default:
+		data, err := json.Marshal(v)
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(data))
+	}
+	return nil
+}
+
+func printText(v interface{}) error {
+	switch typed := v.(type) {
+	case string:
+		fmt.Println(typed)
+	default:
+		data, err := json.MarshalIndent(v, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(data))
+	}
+	return nil
+}
+
+func applySimpleJQ(v interface{}, filter string) (interface{}, error) {
+	filter = strings.TrimSpace(filter)
+	if filter == "" || filter == "." {
+		return v, nil
+	}
+	if !strings.HasPrefix(filter, ".") {
+		return nil, fmt.Errorf("--jq supports simple dot paths only, for example .summary.ok")
+	}
+	parts := strings.Split(strings.TrimPrefix(filter, "."), ".")
+	var cur interface{} = v
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		switch typed := cur.(type) {
+		case map[string]interface{}:
+			cur = typed[part]
+		case map[string]string:
+			cur = typed[part]
+		case []interface{}:
+			idx, err := strconv.Atoi(part)
+			if err != nil || idx < 0 || idx >= len(typed) {
+				return nil, fmt.Errorf("--jq array index %q out of range", part)
+			}
+			cur = typed[idx]
+		default:
+			encoded, err := json.Marshal(typed)
+			if err != nil {
+				return nil, err
+			}
+			var generic interface{}
+			if err := json.Unmarshal(encoded, &generic); err != nil {
+				return nil, fmt.Errorf("--jq path %q cannot descend into %T", filter, cur)
+			}
+			switch g := generic.(type) {
+			case map[string]interface{}:
+				cur = g[part]
+			case []interface{}:
+				idx, err := strconv.Atoi(part)
+				if err != nil || idx < 0 || idx >= len(g) {
+					return nil, fmt.Errorf("--jq array index %q out of range", part)
+				}
+				cur = g[idx]
+			default:
+				return nil, fmt.Errorf("--jq path %q cannot descend into %T", filter, cur)
+			}
+		}
+	}
+	return cur, nil
 }
 
 func roundTo(v float64, decimals int) float64 {
@@ -1954,6 +2284,8 @@ func loadBatchOperations(operationsJSON, operationsFile string) ([]batchOperatio
 			}
 		}
 	}
+
+	raw = unwrapOperationsPayload(raw)
 
 	var ops []batchOperation
 	if err := json.Unmarshal(raw, &ops); err != nil {
@@ -2757,10 +3089,12 @@ built in parallel. Currently stubbed.`,
 func main() {
 	rootCmd.PersistentFlags().BoolVar(&noAutoRelay, "no-auto-relay", false, "Disable CLI auto-start of local relay for connect/command/batch")
 	rootCmd.PersistentFlags().IntVar(&globalPort, "port", 0, "Override relay port (default 3055, or PORT env var)")
+	rootCmd.PersistentFlags().StringVar(&globalOutputFormat, "output-format", "json", "Machine output format: json, jsonl, or text")
+	rootCmd.PersistentFlags().StringVar(&globalJQFilter, "jq", "", "Select a simple JSON field path before printing, e.g. .summary.ok")
 
 	rootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
 		switch cmd.Name() {
-		case "upgrade", "mcp", "command", "batch", "ws", "start", "stop", "status", "logs":
+		case "upgrade", "mcp", "command", "batch", "schema", "tools", "actions", "validate", "guide", "ws", "start", "stop", "status", "logs":
 			return
 		}
 		notifyUpdateAvailable()
@@ -2775,6 +3109,8 @@ func main() {
 	commandCmd.Flags().StringVarP(&commandOutput, "output", "o", "", "Save binary data (e.g. exported image) to this file path")
 	commandCmd.Flags().BoolVar(&commandBase64, "base64", false, "Output raw base64 JSON instead of saving to file (for export commands)")
 	commandCmd.Flags().BoolVar(&commandCompressImages, "compress-images", false, "Compress resolved imageData before sending (requires ImageMagick)")
+	commandCmd.Flags().BoolVar(&commandDryRun, "dry-run", false, "Validate and normalize command params without contacting Figma")
+	commandCmd.Flags().StringVar(&commandFields, "fields", "", "Comma-separated field paths to keep from the command result, e.g. scale,spacing.md")
 
 	batchCmd.Flags().StringVarP(&batchOperations, "operations", "o", "", "JSON array of operations")
 	batchCmd.Flags().StringVarP(&batchOperationsFile, "operations-file", "f", "", "Path to JSON file containing operations array")
@@ -2807,7 +3143,6 @@ func main() {
 	registerCmd.Flags().StringVar(&registerEditor, "editor", "", "Register with a specific editor only (e.g. 'Claude Code', 'Cursor')")
 	registerCmd.Flags().BoolVar(&registerForce, "force", false, "Force re-registration even if already configured")
 
-
 	rootCmd.AddCommand(connectCmd)
 	rootCmd.AddCommand(wsCmd)
 	rootCmd.AddCommand(commandCmd)
@@ -2818,6 +3153,7 @@ func main() {
 	rootCmd.AddCommand(setupCmd)
 	rootCmd.AddCommand(upgradeCmd)
 	rootCmd.AddCommand(registerCmd)
+	rootCmd.AddCommand(mcpCmd)
 
 	// Benchmark subcommands
 	benchmarkExecCmd.Flags().IntVar(&benchmarkRuns, "runs", 3, "Number of benchmark runs")

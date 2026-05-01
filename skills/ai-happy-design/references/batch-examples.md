@@ -6,17 +6,17 @@ Send a JSON array of operations via the CLI. Each operation can have a `name` fo
 
 **Inline:**
 ```bash
-ai-happy-design batch '[{"name":"root","command":"frame","params":{...}}, ...]'
+ahd-figma batch '[{"name":"root","command":"frame","params":{...}}, ...]'
 ```
 
 **From file (recommended for 10+ operations):**
 ```bash
-ai-happy-design batch ops.json
+ahd-figma batch ops.json
 ```
 
 **With options:**
 ```bash
-ai-happy-design batch --fail-fast --live ops.json
+ahd-figma batch --fail-fast --live ops.json
 ```
 
 ## Example: Single Card

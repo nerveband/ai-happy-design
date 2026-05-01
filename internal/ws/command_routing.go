@@ -10,6 +10,12 @@ type commandRoute struct {
 	Action string
 }
 
+// ResolveCommandRoute resolves a public CLI/MCP command string into the
+// plugin domain/action pair used on the WebSocket protocol.
+func ResolveCommandRoute(command string, params map[string]interface{}) (string, string, error) {
+	return resolveCommandRoute(command, params)
+}
+
 var legacyCommandRoutes = map[string]commandRoute{
 	// Paint
 	"set_fill_color":          {Domain: "paint", Action: "set_solid"},
@@ -56,17 +62,17 @@ var legacyCommandRoutes = map[string]commandRoute{
 	"get_opentype_features":      {Domain: "text", Action: "get_opentype_features"},
 
 	// Layout
-	"set_auto_layout":   {Domain: "layout", Action: "set_auto_layout"},
-	"set_padding":       {Domain: "layout", Action: "set_padding"},
-	"set_item_spacing":  {Domain: "layout", Action: "set_spacing"},
-	"set_layout_align":  {Domain: "layout", Action: "set_alignment"},
-	"set_layout_sizing": {Domain: "layout", Action: "set_sizing"},
-	"set_layout_wrap":   {Domain: "layout", Action: "set_layout_wrap"},
-	"set_constraints":   {Domain: "layout", Action: "set_constraints"},
-	"check_overlaps":    {Domain: "layout", Action: "check_overlaps"},
-	"set_grid":          {Domain: "layout", Action: "set_grid"},
-	"set_layout_grid":   {Domain: "layout", Action: "set_grid"},
-	"get_layout_grids":  {Domain: "layout", Action: "get_grids"},
+	"set_auto_layout":     {Domain: "layout", Action: "set_auto_layout"},
+	"set_padding":         {Domain: "layout", Action: "set_padding"},
+	"set_item_spacing":    {Domain: "layout", Action: "set_spacing"},
+	"set_layout_align":    {Domain: "layout", Action: "set_alignment"},
+	"set_layout_sizing":   {Domain: "layout", Action: "set_sizing"},
+	"set_layout_wrap":     {Domain: "layout", Action: "set_layout_wrap"},
+	"set_constraints":     {Domain: "layout", Action: "set_constraints"},
+	"check_overlaps":      {Domain: "layout", Action: "check_overlaps"},
+	"set_grid":            {Domain: "layout", Action: "set_grid"},
+	"set_layout_grid":     {Domain: "layout", Action: "set_grid"},
+	"get_layout_grids":    {Domain: "layout", Action: "get_grids"},
 	"remove_layout_grids": {Domain: "layout", Action: "remove_grids"},
 
 	// Node
@@ -244,9 +250,12 @@ var compoundAliases = map[string]commandRoute{
 	"node.move_to_parent": {Domain: "layer", Action: "move_to_parent"},
 	"node.reorder":        {Domain: "layer", Action: "set_order"},
 	// Design system — LLMs might try document.*
-	"document.analyze":           {Domain: "design_system", Action: "analyze"},
-	"document.get_design_system": {Domain: "design_system", Action: "analyze"},
-	"document.design_system":     {Domain: "design_system", Action: "analyze"},
+	"document.analyze":              {Domain: "design_system", Action: "analyze"},
+	"document.get_design_system":    {Domain: "design_system", Action: "analyze"},
+	"document.design_system":        {Domain: "design_system", Action: "analyze"},
+	"devmode.get_focused_node":      {Domain: "document", Action: "get_focused_node"},
+	"devmode.get_context":           {Domain: "document", Action: "get_focused_node"},
+	"devmode.get_selection_context": {Domain: "document", Action: "get_focused_node"},
 }
 
 func resolveCommandRoute(command string, params map[string]interface{}) (string, string, error) {

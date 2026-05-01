@@ -6,7 +6,7 @@ func init() {
 		Aliases:     []string{"rect"},
 		Description: "Create a rectangle",
 		Params: []Param{
-			{Name: "parentId", Type: "string", Required: true, Aliases: []string{"pid"}, Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "parentId", Type: "string", Aliases: []string{"pid"}, Pattern: `^[0-9]+:[0-9]+$`},
 			{Name: "name", Type: "string"},
 			{Name: "x", Type: "number"}, {Name: "y", Type: "number"},
 			{Name: "width", Type: "number", Aliases: []string{"w"}, Min: Ptr(1), Max: Ptr(10000), Default: 100.0},
@@ -22,7 +22,7 @@ func init() {
 		Command:     "shape.create_ellipse",
 		Description: "Create an ellipse or circle",
 		Params: []Param{
-			{Name: "parentId", Type: "string", Required: true, Aliases: []string{"pid"}, Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "parentId", Type: "string", Aliases: []string{"pid"}, Pattern: `^[0-9]+:[0-9]+$`},
 			{Name: "name", Type: "string"},
 			{Name: "x", Type: "number"}, {Name: "y", Type: "number"},
 			{Name: "width", Type: "number", Aliases: []string{"w"}, Min: Ptr(1), Max: Ptr(10000), Default: 100.0},
@@ -36,7 +36,7 @@ func init() {
 		Command:     "shape.create_image",
 		Description: "Create a rectangle with an image fill (one-step convenience)",
 		Params: []Param{
-			{Name: "parentId", Type: "string", Required: true, Aliases: []string{"pid"}, Pattern: `^[0-9]+:[0-9]+$`},
+			{Name: "parentId", Type: "string", Aliases: []string{"pid"}, Pattern: `^[0-9]+:[0-9]+$`},
 			{Name: "name", Type: "string"},
 			{Name: "x", Type: "number"}, {Name: "y", Type: "number"},
 			{Name: "width", Type: "number", Aliases: []string{"w"}, Min: Ptr(1), Max: Ptr(10000)},

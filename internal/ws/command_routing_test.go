@@ -64,6 +64,10 @@ func TestResolveCommandRoute_DotNotationVariants(t *testing.T) {
 		{"style.apply", "style", "apply"},
 		{"layer.group", "layer", "group"},
 		{"connect.something", "connect", "something"},
+		{"text.measure", "text", "measure"},
+		{"text.fit_box", "text", "fit_box"},
+		{"text.create_rich_block", "text", "create_rich_block"},
+		{"layout.pricing_grid", "layout", "pricing_grid"},
 	}
 
 	for _, tt := range tests {

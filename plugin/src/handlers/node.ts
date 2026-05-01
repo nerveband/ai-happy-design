@@ -35,6 +35,8 @@ export async function handleNode(action: string, params: any): Promise<any> {
     case 'get_node':
     case 'get':
     case 'get_info': return getInfo(params);
+    case 'css':
+    case 'get_css': return getCSS(params);
     case 'create':
     case 'add_frame':
     case 'new_frame':
@@ -61,7 +63,7 @@ export async function handleNode(action: string, params: any): Promise<any> {
     case 'section':
     case 'add_section':
     case 'create_section': return createSection(params);
-    default: throw new Error('Unknown node action: ' + action + '. Available: get_info, create_frame, create_section, move, resize, rotate, set_opacity, set_blend_mode, set_visibility, set_locked, rename, delete, clone, set_corner_radius, get_tree, modify, set_mask');
+    default: throw new Error('Unknown node action: ' + action + '. Available: get_info, get_css, create_frame, create_section, move, resize, rotate, set_opacity, set_blend_mode, set_visibility, set_locked, rename, delete, clone, set_corner_radius, get_tree, modify, set_mask');
   }
 }
 
@@ -81,6 +83,20 @@ async function getInfo(params: any) {
   var result = serializeNode(node, 0, depth ?? 3);
   result.parentChain = getParentChain(node);
   return result;
+}
+
+async function getCSS(params: any) {
+  const { nodeId } = params;
+  const node = await getSceneNodeById(nodeId);
+  var anyNode = node as any;
+  if (typeof anyNode.getCSSAsync !== 'function') {
+    throw new Error('getCSSAsync is not available for this node or Figma runtime');
+  }
+  var css = await anyNode.getCSSAsync();
+  return {
+    node: serializeNodeSummary(node),
+    css: css,
+  };
 }
 
 async function createFrame(params: any) {
@@ -301,7 +317,11 @@ async function deleteNode(params: any) {
 async function cloneNode(params: any) {
   const { nodeId, x, y, parentId } = params;
   const node = await getSceneNodeById(nodeId);
-  const clone = node.clone();
+  var nodeAny = node as any;
+  if (typeof nodeAny.clone !== 'function') {
+    throw new Error('Node ' + nodeId + ' does not support clone() in this Figma runtime');
+  }
+  const clone = nodeAny.clone() as SceneNode;
 
   if (x !== undefined) clone.x = x;
   if (y !== undefined) clone.y = y;

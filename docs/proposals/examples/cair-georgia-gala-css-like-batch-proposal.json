@@ -1,0 +1,497 @@
+{
+  "name": "cair_georgia_gala_partnership_packages_css_like_proposal",
+  "description": "Proposed high-level batch payload for recreating the CAIR Georgia gala partnership packages screenshot with CSS-like layout, semantic sections, pricing cards, and rich text blocks.",
+  "intent": {
+    "status": "proposal",
+    "source": "CAIR Georgia 10th Anniversary Gala partnership packages screenshot",
+    "implementation_note": "This file intentionally uses proposed commands and CSS-like params. It is not expected to run until the main command layer maps these commands to concrete Figma operations.",
+    "design_goals": [
+      "Reduce manual x/y positioning in favor of CSS-style layout primitives.",
+      "Make pricing tiers first-class cards with structured content.",
+      "Support rich text spans so headings, prices, bullets, and eligibility notes can share one semantic text block.",
+      "Keep every created layer semantically named."
+    ]
+  },
+  "tokens": {
+    "color": {
+      "ink": "#050606",
+      "inkRaised": "#10100E",
+      "gold": "#E5AD43",
+      "goldDeep": "#C08A2E",
+      "cream": "#F8F4EC",
+      "creamMuted": "#CFC4AD",
+      "rule": "#D89E36"
+    },
+    "font": {
+      "display": "Brandon Grotesque",
+      "fallback": "Inter"
+    },
+    "type": {
+      "brand": {
+        "fontFamily": "{font.display}",
+        "fontSize": 62,
+        "fontWeight": 900,
+        "lineHeight": 0.95,
+        "letterSpacing": 0
+      },
+      "eyebrow": {
+        "fontFamily": "{font.display}",
+        "fontSize": 25,
+        "fontWeight": 700,
+        "lineHeight": 1.1,
+        "letterSpacing": 8,
+        "textTransform": "uppercase"
+      },
+      "title": {
+        "fontFamily": "{font.display}",
+        "fontSize": 58,
+        "fontWeight": 500,
+        "lineHeight": 1,
+        "letterSpacing": 9,
+        "textTransform": "uppercase"
+      },
+      "tierName": {
+        "fontFamily": "{font.display}",
+        "fontSize": 36,
+        "fontWeight": 800,
+        "lineHeight": 0.95,
+        "letterSpacing": 1.5,
+        "textTransform": "uppercase"
+      },
+      "price": {
+        "fontFamily": "{font.display}",
+        "fontSize": 24,
+        "fontWeight": 800,
+        "lineHeight": 1.05,
+        "letterSpacing": 0.5
+      },
+      "body": {
+        "fontFamily": "{font.display}",
+        "fontSize": 19,
+        "fontWeight": 400,
+        "lineHeight": 1.22,
+        "letterSpacing": 0
+      },
+      "note": {
+        "fontFamily": "{font.display}",
+        "fontSize": 17,
+        "fontWeight": 500,
+        "lineHeight": 1.2,
+        "letterSpacing": 0
+      },
+      "footer": {
+        "fontFamily": "{font.display}",
+        "fontSize": 22,
+        "fontWeight": 800,
+        "lineHeight": 1,
+        "letterSpacing": 1
+      }
+    },
+    "space": {
+      "pageX": 40,
+      "top": 34,
+      "sectionGap": 28,
+      "cardGap": 28,
+      "cardPaddingX": 28,
+      "cardPaddingY": 24
+    },
+    "radius": {
+      "card": 0,
+      "subtle": 1
+    }
+  },
+  "operations": [
+    {
+      "name": "poster",
+      "command": "frame.create",
+      "params": {
+        "name": "CAIR Georgia Gala Partnership Packages",
+        "preset": "presentation.wide",
+        "x": 640,
+        "y": 3200,
+        "w": 1600,
+        "h": 1024,
+        "style": {
+          "background": "{color.ink}",
+          "overflow": "hidden"
+        }
+      }
+    },
+    {
+      "name": "poster_css",
+      "command": "style.apply",
+      "params": {
+        "nodeId": "${{steps.poster.result.id}}",
+        "css": {
+          "display": "flex",
+          "flexDirection": "column",
+          "gap": "{space.sectionGap}",
+          "padding": "{space.top} {space.pageX} 36 {space.pageX}",
+          "position": "relative",
+          "boxSizing": "border-box"
+        }
+      }
+    },
+    {
+      "name": "background_anniversary_mark",
+      "command": "text.rich",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Background anniversary numeral",
+        "text": "10",
+        "style": {
+          "position": "absolute",
+          "right": 66,
+          "top": -56,
+          "width": 560,
+          "fontFamily": "{font.display}",
+          "fontSize": 430,
+          "fontWeight": 900,
+          "lineHeight": 0.9,
+          "color": "{color.goldDeep}",
+          "opacity": 0.16
+        }
+      }
+    },
+    {
+      "name": "header",
+      "command": "section.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Header",
+        "css": {
+          "display": "flex",
+          "flexDirection": "column",
+          "gap": 13,
+          "width": "100%",
+          "zIndex": 2
+        },
+        "children": [
+          {
+            "name": "CAIR-GEORGIA brand",
+            "command": "text.rich",
+            "params": {
+              "text": "CAIR-GEORGIA",
+              "style": "{type.brand}",
+              "color": "#FFFFFF"
+            }
+          },
+          {
+            "name": "Gala partnership eyebrow",
+            "command": "text.rich",
+            "params": {
+              "text": "10th Anniversary Gala Partnership",
+              "style": "{type.eyebrow}",
+              "color": "{color.cream}"
+            }
+          },
+          {
+            "name": "Partnership packages title",
+            "command": "text.rich",
+            "params": {
+              "text": "Partnership Packages",
+              "style": "{type.title}",
+              "color": "{color.gold}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "top_rule",
+      "command": "divider.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Header gold rule",
+        "orientation": "horizontal",
+        "css": {
+          "height": 2,
+          "width": "100%",
+          "background": "{color.rule}",
+          "marginTop": 2
+        }
+      }
+    },
+    {
+      "name": "pricing_grid",
+      "command": "layout.pricing_grid",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Partnership package pricing grid",
+        "css": {
+          "display": "grid",
+          "gridTemplateColumns": "repeat(4, minmax(0, 1fr))",
+          "gridAutoRows": "minmax(286, auto)",
+          "columnGap": "{space.cardGap}",
+          "rowGap": 42,
+          "width": "100%",
+          "zIndex": 2
+        },
+        "cardDefaults": {
+          "command": "card.pricing",
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gap": 12,
+            "padding": "{space.cardPaddingY} {space.cardPaddingX}",
+            "background": "transparent",
+            "borderLeft": "2px solid {color.rule}",
+            "borderRadius": "{radius.card}",
+            "minHeight": 286
+          },
+          "titleStyle": "{type.tierName}",
+          "priceStyle": "{type.price}",
+          "bodyStyle": "{type.body}",
+          "noteStyle": "{type.note}",
+          "colors": {
+            "title": "{color.gold}",
+            "price": "{color.cream}",
+            "body": "{color.cream}",
+            "note": "{color.creamMuted}",
+            "rule": "{color.rule}"
+          }
+        },
+        "cards": [
+          {
+            "name": "Diamond partnership card",
+            "tier": "Diamond",
+            "price": "$10,000",
+            "featured": true,
+            "benefits": [
+              "1-2 minute video message from sponsor",
+              "Full page ad in program booklet",
+              "Double booth in prefunction area",
+              "Two guest tables - 10 seats each",
+              "Social media spotlight",
+              "Logo and recognition during program",
+              "Logo on CAIR-Georgia website for a year"
+            ],
+            "css": {
+              "gridColumn": "1 / span 1",
+              "gridRow": "1"
+            }
+          },
+          {
+            "name": "Platinum partnership card",
+            "tier": "Platinum",
+            "price": "$5,000",
+            "benefits": [
+              "Half page ad in program booklet",
+              "Double booth in prefunction area",
+              "One guest table - 10 seats",
+              "Social media spotlight",
+              "Logo and recognition during program",
+              "Logo on CAIR-Georgia website for a year"
+            ],
+            "css": {
+              "gridColumn": "2 / span 1",
+              "gridRow": "1"
+            }
+          },
+          {
+            "name": "Gold partnership card",
+            "tier": "Gold",
+            "price": "$2,500",
+            "benefits": [
+              "Quarter page ad in program booklet",
+              "One booth in prefunction area",
+              "One guest table - 10 seats",
+              "Social media spotlight",
+              "Logo and recognition in program",
+              "Logo on CAIR-Georgia website for a year"
+            ],
+            "css": {
+              "gridColumn": "3 / span 1",
+              "gridRow": "1"
+            }
+          },
+          {
+            "name": "Silver partnership card",
+            "tier": "Silver",
+            "price": "$1,600",
+            "benefits": [
+              "One booth",
+              "One table",
+              "Booklet mention",
+              "Logo and recognition in program",
+              "Social media spotlight",
+              "Logo on CAIR-Georgia website for a year"
+            ],
+            "eligibility": "Medium businesses, law firms, masajid",
+            "css": {
+              "gridColumn": "4 / span 1",
+              "gridRow": "1"
+            }
+          },
+          {
+            "name": "Bronze partnership card",
+            "tier": "Bronze",
+            "price": "$1,000",
+            "benefits": [
+              "One booth",
+              "5 tickets",
+              "Logo and recognition during program",
+              "Social media spotlight",
+              "Logo on CAIR-Georgia website for a year"
+            ],
+            "eligibility": "Masajid, Islamic schools, local nonprofits only",
+            "css": {
+              "gridColumn": "1 / span 1",
+              "gridRow": "2"
+            }
+          },
+          {
+            "name": "Community organization card",
+            "tier": "Community Organization",
+            "price": "$500",
+            "benefits": [
+              "One booth OR half page ad in program booklet",
+              "2 tickets",
+              "Social media spotlight",
+              "Logo on CAIR-Georgia website for a year"
+            ],
+            "eligibility": "Small community business or small nonprofit only",
+            "css": {
+              "gridColumn": "2 / span 1",
+              "gridRow": "2"
+            }
+          },
+          {
+            "name": "Business showcase opportunity card",
+            "tier": "Business Showcase Opportunity",
+            "kicker": "(limit of 10)",
+            "benefits": [
+              "Business provides free samples for all attendees in prefunction space",
+              "If offering samples for sale, price per unit not to exceed $2",
+              "One booth",
+              "Two guest tickets",
+              "Half page ad in program booklet",
+              "Social media spotlight"
+            ],
+            "css": {
+              "gridColumn": "3 / span 2",
+              "gridRow": "2"
+            },
+            "titleStyle": {
+              "extends": "{type.tierName}",
+              "fontSize": 28,
+              "lineHeight": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "pricing_grid_mid_rule",
+      "command": "divider.create",
+      "params": {
+        "parentId": "${{steps.pricing_grid.result.id}}",
+        "name": "Pricing grid horizontal divider",
+        "orientation": "horizontal",
+        "css": {
+          "gridColumn": "1 / -1",
+          "gridRow": "2",
+          "alignSelf": "start",
+          "height": 2,
+          "background": "{color.rule}",
+          "transform": "translateY(-21px)"
+        }
+      }
+    },
+    {
+      "name": "decorative_diamond",
+      "command": "shape.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Header center diamond",
+        "shape": "rectangle",
+        "css": {
+          "position": "absolute",
+          "left": 596,
+          "top": 260,
+          "width": 10,
+          "height": 10,
+          "background": "{color.ink}",
+          "border": "2px solid {color.gold}",
+          "borderRadius": "{radius.subtle}",
+          "transform": "rotate(45deg)",
+          "zIndex": 3
+        }
+      }
+    },
+    {
+      "name": "footer_rule",
+      "command": "divider.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Footer gold rule",
+        "orientation": "horizontal",
+        "css": {
+          "height": 2,
+          "width": "100%",
+          "background": "{color.rule}",
+          "marginTop": "auto"
+        }
+      }
+    },
+    {
+      "name": "footer_contact",
+      "command": "section.create",
+      "params": {
+        "parentId": "${{steps.poster.result.id}}",
+        "name": "Footer contact bar",
+        "css": {
+          "display": "flex",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "width": "100%",
+          "paddingTop": 16
+        },
+        "children": [
+          {
+            "name": "CAIR Georgia contact information",
+            "command": "text.rich",
+            "params": {
+              "text": [
+                {
+                  "text": "CAIRGEORGIA.ORG",
+                  "style": "{type.footer}",
+                  "color": "{color.gold}"
+                },
+                {
+                  "text": "           |           ",
+                  "style": "{type.footer}",
+                  "color": "{color.gold}"
+                },
+                {
+                  "text": "404-239-2086",
+                  "style": "{type.footer}",
+                  "color": "{color.gold}"
+                },
+                {
+                  "text": "           |           ",
+                  "style": "{type.footer}",
+                  "color": "{color.gold}"
+                },
+                {
+                  "text": "INFO@GA.CAIR.COM",
+                  "style": "{type.footer}",
+                  "color": "{color.gold}"
+                }
+              ],
+              "accessibilityLabel": "CAIR Georgia contact information: cairgeorgia.org, 404-239-2086, info at ga dot cair dot com."
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expected_expansion": {
+    "section.create": "Creates an auto-layout frame and recursively creates child nodes.",
+    "layout.pricing_grid": "Creates a grid frame, then expands each card into a semantic frame plus title, price or kicker, benefits, and eligibility rich text.",
+    "card.pricing": "Creates one pricing tier with shared styles and optional per-card overrides.",
+    "text.rich": "Creates a text node from a string or span array; span styles map to Figma text ranges.",
+    "style.apply": "Applies CSS-like layout, paint, border, transform, and positioning params to an existing node.",
+    "divider.create": "Creates a semantic line or rectangle with orientation-aware sizing."
+  }
+}

@@ -16,7 +16,7 @@
 
 ## Design Tokens
 
-Always start by running `ai-happy-design command design.compute_tokens '{"width": W, "height": H}'` to get proportional sizing.
+Always start by running `ahd-figma command design.compute_tokens '{"width": W, "height": H}'` to get proportional sizing.
 
 **Type scale** (perfect fourth = 1.333 ratio, base = width * 0.044):
 - display → hero → title → heading → subheading → body → caption
@@ -38,7 +38,7 @@ Always start by running `ai-happy-design command design.compute_tokens '{"width"
 - Origin: top-left (0,0). X increases right, Y increases down.
 - x/y are RELATIVE to the containing parent frame.
 - Inside auto-layout frames, x/y are IGNORED for auto-positioned children.
-- Always run `ai-happy-design command document.find_free_space '{"width": W, "height": H}'` before placing root frames.
+- Always run `ahd-figma command document.find_free_space '{"width": W, "height": H}'` before placing root frames.
 
 ## 8px Grid
 
@@ -153,8 +153,8 @@ Root Frame
 
 ## Composition Tips
 
-1. Run `ai-happy-design command document.find_free_space` before placing root frames — never guess coordinates.
-2. Run `ai-happy-design command design.compute_tokens` for proportional font/spacing sizes.
+1. Run `ahd-figma command document.find_free_space` before placing root frames — never guess coordinates.
+2. Run `ahd-figma command design.compute_tokens` for proportional font/spacing sizes.
 3. Create root frame first (1080x1080 for Instagram). Everything inside it.
 4. Auto-layout for STRUCTURED content. Absolute x/y only for DECORATIVE elements.
 5. Build cards as frames with auto-layout, not rectangles + floating text.
