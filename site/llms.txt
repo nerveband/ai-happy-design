@@ -1,0 +1,74 @@
+# AI Happy Design
+
+> CLI tool that gives LLMs full Figma canvas control via WebSocket relay to Figma plugin.
+
+Current release: `v0.13.2`
+Command surface: 184 schema-backed commands.
+
+## Quick Start
+
+1. Install: `brew install nerveband/tap/ahd-figma` or `ahd-figma upgrade`
+2. Register with your AI editor: `ahd-figma register`
+3. Open Figma plugin, connect to relay
+4. Execute: `ahd-figma batch '[{"command":"slide","params":{...}}]'`
+
+## Key Commands
+
+- `batch` — Execute design operations from JSON (main LLM path)
+- `command` — Execute single operation
+- `schema <command> --json` — Full JSON schema for a command (types, enums, min/max)
+- `schema --json` — All 184 command schemas as JSON array
+- `validate` — Dry-run: check JSON without executing
+- `guide` — Design intelligence (visual hierarchy, composition, effects)
+- `tools --json` — List all commands with schemas
+- `tokens.export` — Export deterministic presets or Figma variable snapshots to JSON, CSS, Tailwind, Swift, or Android
+- `document.accessibility_audit` — WCAG-oriented design checks for text, contrast, targets, naming, and focus risk
+- `parity.compare_code` — Compare design intent against a code-spec contract before implementation
+- `examples [category]` — Pre-built example payloads (slide, carousel, banner, effects)
+- `status` — Relay health, plugin connection, version mismatch detection
+
+## Agent-Optimized Flags
+
+- `command --dry-run` — Validate params against schema without executing
+- `batch --dry-run` — Validate full payloads before touching Figma
+- `--output-format json|jsonl|text` — Machine-friendly output control
+- `--jq .path[0].value` — Extract a simple JSON field path before printing
+- `--fields id,name,type` — Return only specified fields where supported
+
+## Safety & Hardening
+
+- Schema validation with fuzzy matching and auto-correction
+- Input hardening: control chars, path traversal, prompt injection sanitization
+- Output path sandboxing (exports restricted to safe directories)
+- Safety metadata: `readOnly`, `destructive`, `idempotent` on every schema
+- `commitUndo()` on all write operations (Cmd+Z in Figma)
+- Structured errors with `code`, `hint`, `retryable` fields
+- Differentiated exit codes: 0=success, 1=error, 2=relay, 3=plugin, 4=validation
+
+## Design Workflow
+
+1. `ahd-figma command design.compute_tokens '{"width":1080,"height":1350}'`
+2. `ahd-figma command document.find_free_space '{"width":1080,"height":1350}'`
+3. `ahd-figma schema <command> --json` to discover params
+4. `ahd-figma batch ops.json`
+5. `ahd-figma command export.image '{"nodeId":"...","scale":2}'`
+
+## Response Detail Levels
+
+Read commands support `detail` param: `minimal` (id/name/type), `compact` (+ position/size), `full` (everything).
+
+## MCP Integration
+
+- `ahd-figma mcp` — stdio MCP server with 4 design intelligence prompts
+- MCP tools/list exposes 185 tools including `ahd_describe`
+- `ahd-figma register` — auto-configures Claude Code, Claude Desktop, Cursor, Windsurf, VS Code, Zed
+
+## Scores
+
+- Agent CLI Audit: 50/50 (Best-in-class)
+- Agent DX CLI Scale: 21/21 (Agent-first, max)
+
+## Links
+
+- [Full command reference](https://aihappydesign.com/llms-full.txt)
+- [GitHub](https://github.com/nerveband/ai-happy-design)

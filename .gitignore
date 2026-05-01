@@ -15,3 +15,12 @@ dist/
 figma-friend.skill
 plugin/ai-happy-design.skill
 .worktrees/
+
+# Retired experimental Illustrator workspace. Keep it out of this Figma repo.
+adobe-illustrator/
+
+# Static site build artifacts and deploy state.
+site/dist/
+site/node_modules/
+site/.astro/
+site/.netlify/

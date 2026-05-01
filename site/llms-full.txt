@@ -1,0 +1,2304 @@
+# AI Happy Design — Full Command Reference
+
+Auto-generated from CLI schemas. Use `ahd-figma schema <command> --json` for machine-readable format.
+
+## design.compute_tokens
+
+Compute responsive design tokens for a target canvas
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| width | number | yes |  | >= 1 | Canvas width in pixels |
+| height | number | yes |  | >= 1 | Canvas height in pixels |
+| dpi | number |  |  |  | Optional DPI. Defaults to 72 for screen work. |
+
+## tokens.export
+
+Export a deterministic token preset or computed token snapshot
+
+Aliases: `tokens.export_json`, `tokens.export_css`, `tokens.export_tailwind`, `tokens.export_swift`, `tokens.export_android`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| preset | string |  |  | minimal/shadcn/tailwind/from_canvas | Token preset name |
+| format | string |  |  | json/css/tailwind/swift/android | Output format |
+| outputPath | string |  |  |  | Optional file path to write |
+| configPath | string |  |  |  | Optional JSON config with outputs map |
+| variablesFile | string |  |  |  | JSON file from variable.get_all |
+| variables | array |  |  |  | Inline variable.get_all variables array |
+| outputs | object |  |  |  | Format to output path map |
+
+## parity.compare_code
+
+Compare a code-spec JSON contract for semantic completeness before design-code parity checks
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| specPath | string |  |  |  | Path to a code-spec JSON file |
+| codeSpecPath | string |  |  |  | Alias for specPath |
+| codeSpec | object |  |  |  | Inline code-spec object |
+| threshold | number |  |  |  | Minimum passing parity score |
+
+## document.get_info
+
+Get document information
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## document.get_selection
+
+Get current selection
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## document.get_focused_node
+
+Get the current Dev Mode focused node
+
+Aliases: `devmode.get_focused_node`, `devmode.get_context`, `devmode.get_selection_context`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## document.set_selection
+
+Set current selection
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeIds | array | yes |  |  |  |
+
+## document.scan_text
+
+Scan text nodes
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| query | string |  |  |  |  |
+| pageId | string |  |  |  |  |
+
+## document.scan_by_type
+
+Scan nodes by type
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeType | string | yes |  |  |  |
+| pageId | string |  |  |  |  |
+
+## document.get_styles
+
+Get document styles
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## document.find_by_name
+
+Find nodes by name
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| query | string | yes |  |  |  |
+| pageId | string |  |  |  |  |
+
+## document.find_by_type
+
+Find nodes by type
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeType | string | yes |  |  |  |
+| pageId | string |  |  |  |  |
+
+## document.zoom_to
+
+Zoom viewport to a node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## document.find_free_space
+
+Find free canvas space for a new frame
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| width | number |  |  |  |  |
+| height | number |  |  |  |  |
+
+## document.find_nodes
+
+Find nodes by query, type, or text content
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| query | string |  |  |  |  |
+| nodeType | string |  |  |  |  |
+| textContent | string |  |  |  |  |
+
+## document.lint
+
+Lint a node for design quality
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## document.accessibility_audit
+
+Run a deterministic accessibility audit over a batch payload or live document
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| file | string |  |  |  | Batch JSON file for local audit |
+| batchFile | string |  |  |  | Alias for file |
+
+## page.create
+
+Create a page
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| name | string |  |  |  |  |
+
+## page.delete
+
+Delete a page
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| pageId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## page.rename
+
+Rename a page
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| pageId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| name | string | yes |  |  |  |
+
+## page.set_current
+
+Set current page
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| pageId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## page.get_all
+
+Get all pages
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## page.get_current
+
+Get current page
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## page.duplicate
+
+Duplicate a page
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| pageId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| name | string |  |  |  |  |
+
+## export.image
+
+Export node as PNG/JPG
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| format | string |  |  | PNG/JPG |  |
+| scale | number |  |  | 0-8 |  |
+
+## export.svg
+
+Export node as SVG
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## export.pdf
+
+Export node as PDF
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## export.json
+
+Export node as structured JSON
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| depth | number |  |  | 1-50 |  |
+
+## export.batch_export
+
+Export multiple nodes
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeIds | array | yes |  |  |  |
+| format | string |  |  | PNG/JPG/SVG/PDF/JSON |  |
+| scale | number |  |  |  |  |
+
+## boolean.union
+
+Boolean union
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeIds | array | yes |  |  |  |
+| name | string |  |  |  |  |
+
+## boolean.subtract
+
+Boolean subtract
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeIds | array | yes |  |  |  |
+| name | string |  |  |  |  |
+
+## boolean.intersect
+
+Boolean intersect
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeIds | array | yes |  |  |  |
+| name | string |  |  |  |  |
+
+## boolean.exclude
+
+Boolean exclude
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeIds | array | yes |  |  |  |
+| name | string |  |  |  |  |
+
+## boolean.flatten
+
+Flatten nodes
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeIds | array | yes |  |  |  |
+
+## style.create_paint
+
+Create a paint style
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| name | string | yes |  |  |  |
+| color | string |  |  | pattern: ^#[0-9A-Fa-f]{3,8}$ |  |
+| description | string |  |  |  |  |
+
+## style.create_text
+
+Create a text style
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| name | string | yes |  |  |  |
+| description | string |  |  |  |  |
+
+## style.create_effect
+
+Create an effect style
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| name | string | yes |  |  |  |
+| description | string |  |  |  |  |
+
+## style.apply
+
+Apply a style
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| styleId | string | yes |  |  |  |
+| styleType | string |  |  |  |  |
+
+## style.get_all
+
+Get all local styles
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## style.remove
+
+Remove a style from a node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| styleType | string | yes |  |  |  |
+
+## variable.create
+
+Create a variable
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| name | string | yes |  |  |  |
+| collectionId | string |  |  |  |  |
+| collectionName | string |  |  |  |  |
+| resolvedType | string |  |  |  |  |
+
+## variable.get_all
+
+Get all variables
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## variable.set_value
+
+Set variable value
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| variableId | string | yes |  |  |  |
+| value | object |  |  |  |  |
+| modeId | string |  |  |  |  |
+
+## variable.bind
+
+Bind variable to node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| variableId | string | yes |  |  |  |
+| field | string |  |  |  |  |
+
+## variable.unbind
+
+Unbind variable from node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| field | string |  |  |  |  |
+
+## variable.create_collection
+
+Create a variable collection
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| name | string | yes |  |  |  |
+
+## variable.get_collections
+
+Get variable collections
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## variable.delete
+
+Delete a variable
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| variableId | string | yes |  |  |  |
+
+## variable.resolve_for_consumer
+
+Resolve a variable for a consuming node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| variableId | string | yes |  |  |  |
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## variable.add_mode
+
+Add a variable collection mode
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| collectionId | string | yes |  |  |  |
+| name | string | yes |  |  |  |
+
+## variable.rename_mode
+
+Rename a variable collection mode
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| collectionId | string | yes |  |  |  |
+| modeId | string | yes |  |  |  |
+| name | string | yes |  |  |  |
+
+## variable.delete_mode
+
+Delete a variable collection mode
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| collectionId | string | yes |  |  |  |
+| modeId | string | yes |  |  |  |
+
+## component.create
+
+Create a component
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| name | string |  |  |  |  |
+
+## component.create_instance
+
+Create a component instance
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| componentId | string |  |  |  |  |
+| componentKey | string |  |  |  |  |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+
+## component.create_set
+
+Create a component set
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeIds | array | yes |  |  |  |
+| name | string |  |  |  |  |
+
+## component.get_local
+
+Get local components
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## component.get_remote
+
+Get remote components
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## component.get_overrides
+
+Get instance overrides
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## component.set_overrides
+
+Set instance overrides
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| overrides | object | yes |  |  |  |
+
+## component.detach_instance
+
+Detach an instance
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## component.reset_instance
+
+Reset an instance
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## component.swap_instance
+
+Swap an instance component
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| newComponentId | string | yes |  |  |  |
+
+## component.get_property_definitions
+
+Get component property definitions
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## component.add_property_definition
+
+Add component property definition
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| name | string | yes |  |  |  |
+| type | string | yes |  |  |  |
+
+## component.delete_property_definition
+
+Delete component property definition
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| propertyName | string | yes |  |  |  |
+
+## draw.create_text_path
+
+Beta Figma API: create text on a vector path with runtime guards
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| characters | string |  |  |  |  |
+| startSegment | number |  |  |  |  |
+| startPosition | number |  |  | 0-1 |  |
+| fontSize | number |  |  |  |  |
+| name | string |  |  |  |  |
+
+## draw.create_transform_group
+
+Beta Figma API: create a transform group with runtime guards
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeIds | array | yes |  |  |  |
+| parentId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  (alias: pid) |
+| index | number |  |  | >= 0 |  |
+| modifiers | array |  |  |  |  |
+| name | string |  |  |  |  |
+
+## draw.load_brushes
+
+Beta Figma API: load built-in Draw brushes for this plugin run
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| brushType | string |  |  | STRETCH/SCATTER |  |
+| brushTypes | array |  |  |  |  |
+
+## draw.set_variable_width_stroke
+
+Beta Figma API: set variable-width stroke properties with runtime guards
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| widthProfile | string |  |  | UNIFORM/WEDGE/TAPER/QUARTER_TAPER/EYE/MIRRORED_TAPER/CUSTOM |  |
+| variableWidthPoints | array |  |  |  |  |
+
+## draw.set_brush_stroke
+
+Beta Figma API: set stretch or scatter brush stroke with runtime guards
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| brushType | string |  |  | STRETCH/SCATTER |  |
+| brushName | string |  |  |  |  |
+| gap | number |  |  |  |  |
+| wiggle | number |  |  |  |  |
+| direction | string |  |  |  |  |
+
+## draw.set_dynamic_stroke
+
+Beta Figma API: set dynamic stroke properties with runtime guards
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| frequency | number |  |  |  |  |
+| wiggle | number |  |  |  |  |
+| smoothen | number |  |  |  |  |
+
+## draw.set_pattern_fill
+
+Beta Figma API: set pattern fill using async paint APIs
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| sourceNodeId | string | yes |  |  |  |
+| tileType | string |  |  |  |  |
+| scalingFactor | number |  |  |  |  |
+| append | boolean |  |  |  |  |
+
+## draw.set_pattern_stroke
+
+Beta Figma API: set pattern stroke using async paint APIs
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| sourceNodeId | string | yes |  |  |  |
+| tileType | string |  |  |  |  |
+| scalingFactor | number |  |  |  |  |
+| append | boolean |  |  |  |  |
+
+## effect.add_shadow
+
+Add a drop shadow to a node
+
+Aliases: `shadow`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| color | string |  | #00000040 | pattern: ^#[0-9A-Fa-f]{3,8}$ | Shadow color hex |
+| offsetX | number |  | 0 |  | Horizontal offset |
+| offsetY | number |  | 4 |  | Vertical offset |
+| radius | number |  | 4 | 0-200 | Blur radius |
+| spread | number |  | 0 | -100-100 | Spread distance |
+| type | string |  | DROP_SHADOW | DROP_SHADOW/INNER_SHADOW |  |
+
+## effect.add_blur
+
+Add blur to a node
+
+Aliases: `blur`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| radius | number |  | 10 | 0-200 |  |
+| type | string |  | LAYER_BLUR | LAYER_BLUR/BACKGROUND_BLUR |  |
+| blurType | string |  |  | LAYER_BLUR/BACKGROUND_BLUR |  |
+
+## effect.apply_glass
+
+Apply glass morphism effect (background blur + semi-transparent fill + stroke)
+
+Aliases: `glass`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| intensity | string |  | medium | light/medium/heavy |  |
+
+## effect.set_effects
+
+Set all effects on a node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| effects | array | yes |  |  |  |
+
+## effect.apply_style
+
+Apply an effect style
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| styleId | string | yes |  |  |  |
+
+## effect.remove_effect
+
+Remove effects from a node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## effect.get_effects
+
+Get effects from a node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## effect.add_noise
+
+Add a noise effect where supported by Figma
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| opacity | number |  |  | 0-1 |  |
+| size | number |  |  | >= 0 |  |
+
+## effect.add_texture
+
+Add a texture effect where supported by Figma
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| opacity | number |  |  | 0-1 |  |
+| size | number |  |  | >= 0 |  |
+
+## effect.add_glass
+
+Add native glass effect where supported by Figma
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| preset | string |  |  | light/medium/heavy |  |
+| radius | number |  |  | >= 0 |  |
+
+## text.create_rich_block
+
+Create a measured rich text block with heading, price, bullets, and notes
+
+Aliases: `text.rich`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| parentId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  (alias: pid) |
+| name | string |  |  |  |  |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+| width | number | yes |  |  |  |
+| fontFamily | string |  |  |  |  |
+| heading | string |  |  |  |  |
+| price | string |  |  |  |  |
+| bullets | array |  |  |  |  |
+| benefits | array |  |  |  |  |
+| eligibility | string |  |  |  |  |
+| headingStyle | object |  |  |  |  |
+| priceStyle | object |  |  |  |  |
+| bodyStyle | object |  |  |  |  |
+| noteStyle | object |  |  |  |  |
+
+## text.measure
+
+Measure rendered Figma text for a given font, size, and width
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| text | string | yes |  |  |  |
+| width | number |  |  |  |  |
+| fontFamily | string |  |  |  |  |
+| fontStyle | string |  |  |  |  |
+| fontSize | number |  |  |  |  |
+
+## text.fit_box
+
+Find the largest font size that fits text inside a fixed box
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| text | string | yes |  |  |  |
+| width | number | yes |  |  |  |
+| height | number | yes |  |  |  |
+| fontFamily | string |  |  |  |  |
+| fontStyle | string |  |  |  |  |
+| minFontSize | number |  |  |  |  |
+| maxFontSize | number |  |  |  |  |
+
+## layout.pricing_grid
+
+Create a CSS-like pricing grid with measured rich pricing cards
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| parentId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  (alias: pid) |
+| name | string |  |  |  |  |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+| width | number | yes |  |  |  |
+| columns | number |  |  |  |  |
+| gap | number |  |  |  |  |
+| rowGap | number |  |  |  |  |
+| cards | array | yes |  |  |  |
+| fontFamily | string |  |  |  |  |
+| gold | string |  |  | pattern: ^#[0-9A-Fa-f]{3,8}$ |  |
+| cream | string |  |  | pattern: ^#[0-9A-Fa-f]{3,8}$ |  |
+| rule | string |  |  | pattern: ^#[0-9A-Fa-f]{3,8}$ |  |
+| titleStyle | object |  |  |  |  |
+| priceStyle | object |  |  |  |  |
+| bodyStyle | object |  |  |  |  |
+| noteStyle | object |  |  |  |  |
+| paddingTop | number |  |  |  |  |
+| paddingBottom | number |  |  |  |  |
+| paddingLeft | number |  |  |  |  |
+| paddingRight | number |  |  |  |  |
+| cardMinHeight | number |  |  |  |  |
+
+## layout.set_auto_layout
+
+Set auto-layout properties on a frame
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| direction | string | yes |  | HORIZONTAL/VERTICAL/NONE | HORIZONTAL=row, VERTICAL=column, NONE=remove auto-layout |
+| itemSpacing | number |  |  | 0-500 |  |
+| padding | number |  |  | 0-500 |  |
+| paddingTop | number |  |  | >= 0 |  |
+| paddingRight | number |  |  | >= 0 |  |
+| paddingBottom | number |  |  | >= 0 |  |
+| paddingLeft | number |  |  | >= 0 |  |
+| primaryAxisAlignItems | string |  |  | MIN/CENTER/MAX/SPACE_BETWEEN |  (alias: primaryAxisAlign) |
+| counterAxisAlignItems | string |  |  | MIN/CENTER/MAX/BASELINE |  (alias: counterAxisAlign) |
+| layoutWrap | string |  |  | WRAP/NO_WRAP |  |
+
+## layout.set_sizing
+
+Set sizing behavior of a node within auto-layout
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| horizontal | string |  |  | FIXED/HUG/FILL |  |
+| vertical | string |  |  | FIXED/HUG/FILL |  |
+
+## layout.set_grid_container
+
+Set Figma grid auto-layout container properties
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| gridRowCount | number |  |  | >= 1 |  |
+| gridColumnCount | number |  |  | >= 1 |  |
+| gridRowGap | number |  |  | >= 0 |  |
+| gridColumnGap | number |  |  | >= 0 |  |
+| gridRowsSizing | array |  |  |  |  |
+| gridColumnsSizing | array |  |  |  |  |
+
+## layout.set_grid_tracks
+
+Set Figma grid auto-layout row and column track sizing
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| gridRowsSizing | array |  |  |  |  |
+| gridColumnsSizing | array |  |  |  |  |
+
+## layout.set_grid_child_position
+
+Set a direct child position and span inside a Figma grid auto-layout container
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| gridRowAnchorIndex | number |  |  | >= 0 |  |
+| gridColumnAnchorIndex | number |  |  | >= 0 |  |
+| gridRowSpan | number |  |  | >= 1 |  |
+| gridColumnSpan | number |  |  | >= 1 |  |
+| gridChildHorizontalAlign | string |  |  |  |  |
+| gridChildVerticalAlign | string |  |  |  |  |
+
+## layout.get_grid_layout
+
+Get Figma grid auto-layout container properties
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## node.create_frame
+
+Create a frame (Figma's equivalent of a div)
+
+Aliases: `frame`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| name | string |  |  |  | Semantic name for the frame (never leave as default) |
+| parentId | string |  |  | pattern: ^[0-9]+:[0-9]+$ | Parent node ID (alias: pid) |
+| x | number |  |  |  | X position |
+| y | number |  |  |  | Y position |
+| width | number |  |  | 1-10000 | Frame width (alias: w) |
+| height | number |  |  | 1-10000 | Frame height (alias: h) |
+| color | string |  |  | pattern: ^#[0-9A-Fa-f]{3,8}$ | Fill color hex (NOT fillColor) (alias: bg) |
+| cornerRadius | number |  |  | 0-500 | Corner radius (alias: r) |
+| opacity | number |  |  | 0-1 | Opacity |
+| layoutMode | string |  |  | HORIZONTAL/VERTICAL | Auto-layout direction |
+| itemSpacing | number |  |  | 0-500 | Spacing between auto-layout children |
+| padding | number |  |  | 0-500 | Uniform padding for all sides |
+| paddingTop | number |  |  | 0-500 |  |
+| paddingRight | number |  |  | 0-500 |  |
+| paddingBottom | number |  |  | 0-500 |  |
+| paddingLeft | number |  |  | 0-500 |  |
+| primaryAxisAlignItems | string |  |  | MIN/CENTER/MAX/SPACE_BETWEEN |  |
+| counterAxisAlignItems | string |  |  | MIN/CENTER/MAX/BASELINE |  |
+| layoutSizingHorizontal | string |  |  | FIXED/HUG/FILL |  |
+| layoutSizingVertical | string |  |  | FIXED/HUG/FILL |  |
+| layoutWrap | string |  |  | WRAP/NO_WRAP |  |
+| clipsContent | boolean |  |  |  | Whether children clip to frame bounds |
+| structural | boolean |  |  |  | Structural frame: removes default fill, enables clipping. Use for wrappers and auto-layout containers. |
+| stroke | string |  |  | pattern: ^#[0-9A-Fa-f]{3,8}$ | Stroke color hex |
+| strokeWeight | number |  |  | 0-100 |  (alias: sw) |
+| minWidth | number |  |  | 0-10000 | Minimum width (auto-layout children only) |
+| maxWidth | number |  |  | 0-10000 | Maximum width (auto-layout children only) |
+| minHeight | number |  |  | 0-10000 | Minimum height (auto-layout children only) |
+| maxHeight | number |  |  | 0-10000 | Maximum height (auto-layout children only) |
+
+## node.modify
+
+Modify any property of an existing node
+
+Aliases: `modify`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ | Target node ID |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+| width | number |  |  | 1-10000 |  (alias: w) |
+| height | number |  |  | 1-10000 |  (alias: h) |
+| color | string |  |  | pattern: ^#[0-9A-Fa-f]{3,8}$ |  |
+| opacity | number |  |  | 0-1 |  |
+| cornerRadius | number |  |  | 0-500 |  (alias: r) |
+| visible | boolean |  |  |  |  |
+| name | string |  |  |  |  |
+| rotation | number |  |  | 0-360 |  |
+| text | string |  |  |  |  |
+| fontSize | number |  |  | 4-500, tokens: hero/title/heading/subheading/body/caption |  (alias: sz) |
+| fontFamily | string |  |  |  |  (alias: ff) |
+| isMask | boolean |  |  |  |  |
+| layoutSizingHorizontal | string |  |  | FIXED/HUG/FILL |  |
+| layoutSizingVertical | string |  |  | FIXED/HUG/FILL |  |
+| blendMode | string |  |  | NORMAL/MULTIPLY/SCREEN/OVERLAY/DARKEN/LIGHTEN/COLOR_DODGE/COLOR_BURN/HARD_LIGHT/SOFT_LIGHT/DIFFERENCE/EXCLUSION/HUE/SATURATION/COLOR/LUMINOSITY |  |
+| minWidth | number |  |  | 0-10000 |  |
+| maxWidth | number |  |  | 0-10000 |  |
+| minHeight | number |  |  | 0-10000 |  |
+| maxHeight | number |  |  | 0-10000 |  |
+| constrainProportions | boolean |  |  |  |  |
+
+## node.move
+
+Move a node to new coordinates
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| x | number | yes |  |  |  |
+| y | number | yes |  |  |  |
+
+## node.resize
+
+Resize a node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| width | number | yes |  | 1-10000 |  |
+| height | number | yes |  | 1-10000 |  |
+
+## node.delete
+
+Delete a node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## node.get_info
+
+Get information about a node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## node.get_tree
+
+Get the node tree hierarchy
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| depth | number |  |  | 1-20 | Max depth to traverse |
+| compact | boolean |  |  |  | Return flat array instead of nested tree (3-5x fewer tokens) |
+
+## paint.set_solid
+
+Set a solid fill color on a node
+
+Aliases: `fill`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| color | string | yes |  | pattern: ^#[0-9A-Fa-f]{3,8}$ | Hex color (#RRGGBB or #RGB) |
+| opacity | number |  | 1 | 0-1 | Opacity |
+
+## paint.set_gradient
+
+Set a gradient fill on a node
+
+Aliases: `gradient`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| gradientType | string |  | LINEAR | LINEAR/RADIAL/ANGULAR/DIAMOND |  |
+| stops | array | yes |  |  | Gradient stops: [{position:0, color:"#FF0000"}, {position:1, color:"#0000FF"}] |
+| angle | number |  |  | 0-360 | Gradient angle in degrees (0=top, 90=right) |
+
+## paint.set_stroke
+
+Set stroke on a node
+
+Aliases: `stroke`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| color | string | yes |  | pattern: ^#[0-9A-Fa-f]{3,8}$ | Stroke color hex |
+| strokeWeight | number |  | 1 | 0-100 |  (alias: sw) |
+| strokeAlign | string |  | INSIDE | INSIDE/CENTER/OUTSIDE |  |
+| dashPattern | array |  |  |  | Dash pattern [dash, gap] e.g. [10, 5] |
+| strokeCap | string |  |  | NONE/ROUND/SQUARE/ARROW_LINES/ARROW_EQUILATERAL |  |
+| strokeJoin | string |  |  | MITER/BEVEL/ROUND |  |
+
+## paint.set_image
+
+Set an image fill on a node from base64 data
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| imageData | string | yes |  |  | Base64-encoded image data or data URL |
+| scaleMode | string |  | FILL | FILL/FIT/TILE/CROP |  |
+
+## node.rotate
+
+Rotate a node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| rotation | number | yes |  |  |  |
+
+## node.get_css
+
+Get CSS properties for a node using Figma getCSSAsync
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## node.set_opacity
+
+Set node opacity
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| opacity | number | yes |  | 0-1 |  |
+
+## node.set_blend_mode
+
+Set node blend mode
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| blendMode | string |  |  |  |  |
+
+## node.set_visibility
+
+Set node visibility
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| visible | boolean | yes |  |  |  |
+
+## node.set_locked
+
+Set node locked state
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| locked | boolean | yes |  |  |  |
+
+## node.rename
+
+Rename a node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| name | string | yes |  |  |  |
+
+## node.clone
+
+Clone a node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## node.set_corner_radius
+
+Set node corner radius
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| cornerRadius | number |  |  | 0-500 |  (alias: r/radius) |
+
+## node.set_mask
+
+Create a mask group
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| maskNodeId | string | yes |  |  |  |
+| targetIds | array | yes |  |  |  |
+
+## node.create_section
+
+Create a section
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| name | string |  |  |  |  |
+| parentId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  (alias: pid) |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+| width | number |  |  | 1-10000 |  (alias: w) |
+| height | number |  |  | 1-10000 |  (alias: h) |
+
+## layer.set_order
+
+Set layer order
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| index | number | yes |  | >= 0 |  |
+
+## layer.bring_forward
+
+Bring a layer forward
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## layer.send_backward
+
+Send a layer backward
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## layer.bring_to_front
+
+Bring a layer to front
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## layer.send_to_back
+
+Send a layer to back
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## layer.group
+
+Group nodes
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeIds | array | yes |  |  |  |
+| parentId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  (alias: pid) |
+
+## layer.ungroup
+
+Ungroup nodes
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## layer.move_to_parent
+
+Move a node to a parent
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| parentId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| index | number |  |  | >= 0 |  |
+
+## layer.insert_child
+
+Insert a child into a parent
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| parentId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| childId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| index | number |  |  | >= 0 |  |
+
+## layout.set_padding
+
+Set frame padding
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| padding | number |  |  | 0-500 |  |
+| paddingTop | number |  |  |  |  |
+| paddingRight | number |  |  |  |  |
+| paddingBottom | number |  |  |  |  |
+| paddingLeft | number |  |  |  |  |
+
+## layout.set_spacing
+
+Set auto-layout spacing
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| itemSpacing | number |  |  | 0-500 |  (alias: spacing) |
+
+## layout.set_alignment
+
+Set auto-layout alignment
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| primaryAxisAlign | string |  |  |  |  |
+| counterAxisAlign | string |  |  |  |  |
+
+## layout.set_constraints
+
+Set layout constraints
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| constraintHorizontal | string |  |  |  |  |
+| constraintVertical | string |  |  |  |  |
+
+## layout.set_layout_wrap
+
+Set layout wrapping
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| layoutWrap | string |  |  | WRAP/NO_WRAP |  |
+
+## layout.remove_auto_layout
+
+Remove auto-layout
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## layout.check_overlaps
+
+Check child overlaps
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## layout.set_grid
+
+Set layout grid
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| gridType | string |  |  |  |  |
+| count | number |  |  |  |  |
+| size | number |  |  |  |  |
+| gutter | number |  |  |  |  |
+
+## layout.get_grids
+
+Get layout grids
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## layout.remove_grids
+
+Remove layout grids
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## paint.set_image_url
+
+Set an image fill from a URL
+
+Aliases: `paint.set_image_fill_from_url`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| url | string | yes |  |  |  |
+| scaleMode | string |  |  | FILL/FIT/TILE/CROP |  |
+
+## paint.add_fill
+
+Add a fill
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| color | string |  |  | pattern: ^#[0-9A-Fa-f]{3,8}$ |  |
+| opacity | number |  |  | 0-1 |  |
+
+## paint.remove_fill
+
+Remove a fill
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| fillIndex | number |  |  | >= 0 |  (alias: index) |
+
+## paint.get_fills
+
+Get fills
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## shape.create_polygon
+
+Create a polygon
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| parentId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  (alias: pid) |
+| name | string |  |  |  |  |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+| width | number |  |  | 1-10000 |  (alias: w) |
+| height | number |  |  | 1-10000 |  (alias: h) |
+| color | string |  |  | pattern: ^#[0-9A-Fa-f]{3,8}$ |  |
+| pointCount | number |  |  | 3-60 |  |
+
+## shape.create_star
+
+Create a star
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| parentId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  (alias: pid) |
+| name | string |  |  |  |  |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+| width | number |  |  | 1-10000 |  (alias: w) |
+| height | number |  |  | 1-10000 |  (alias: h) |
+| color | string |  |  | pattern: ^#[0-9A-Fa-f]{3,8}$ |  |
+| pointCount | number |  |  | 3-60 |  |
+| innerRadius | number |  |  | 0-1 |  |
+
+## shape.create_line
+
+Create a line
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| parentId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  (alias: pid) |
+| name | string |  |  |  |  |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+| width | number |  |  | >= 1 |  (alias: length) |
+| color | string |  |  | pattern: ^#[0-9A-Fa-f]{3,8}$ |  |
+| strokeWeight | number |  |  | 0-100 |  |
+
+## shape.create_from_svg
+
+Create a node from SVG
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| parentId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  (alias: pid) |
+| name | string |  |  |  |  |
+| svgPath | string | yes |  |  |  |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+
+## shape.create_vector
+
+Create a vector node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| parentId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  (alias: pid) |
+| name | string |  |  |  |  |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+
+## text.set_font
+
+Set text font
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| fontFamily | string | yes |  |  |  |
+| fontStyle | string |  |  |  |  |
+
+## text.set_size
+
+Set text size
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| fontSize | number | yes |  | 4-500 |  (alias: size) |
+
+## text.set_weight
+
+Set text weight
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| fontWeight | number | yes |  |  |  (alias: weight) |
+
+## text.set_color
+
+Set text color
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| color | string |  |  | pattern: ^#[0-9A-Fa-f]{3,8}$ |  |
+
+## text.set_align
+
+Set text alignment
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| textAlign | string |  |  |  |  |
+
+## text.set_spacing
+
+Set text spacing
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| letterSpacing | number |  |  |  |  |
+| lineHeight | number |  |  |  |  |
+| paragraphSpacing | number |  |  |  |  |
+
+## text.set_line_height
+
+Set line height
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| lineHeight | number | yes |  |  |  |
+| lineHeightUnit | string |  |  |  |  |
+
+## text.set_letter_spacing
+
+Set letter spacing
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| letterSpacing | number | yes |  |  |  |
+| letterSpacingUnit | string |  |  |  |  |
+
+## text.set_decoration
+
+Set text decoration
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| textDecoration | string |  |  |  |  |
+
+## text.set_case
+
+Set text case
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| textCase | string |  |  |  |  |
+
+## text.set_paragraph_spacing
+
+Set paragraph spacing
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| paragraphSpacing | number | yes |  |  |  |
+
+## text.get_content
+
+Get text content
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## text.get_segments
+
+Get styled text segments
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## text.load_font
+
+Load a font
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| fontFamily | string | yes |  |  |  |
+| fontStyle | string |  |  |  |  |
+
+## text.set_style_id
+
+Apply a text style
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| styleId | string | yes |  |  |  |
+
+## text.list_fonts
+
+List available fonts
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| fontFamily | string |  |  |  |  |
+
+## text.set_range_style
+
+Apply styles to ranges
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| ranges | array | yes |  |  |  |
+
+## text.set_opentype_features
+
+Set OpenType features
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| features | object | yes |  |  |  |
+
+## text.get_opentype_features
+
+Get OpenType features
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## figma.oembed
+
+Fetch Figma oEmbed metadata for a file or Make URL
+
+Aliases: `rest.oembed`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| url | string | yes |  |  |  |
+| token | string |  |  |  | Optional Figma token; defaults to FIGMA_ACCESS_TOKEN or FIGMA_TOKEN |
+| baseURL | string |  |  |  | Optional API base URL for tests or proxies |
+
+## figma.file_metadata
+
+Fetch Figma REST file metadata using least-privilege scopes
+
+Aliases: `rest.file_metadata`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| fileKey | string | yes |  |  | Figma file key |
+| ids | string |  |  |  |  |
+| version | string |  |  |  |  |
+| geometry | string |  |  |  |  |
+| plugin_data | string |  |  |  |  |
+| token | string |  |  |  | Optional Figma token; defaults to FIGMA_ACCESS_TOKEN or FIGMA_TOKEN |
+| baseURL | string |  |  |  | Optional API base URL for tests or proxies |
+
+## figma.dev_resources_list
+
+List Dev Mode resources attached to a Figma file
+
+Aliases: `dev_resource.list`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| fileKey | string | yes |  |  | Figma file key |
+| token | string |  |  |  | Optional Figma token; defaults to FIGMA_ACCESS_TOKEN or FIGMA_TOKEN |
+| baseURL | string |  |  |  | Optional API base URL for tests or proxies |
+
+## figma.dev_resource_create
+
+Create a Dev Mode resource link for a node
+
+Aliases: `dev_resource.create`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| fileKey | string | yes |  |  | Figma file key |
+| nodeId | string | yes |  |  |  |
+| name | string | yes |  |  |  |
+| url | string | yes |  |  |  |
+| token | string |  |  |  | Optional Figma token; defaults to FIGMA_ACCESS_TOKEN or FIGMA_TOKEN |
+| baseURL | string |  |  |  | Optional API base URL for tests or proxies |
+
+## figma.dev_resource_update
+
+Update a Dev Mode resource link
+
+Aliases: `dev_resource.update`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| fileKey | string | yes |  |  | Figma file key |
+| resourceId | string | yes |  |  |  |
+| name | string |  |  |  |  |
+| url | string |  |  |  |  |
+| token | string |  |  |  | Optional Figma token; defaults to FIGMA_ACCESS_TOKEN or FIGMA_TOKEN |
+| baseURL | string |  |  |  | Optional API base URL for tests or proxies |
+
+## figma.dev_resource_delete
+
+Delete a Dev Mode resource link
+
+Aliases: `dev_resource.delete`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| fileKey | string | yes |  |  | Figma file key |
+| resourceId | string | yes |  |  |  |
+| token | string |  |  |  | Optional Figma token; defaults to FIGMA_ACCESS_TOKEN or FIGMA_TOKEN |
+| baseURL | string |  |  |  | Optional API base URL for tests or proxies |
+
+## figma.webhooks_list
+
+List Figma Webhooks V2 subscriptions
+
+Aliases: `webhook.list`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| token | string |  |  |  | Optional Figma token; defaults to FIGMA_ACCESS_TOKEN or FIGMA_TOKEN |
+| baseURL | string |  |  |  | Optional API base URL for tests or proxies |
+
+## figma.webhook_create
+
+Create a Figma Webhooks V2 subscription, including DEV_MODE_STATUS_UPDATE
+
+Aliases: `webhook.create`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| eventType | string | yes |  |  |  |
+| context | string | yes |  |  |  |
+| contextId | string | yes |  |  |  |
+| endpoint | string | yes |  |  |  |
+| token | string |  |  |  | Optional Figma token; defaults to FIGMA_ACCESS_TOKEN or FIGMA_TOKEN |
+| baseURL | string |  |  |  | Optional API base URL for tests or proxies |
+
+## figma.webhook_get
+
+Get one Figma Webhooks V2 subscription
+
+Aliases: `webhook.get`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| webhookId | string | yes |  |  |  |
+| token | string |  |  |  | Optional Figma token; defaults to FIGMA_ACCESS_TOKEN or FIGMA_TOKEN |
+| baseURL | string |  |  |  | Optional API base URL for tests or proxies |
+
+## figma.webhook_update
+
+Update one Figma Webhooks V2 subscription
+
+Aliases: `webhook.update`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| webhookId | string | yes |  |  |  |
+| eventType | string |  |  |  |  |
+| context | string |  |  |  |  |
+| contextId | string |  |  |  |  |
+| endpoint | string |  |  |  |  |
+| token | string |  |  |  | Optional Figma token; defaults to FIGMA_ACCESS_TOKEN or FIGMA_TOKEN |
+| baseURL | string |  |  |  | Optional API base URL for tests or proxies |
+
+## figma.webhook_delete
+
+Delete one Figma Webhooks V2 subscription
+
+Aliases: `webhook.delete`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| webhookId | string | yes |  |  |  |
+| token | string |  |  |  | Optional Figma token; defaults to FIGMA_ACCESS_TOKEN or FIGMA_TOKEN |
+| baseURL | string |  |  |  | Optional API base URL for tests or proxies |
+
+## shape.create_rectangle
+
+Create a rectangle
+
+Aliases: `rect`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| parentId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  (alias: pid) |
+| name | string |  |  |  |  |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+| width | number |  | 100 | 1-10000 |  (alias: w) |
+| height | number |  | 100 | 1-10000 |  (alias: h) |
+| color | string |  |  | pattern: ^#[0-9A-Fa-f]{3,8}$ |  (alias: bg) |
+| cornerRadius | number |  |  | 0-500 |  (alias: r) |
+| opacity | number |  |  | 0-1 |  |
+| constrainProportions | boolean |  |  |  | Lock aspect ratio |
+
+## shape.create_ellipse
+
+Create an ellipse or circle
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| parentId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  (alias: pid) |
+| name | string |  |  |  |  |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+| width | number |  | 100 | 1-10000 |  (alias: w) |
+| height | number |  | 100 | 1-10000 |  (alias: h) |
+| color | string |  |  | pattern: ^#[0-9A-Fa-f]{3,8}$ |  |
+| constrainProportions | boolean |  |  |  |  |
+
+## shape.create_image
+
+Create a rectangle with an image fill (one-step convenience)
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| parentId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  (alias: pid) |
+| name | string |  |  |  |  |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+| width | number |  |  | 1-10000 |  (alias: w) |
+| height | number |  |  | 1-10000 |  (alias: h) |
+| imageData | string | yes |  |  | Base64 image data, data URL, file path, or HTTP(S) URL |
+| scaleMode | string |  | FILL | FILL/FIT/TILE/CROP |  |
+| cornerRadius | number |  |  | 0-500 |  (alias: r) |
+| constrainProportions | boolean |  |  |  |  |
+
+## text.create
+
+Create a text node
+
+Aliases: `text`
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| text | string | yes |  |  | Text content to display (alias: content) |
+| parentId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  (alias: pid) |
+| name | string |  |  |  | Semantic name for the text node |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+| fontSize | number |  | 16 | 4-500, tokens: hero/title/heading/subheading/body/caption | Font size in pixels (alias: sz) |
+| fontFamily | string |  | Inter |  | Font family name (alias: ff) |
+| fontStyle | string |  | Regular | Thin/Extra Light/ExtraLight/Light/Regular/Medium/Semi Bold/SemiBold/Bold/Extra Bold/ExtraBold/Black/Italic/Bold Italic | Font style (alias: fs) |
+| color | string |  | #000000 | pattern: ^#[0-9A-Fa-f]{3,8}$ | Text color hex |
+| lineHeight | number |  |  | 50-300 | Line height percentage (e.g. 150 = 150%%) (alias: lh) |
+| lineHeightUnit | string |  |  | PIXELS/PERCENT/AUTO |  |
+| letterSpacing | number |  |  | -5-20 |  (alias: ls) |
+| width | number |  |  | 1-10000 | Text box width (enables wrapping) |
+| textAlign | string |  |  | LEFT/CENTER/RIGHT/JUSTIFIED |  (alias: textAlignHorizontal) |
+| textCase | string |  |  | ORIGINAL/UPPER/LOWER/TITLE |  |
+| textDecoration | string |  |  | NONE/UNDERLINE/STRIKETHROUGH |  |
+| maxLines | number |  |  | 1-100 | Maximum lines before truncation with ellipsis |
+| layoutSizingHorizontal | string |  |  | FIXED/HUG/FILL |  |
+| layoutSizingVertical | string |  |  | FIXED/HUG/FILL |  |
+
+## text.set_content
+
+Set text content of an existing text node
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| content | string | yes |  |  |  (alias: text) |
+
+## variable.extend_collection
+
+Enterprise/Beta Figma API: extend a local variable collection
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| collectionId | string | yes |  |  |  |
+| name | string |  |  |  |  |
+
+## variable.extend_library_collection
+
+Enterprise/Beta Figma API: extend a published library variable collection by key
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| collectionKey | string | yes |  |  |  |
+| name | string |  |  |  |  |
+
+## variable.get_values_for_collection
+
+Beta Figma API: get inherited and overridden values for a variable in a collection
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| variableId | string | yes |  |  |  |
+| collectionId | string | yes |  |  |  |
+
+## variable.remove_mode_override
+
+Beta Figma API: remove one extended mode override from a variable
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| variableId | string | yes |  |  |  |
+| modeId | string | yes |  |  |  |
+
+## variable.remove_collection_overrides
+
+Beta Figma API: remove all overrides for one variable in an extended collection
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| collectionId | string | yes |  |  |  |
+| variableId | string | yes |  |  |  |
+
+## variable.get_overrides
+
+Beta Figma API: get override map for an extended variable collection
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| collectionId | string | yes |  |  |  |
+
