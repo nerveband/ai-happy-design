@@ -39,7 +39,7 @@ install: build
 
 # Full deploy: build plugin + Go, sign, install to ~/bin, restart relay
 deploy: build-plugin sync-plugin
-	go build -o /tmp/$(BINARY) ./cmd/ai-happy-design/
+	go build -ldflags "-X main.version=$(VERSION)" -o /tmp/$(BINARY) ./cmd/ai-happy-design/
 	codesign -f -s - /tmp/$(BINARY)
 	rm -f ~/bin/$(BINARY) ~/bin/$(ALIAS_BINARY)
 	cp /tmp/$(BINARY) ~/bin/$(BINARY)
