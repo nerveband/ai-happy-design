@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -243,13 +245,31 @@ func generatePortableSkills(params map[string]interface{}) (interface{}, error) 
 	return map[string]interface{}{"outputDir": outDir, "files": saved, "count": len(saved)}, nil
 }
 
+var doctorJSON bool
+
 var doctorCmd = &cobra.Command{Use: "doctor", Short: "Run local diagnostics", RunE: func(cmd *cobra.Command, args []string) error {
-	return printJSON(map[string]interface{}{"ok": true, "checks": map[string]interface{}{"configDir": config.Dir(), "configPath": config.Path(), "catalogVersion": tools.LLMCatalog()["version"]}})
+	checks := map[string]interface{}{"configDir": config.Dir(), "configPath": config.Path(), "catalogVersion": tools.LLMCatalog()["version"]}
+	for _, p := range []string{"plugin/manifest.json", "plugin/dist/code.js", "plugin/dist/ui.html"} {
+		_, err := os.Stat(p)
+		checks[p] = err == nil
+	}
+	return printJSON(map[string]interface{}{"ok": true, "checks": checks})
 }}
 
 var verifyCmd = &cobra.Command{Use: "verify", Short: "Run proof gates"}
 var verifySyntaxCmd = &cobra.Command{Use: "syntax", Short: "Verify plugin syntax gate", RunE: func(cmd *cobra.Command, args []string) error {
-	return printJSON(map[string]interface{}{"ok": true, "checks": []string{"plugin npm run verify:syntax", "grep ?. ?? ... == 0"}})
+	path := filepath.Join("plugin", "dist", "code.js")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	counts := map[string]int{
+		"optionalChaining": bytes.Count(raw, []byte("?.")),
+		"nullish":          bytes.Count(raw, []byte("??")),
+		"objectSpread":     bytes.Count(raw, []byte("...")),
+	}
+	ok := counts["optionalChaining"] == 0 && counts["nullish"] == 0 && counts["objectSpread"] == 0
+	return printJSON(map[string]interface{}{"ok": ok, "file": path, "counts": counts})
 }}
 var verifyPluginCmd = &cobra.Command{Use: "plugin", Short: "Verify plugin files exist", RunE: func(cmd *cobra.Command, args []string) error {
 	for _, p := range []string{"plugin/manifest.json", "plugin/dist/code.js", "plugin/dist/ui.html"} {
@@ -263,7 +283,26 @@ var verifyLiveCmd = &cobra.Command{Use: "live", Short: "Print live verification 
 	return printJSON(map[string]interface{}{"ok": true, "steps": []string{"open Figma plugin", "set AHD_CHANNEL", "run document.get_editor_context", "create page", "screenshot", "probe grid/noise/slots/motion/shaders"}})
 }}
 var verifyReleaseCmd = &cobra.Command{Use: "release", Short: "Print release verification checklist", RunE: func(cmd *cobra.Command, args []string) error {
-	return printJSON(map[string]interface{}{"ok": true, "commands": []string{"go test ./...", "go build ./...", "cd plugin && npm run check", "make verify-contracts"}})
+	checks := []map[string]interface{}{}
+	allOK := true
+	for _, spec := range []struct {
+		name string
+		args []string
+	}{
+		{"go_test", []string{"go", "test", "./..."}},
+		{"go_build", []string{"go", "build", "./..."}},
+		{"contracts", []string{"make", "verify-contracts"}},
+	} {
+		start := time.Now()
+		c := exec.Command(spec.args[0], spec.args[1:]...)
+		out, err := c.CombinedOutput()
+		ok := err == nil
+		if !ok {
+			allOK = false
+		}
+		checks = append(checks, map[string]interface{}{"name": spec.name, "ok": ok, "elapsedMs": time.Since(start).Milliseconds(), "outputTail": tailString(string(out), 1200)})
+	}
+	return printJSON(map[string]interface{}{"ok": allOK, "checks": checks, "pluginCheck": "Run cd plugin && npm run check for the Node/plugin gate"})
 }}
 
 var feedbackCmd = &cobra.Command{Use: "feedback <message>", Short: "Store local feedback", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
@@ -285,6 +324,14 @@ var feedbackCmd = &cobra.Command{Use: "feedback <message>", Short: "Store local 
 }}
 
 func init() {
+	doctorCmd.Flags().BoolVar(&doctorJSON, "json", true, "Accepted for compatibility; doctor always outputs JSON")
 	verifyCmd.AddCommand(verifySyntaxCmd, verifyPluginCmd, verifyLiveCmd, verifyReleaseCmd)
 	rootCmd.AddCommand(doctorCmd, verifyCmd, feedbackCmd)
+}
+
+func tailString(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[len(s)-max:]
 }

@@ -12,6 +12,7 @@ import (
 )
 
 var profileCmd = &cobra.Command{Use: "profile", Short: "Manage local CLI profiles"}
+var profileInspectRedacted bool
 var profileListCmd = &cobra.Command{Use: "list", Short: "List profiles", RunE: func(cmd *cobra.Command, args []string) error {
 	profiles, active, err := listProfiles()
 	if err != nil {
@@ -49,7 +50,9 @@ var profileInspectCmd = &cobra.Command{Use: "inspect [name]", Short: "Inspect pr
 	}
 	var payload map[string]interface{}
 	_ = json.Unmarshal(raw, &payload)
-	redactSecrets(payload)
+	if profileInspectRedacted {
+		redactSecrets(payload)
+	}
 	return printJSON(map[string]interface{}{"name": name, "path": path, "exists": true, "profile": payload})
 }}
 
@@ -93,6 +96,7 @@ func redactSecrets(m map[string]interface{}) {
 }
 
 func init() {
+	profileInspectCmd.Flags().BoolVar(&profileInspectRedacted, "redacted", true, "Redact token, apiKey, password, and secret fields")
 	profileCmd.AddCommand(profileListCmd, profileUseCmd, profileInspectCmd)
 	rootCmd.AddCommand(profileCmd)
 }

@@ -55,15 +55,15 @@ Older baseline: the May 2026 roadmap recorded the external AHD scorecard as `50/
 
 ## Remaining Gaps
 
-- Structured error shape is still not canonical across every Cobra path; some errors remain prose plus usage.
+- Structured error shape is now canonical at the Cobra root for runtime failures: stderr receives `code`, `message`, `hint`, and `retryable`, while stdout remains data-only.
 - Exit codes are still mostly `1` for broad failure classes.
-- Persistent profiles/config inspection is partial; there is no complete `profile list/use/inspect --redacted` surface.
-- Durable async jobs ledger and delivery sinks are not implemented yet.
+- Persistent profiles/config inspection now includes `profile list`, `profile use`, `profile inspect --redacted`, and `config sources`.
+- Durable async jobs ledger and delivery sinks are implemented through `jobs list/get/resume/cancel` and `command --deliver stdout|file:<path>|dir:<path>`.
 - Full `--dry-run` semantics for every mutating command are schema-backed at the command/batch layer, but not yet implemented as per-command side-effect previews for every plugin write.
 
 ## Live Figma Checks
 
-Not run in this pass because no live Figma plugin document/channel was available. The implemented surfaces are ready for a dedicated test page:
+Live checks were run against channel `groovy-owl-60` on dedicated Figma test pages:
 
 - `document.screenshot`
 - `document.screenshot_selection`
@@ -73,3 +73,16 @@ Not run in this pass because no live Figma plugin document/channel was available
 - Slot capability probes
 - grid reorder and auto-flow field readback
 - `noiseSizeVector`, `noiseSizeX`, and `noiseSizeY`
+
+## Roadmap Completion Refresh
+
+Updated after the remaining roadmap tranche:
+
+- `go test ./...`, `go build ./...`, `make verify-contracts`, `cd plugin && npm run check`, and `make build` pass.
+- Plugin syntax counts for `?.`, `??`, and `...` are `0`.
+- MCP `tools/list`, `resources/list`, `prompts/list`, and `prompts/get` return valid JSON-RPC responses.
+- `ahd-figma schema --json` and `ahd-figma agent-context --json` return valid JSON.
+- `ahd-figma command` accepts `--stdin`, `--payload`, `--payload-file`, `--fields`, and `--deliver`.
+- `ahd-figma batch` accepts `--stdin`, `--payload`, `--payload-file`, `--compact`, and dry-run validation.
+- `ahd-figma doctor --json`, `verify plugin`, `verify syntax`, `verify live`, and `verify release` are available.
+- Generated showcase artifacts live under `docs/generated/*roadmap-showcase.png`.

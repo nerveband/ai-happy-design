@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -69,6 +70,61 @@ func TestJobLedgerRoundTrip(t *testing.T) {
 	}
 	if err := cancelJobRecord(created.ID); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestCommandPayloadExpansion(t *testing.T) {
+	tmp := t.TempDir()
+	payloadPath := filepath.Join(tmp, "params.json")
+	if err := os.WriteFile(payloadPath, []byte(`{"width":100}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := expandInlineInput("@" + payloadPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != `{"width":100}` {
+		t.Fatalf("unexpected @file expansion: %q", got)
+	}
+
+	got, err = expandInlineInput("@data://base64,eyJoZWlnaHQiOjIwMH0=")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != `{"height":200}` {
+		t.Fatalf("unexpected @data expansion: %q", got)
+	}
+}
+
+func TestStructuredErrorShape(t *testing.T) {
+	if code := classifyCLIError("invalid params JSON: unexpected end of JSON input"); code != "VALIDATION_ERROR" {
+		t.Fatalf("unexpected code: %s", code)
+	}
+	if !strings.Contains(errorHint("invalid JSON"), "Validate") {
+		t.Fatalf("missing useful hint")
+	}
+	if isRetryableCLIError("invalid JSON") {
+		t.Fatalf("validation errors should not be retryable")
+	}
+	if !isRetryableCLIError("relay status request failed") {
+		t.Fatalf("relay errors should be retryable")
+	}
+}
+
+func TestProfileRedaction(t *testing.T) {
+	payload := map[string]interface{}{
+		"apiKey": "secret",
+		"nested": map[string]interface{}{
+			"password": "secret",
+		},
+	}
+	redactSecrets(payload)
+	if payload["apiKey"] != "[redacted]" {
+		t.Fatalf("apiKey was not redacted: %#v", payload)
+	}
+	nested := payload["nested"].(map[string]interface{})
+	if nested["password"] != "[redacted]" {
+		t.Fatalf("nested password was not redacted: %#v", payload)
 	}
 }
 

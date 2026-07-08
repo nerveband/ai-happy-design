@@ -48,8 +48,9 @@ Discovery-first flow for LLM agents:
   1) ai-happy-design tools --llm --json
   2) ai-happy-design actions [domain]
   3) ai-happy-design batch --help`,
-	Version:      version,
-	SilenceUsage: true,
+	Version:       version,
+	SilenceUsage:  true,
+	SilenceErrors: true,
 }
 
 var connectCmd = &cobra.Command{
@@ -174,6 +175,9 @@ var commandCompressImages bool
 var commandDryRun bool
 var commandFields string
 var commandDeliver string
+var commandStdin bool
+var commandPayload string
+var commandPayloadFile string
 var globalOutputFormat string
 var globalJQFilter string
 
@@ -218,8 +222,12 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 		}
 
 		params := map[string]interface{}{}
-		if commandParams != "" {
-			if err := json.Unmarshal([]byte(commandParams), &params); err != nil {
+		paramsText, err := resolveCommandParamsInput(commandParams, commandPayload, commandPayloadFile, commandStdin)
+		if err != nil {
+			return err
+		}
+		if paramsText != "" {
+			if err := json.Unmarshal([]byte(paramsText), &params); err != nil {
 				return fmt.Errorf("invalid params JSON: %w", err)
 			}
 		}
@@ -363,6 +371,67 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 	},
 }
 
+func resolveCommandParamsInput(paramsFlag, payloadFlag, payloadFile string, fromStdin bool) (string, error) {
+	inputs := 0
+	raw := ""
+	if paramsFlag != "" {
+		inputs++
+		raw = paramsFlag
+	}
+	if payloadFlag != "" {
+		inputs++
+		raw = payloadFlag
+	}
+	if payloadFile != "" {
+		inputs++
+	}
+	if fromStdin {
+		inputs++
+	}
+	if inputs > 1 {
+		return "", fmt.Errorf("provide only one of positional params, --params, --payload, --payload-file, or --stdin")
+	}
+	switch {
+	case payloadFile != "":
+		data, err := os.ReadFile(payloadFile)
+		if err != nil {
+			return "", fmt.Errorf("failed to read payload file: %w", err)
+		}
+		return string(data), nil
+	case fromStdin:
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return "", fmt.Errorf("failed to read stdin: %w", err)
+		}
+		return string(data), nil
+	case raw != "":
+		return expandInlineInput(raw)
+	default:
+		return "", nil
+	}
+}
+
+func expandInlineInput(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if strings.HasPrefix(raw, "@data://base64,") {
+		encoded := strings.TrimPrefix(raw, "@data://base64,")
+		data, err := base64.StdEncoding.DecodeString(encoded)
+		if err != nil {
+			return "", fmt.Errorf("invalid @data://base64 payload: %w", err)
+		}
+		return string(data), nil
+	}
+	if strings.HasPrefix(raw, "@") && len(raw) > 1 {
+		path := strings.TrimPrefix(raw, "@")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return "", fmt.Errorf("failed to read @file payload: %w", err)
+		}
+		return string(data), nil
+	}
+	return raw, nil
+}
+
 func printCommandResult(v interface{}) error {
 	if commandFields != "" {
 		filtered, err := selectFields(v, commandFields)
@@ -398,6 +467,59 @@ func deliverResult(v interface{}, sink string) error {
 		return err
 	}
 	return printJSON(map[string]interface{}{"deliveredTo": outPath, "bytes": len(data)})
+}
+
+func printStructuredError(err error) {
+	if err == nil {
+		return
+	}
+	payload := map[string]interface{}{
+		"code":      classifyCLIError(err.Error()),
+		"message":   err.Error(),
+		"hint":      errorHint(err.Error()),
+		"retryable": isRetryableCLIError(err.Error()),
+	}
+	data, marshalErr := json.Marshal(payload)
+	if marshalErr != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		return
+	}
+	fmt.Fprintln(os.Stderr, string(data))
+}
+
+func classifyCLIError(message string) string {
+	lower := strings.ToLower(message)
+	switch {
+	case strings.Contains(lower, "invalid json"), (strings.Contains(lower, "invalid") && strings.Contains(lower, "json")), strings.Contains(lower, "validation"), strings.Contains(lower, "required"), strings.Contains(lower, "unknown command"), strings.Contains(lower, "unknown flag"), strings.Contains(lower, "usage"):
+		return "VALIDATION_ERROR"
+	case strings.Contains(lower, "no figma plugin"), strings.Contains(lower, "channel"), strings.Contains(lower, "relay"), strings.Contains(lower, "websocket"), strings.Contains(lower, "connect"):
+		return "CONNECTION_ERROR"
+	case strings.Contains(lower, "permission"), strings.Contains(lower, "auth"), strings.Contains(lower, "token"):
+		return "AUTH_ERROR"
+	default:
+		return "COMMAND_ERROR"
+	}
+}
+
+func errorHint(message string) string {
+	lower := strings.ToLower(message)
+	switch {
+	case strings.Contains(lower, "invalid json"), (strings.Contains(lower, "invalid") && strings.Contains(lower, "json")):
+		return "Validate the payload with ahd-figma validate or pass a JSON object to command -p."
+	case strings.Contains(lower, "no figma plugin"), strings.Contains(lower, "channel"):
+		return "Open the Figma plugin, click Connect, or set AHD_CHANNEL/--channel."
+	case strings.Contains(lower, "relay"):
+		return "Run ahd-figma ws or allow auto-relay startup."
+	case strings.Contains(lower, "unknown flag"):
+		return "Run the same command with --help to inspect supported flags."
+	default:
+		return ""
+	}
+}
+
+func isRetryableCLIError(message string) bool {
+	lower := strings.ToLower(message)
+	return strings.Contains(lower, "relay") || strings.Contains(lower, "websocket") || strings.Contains(lower, "connect") || strings.Contains(lower, "timeout")
 }
 
 func selectFields(v interface{}, fields string) (interface{}, error) {
@@ -444,6 +566,8 @@ var batchLint bool
 var batchNoLint bool
 var batchStrictQuality bool
 var batchDryRun bool
+var batchStdin bool
+var batchPayload string
 
 var batchCmd = &cobra.Command{
 	Use:   "batch [operations-json | file1.json file2.json ... | directory/]",
@@ -491,6 +615,27 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 		log.SetOutput(io.Discard)
 		if batchStrictQuality && (!batchLint || batchNoLint) {
 			return fmt.Errorf("--strict-quality requires lint checks. Remove --no-lint (or set --lint=true)")
+		}
+
+		if batchPayload != "" {
+			if batchOperations != "" {
+				return fmt.Errorf("provide operations as --operations OR --payload, not both")
+			}
+			expanded, err := expandInlineInput(batchPayload)
+			if err != nil {
+				return err
+			}
+			batchOperations = expanded
+		}
+		if batchStdin {
+			if batchOperations != "" || batchOperationsFile != "" || len(args) > 0 {
+				return fmt.Errorf("--stdin cannot be combined with positional input, --operations, or --operations-file")
+			}
+			data, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				return fmt.Errorf("failed to read stdin: %w", err)
+			}
+			batchOperations = string(data)
 		}
 
 		// Collect batch files: multiple positional args, directory, inline JSON, or single file
@@ -2533,6 +2678,16 @@ func collectBatchInputs(args []string, flagOps, flagFile string) (files []string
 			}
 			return nil, arg, nil
 		}
+		if strings.HasPrefix(arg, "@data://base64,") || (strings.HasPrefix(arg, "@") && len(arg) > 1) {
+			if flagOps != "" {
+				return nil, "", fmt.Errorf("provide operations as positional arg OR --operations, not both")
+			}
+			expanded, err := expandInlineInput(arg)
+			if err != nil {
+				return nil, "", err
+			}
+			return nil, expanded, nil
+		}
 		// Could be a file, directory, or glob
 		expanded, err := expandBatchPath(arg)
 		if err != nil {
@@ -3200,6 +3355,9 @@ func main() {
 	setupCmd.Flags().BoolVar(&setupForce, "force", false, "Force re-extraction even if up to date")
 
 	commandCmd.Flags().StringVarP(&commandParams, "params", "p", "", "JSON object passed as command params")
+	commandCmd.Flags().StringVar(&commandPayload, "payload", "", "Alias for --params; supports @file.json and @data://base64,...")
+	commandCmd.Flags().StringVar(&commandPayloadFile, "payload-file", "", "Read command params JSON from file")
+	commandCmd.Flags().BoolVar(&commandStdin, "stdin", false, "Read command params JSON from stdin")
 	commandCmd.Flags().BoolVar(&commandLive, "live", false, "Print live progress events while command is running")
 	commandCmd.Flags().StringVar(&commandChannel, "channel", "", "Channel key override (optional)")
 	commandCmd.Flags().StringVarP(&commandOutput, "output", "o", "", "Save binary data (e.g. exported image) to this file path")
@@ -3211,6 +3369,9 @@ func main() {
 
 	batchCmd.Flags().StringVarP(&batchOperations, "operations", "o", "", "JSON array of operations")
 	batchCmd.Flags().StringVarP(&batchOperationsFile, "operations-file", "f", "", "Path to JSON file containing operations array")
+	batchCmd.Flags().StringVar(&batchPayload, "payload", "", "Alias for --operations; supports inline JSON")
+	batchCmd.Flags().StringVar(&batchOperationsFile, "payload-file", "", "Alias for --operations-file")
+	batchCmd.Flags().BoolVar(&batchStdin, "stdin", false, "Read batch operations from stdin")
 	batchCmd.Flags().BoolVar(&batchLive, "live", false, "Print live command progress while batch runs (image prep progress is always on stderr)")
 	batchCmd.Flags().StringVar(&batchChannel, "channel", "", "Channel key override (optional)")
 	batchCmd.Flags().BoolVar(&batchFailFast, "fail-fast", false, "Stop at first failed operation")
@@ -3287,6 +3448,7 @@ func main() {
 	rootCmd.AddCommand(configCmd)
 
 	if err := rootCmd.Execute(); err != nil {
+		printStructuredError(err)
 		os.Exit(1)
 	}
 }

@@ -29,6 +29,7 @@ ahd-figma guide                            # design intelligence guide
 
 # Full API catalog (commands, params, aliases, design guidance)
 ahd-figma tools --llm --json
+ahd-figma agent-context --json
 
 # Example batch payloads by category
 ahd-figma examples              # list categories
@@ -56,6 +57,8 @@ ahd-figma command paint.set_solid '{"nodeId":"1:2","color":"#FF0000"}'
 
 # Export & verify
 ahd-figma command export.image '{"nodeId":"...","scale":2}'
+ahd-figma command document.screenshot '{"nodeId":"...","scale":1}' --output /tmp/shot.png
+ahd-figma command verify.visual --payload '{"artifactPath":"/tmp/shot.png","target":"final frame"}'
 
 # Useful flags
 --live          # print progress
@@ -63,6 +66,19 @@ ahd-figma command export.image '{"nodeId":"...","scale":2}'
 --parallel      # concurrent multi-file
 --allow-overlap # skip auto-placement
 --no-lint       # disable post-batch lint (lint is on by default)
+--stdin         # read command or batch JSON from stdin
+--payload-file  # read command params or batch operations from a file
+--deliver       # route JSON results to stdout, file:<path>, or dir:<path>
+```
+
+Proof gates:
+
+```bash
+ahd-figma doctor --json
+ahd-figma verify plugin
+ahd-figma verify syntax
+ahd-figma verify live
+ahd-figma verify release
 ```
 
 Batch mode resolves semantic token aliases automatically:

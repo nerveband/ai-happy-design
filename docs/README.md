@@ -9,6 +9,7 @@ This folder contains operational docs for this repository.
 - `llm-discovery-playbook.md` - discovery-first flow and prompt patterns for low-failure LLM usage.
 - `cli-batch-and-payloads.md` - how to send single vs multi-operation payloads.
 - `troubleshooting.md` - common issues and fast fixes.
+- `reference/roadmap-2026-07-capabilities.md` - implemented roadmap capability map and proof-gate commands.
 
 ## Technical Notes
 - `image-fill-contract.md` - URL/base64 image fill behavior and response contract.

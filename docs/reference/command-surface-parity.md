@@ -1,11 +1,11 @@
 # Command Surface Parity
 
-Updated: 2026-05-01
+Updated: 2026-07-08
 
 ## Current Counts
 
-- Schema commands: 184
-- MCP tools: 185, including `ahd_describe`
+- Schema commands: 222
+- MCP tools: schema-derived tools plus `ahd_describe`
 - Primary binary: `ahd-figma`
 - Compatibility binary: `ai-happy-design`
 
@@ -28,13 +28,13 @@ Checked against the local `nerveband/cli-best-practices` framing:
 
 - Discoverability: schema, actions, tools, guide, MCP resources, and MCP tools are present.
 - Structured output: JSON by default, `--output-format json|jsonl|text`, and simple `--jq` field selection.
-- Input flexibility: batch accepts files, directories, globs, stdin, plain arrays, and `{ "operations": [...] }`.
+- Input flexibility: command accepts positional JSON, `--params`, `--payload`, `--payload-file`, `--stdin`, `@file.json`, and `@data://base64,...`; batch accepts files, directories, globs, `--stdin`, `--payload`, `--payload-file`, plain arrays, and `{ "operations": [...] }`.
 - Safety rails: validation, linting, strict-quality, output-path sandboxing, local/REST separation, and destructive command metadata.
-- Error handling: command errors include stable classified error codes in batch output.
+- Error handling: root command failures emit structured stderr JSON with `code`, `message`, `hint`, and `retryable`; batch step errors include stable classified error codes.
 - Context discipline: compact batch output, compact node tree, and `node.get_css` reduce payload size.
 - Predictability: schema-driven validation and parity tests prevent drift.
 - Agent knowledge: `llms.txt`, `llms-full.txt`, skill docs, and MCP resources are generated or refreshed.
-- Resilience: relay management, plugin connection checks, retry controls, and live acceptance coverage are present.
+- Resilience: relay management, plugin connection checks, retry controls, durable local jobs, proof gates, and live acceptance coverage are present.
 - Distribution: `make build-go` builds both `bin/ai-happy-design` and `bin/ahd-figma`; `make deploy` installs both and restarts the managed relay.
 
-Current score: 50/50 checklist areas satisfied for the local evidence available in this repo. Evidence commands now include `command --dry-run`, `--fields`, full `schema --json`, and MCP resource reads. Agent DX score remains 21/21 under the same evidence model.
+Current score: 85-point audit evidence is tracked in `docs/research/cli-audit-2026-07.md`. Evidence commands now include `command --dry-run`, `--fields`, `--deliver`, `--stdin`, full `schema --json`, `agent-context --json`, MCP resource/prompt reads, `verify syntax`, and `verify release`.
