@@ -245,17 +245,21 @@ async function addTexture(params: any) {
 
 function applyNoiseVector(target: any, params: any) {
   if (params.noiseSizeVector && typeof params.noiseSizeVector === 'object') {
+    var vectorX = params.noiseSizeVector.x != null ? params.noiseSizeVector.x : target.noiseSize;
     target.noiseSizeVector = {
-      x: params.noiseSizeVector.x != null ? params.noiseSizeVector.x : target.noiseSize,
+      x: vectorX,
       y: params.noiseSizeVector.y != null ? params.noiseSizeVector.y : target.noiseSize,
     };
+    target.noiseSize = vectorX;
     return;
   }
   if (params.noiseSizeX != null || params.noiseSizeY != null) {
+    var sizeX = params.noiseSizeX != null ? params.noiseSizeX : target.noiseSize;
     target.noiseSizeVector = {
-      x: params.noiseSizeX != null ? params.noiseSizeX : target.noiseSize,
+      x: sizeX,
       y: params.noiseSizeY != null ? params.noiseSizeY : target.noiseSize,
     };
+    target.noiseSize = sizeX;
   }
 }
 

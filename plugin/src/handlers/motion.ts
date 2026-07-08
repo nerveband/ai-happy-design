@@ -55,11 +55,11 @@ async function getAnimations(params: any) {
 async function applyKeyframes(params: any) {
   var node = await getSceneNodeById(params.nodeId);
   var anyNode = node as any;
-  if (!('motionKeyframes' in anyNode) && !('animations' in anyNode)) unavailable('Motion keyframes');
+  if (!('motionKeyframes' in anyNode) && typeof anyNode.setMotionKeyframes !== 'function') unavailable('Motion keyframes');
   var keyframes = typeof params.keyframes === 'string' ? JSON.parse(params.keyframes) : params.keyframes;
   if (!Array.isArray(keyframes)) throw new Error('keyframes must be an array');
   if ('motionKeyframes' in anyNode) anyNode.motionKeyframes = keyframes;
-  else anyNode.animations = keyframes;
+  else anyNode.setMotionKeyframes(keyframes);
   if (params.duration != null && 'timelineDuration' in anyNode) anyNode.timelineDuration = params.duration;
   return { id: node.id, name: node.name, keyframeCount: keyframes.length, timelineDuration: anyNode.timelineDuration };
 }
@@ -67,9 +67,9 @@ async function applyKeyframes(params: any) {
 async function removeKeyframes(params: any) {
   var node = await getSceneNodeById(params.nodeId);
   var anyNode = node as any;
-  if (!('motionKeyframes' in anyNode) && !('animations' in anyNode)) unavailable('Motion keyframes');
+  if (!('motionKeyframes' in anyNode) && typeof anyNode.setMotionKeyframes !== 'function') unavailable('Motion keyframes');
   if ('motionKeyframes' in anyNode) anyNode.motionKeyframes = [];
-  else anyNode.animations = [];
+  else anyNode.setMotionKeyframes([]);
   return { id: node.id, name: node.name, keyframeCount: 0 };
 }
 
