@@ -2,13 +2,12 @@
 
 Agent-ready Figma automation through one local CLI, WebSocket relay, Figma plugin, and MCP server.
 
-Current release: `v0.13.2`
+Current release: `v0.14.0`
 
 ## Surface
 
-- CLI schemas: 184
-- CLI tools: 184
-- MCP tools/list: 185 including `ahd_describe`
+- CLI schemas: 222
+- MCP tools/resources/prompts: schema-backed plus `ahd_describe`
 - Preferred binary: `ahd-figma`
 - Compatibility binary: `ai-happy-design`
 
@@ -23,15 +22,14 @@ Current release: `v0.13.2`
 - `ahd-figma guide`
 - `ahd-figma upgrade`
 
-## v0.13.2 Features
+## v0.14.0 Features
 
-- Token export from presets or Figma variable snapshots.
-- JSON, CSS, Tailwind, Swift, and Android token outputs.
-- WCAG-oriented accessibility audit.
-- Design-code parity comparison.
-- Dev Mode focused-node and CSS inspection.
-- Figma REST helpers for file metadata, dev resources, and webhooks.
-- Guarded Figma Draw command surface.
+- MCP prompts and schema safety metadata.
+- Screenshot and visual verification commands.
+- Structured stderr errors, `agent-context`, `--stdin`, `--payload-file`, `--fields`, and `--deliver`.
+- Jobs ledger, profiles/config inspection, doctor and verify proof gates.
+- Token presets, design-system health, component-set analysis, and component parity audits.
+- Guarded Motion, Shader, Slot, grid, noise vector, Slides, and FigJam command surfaces.
 - ES6-safe plugin build.
 
 ## Agent Workflow
@@ -41,7 +39,7 @@ Current release: `v0.13.2`
 3. Inspect schemas before writing.
 4. Validate or dry-run payloads.
 5. Execute batch.
-6. Audit accessibility and parity.
-7. Export and compare visual output.
+6. Screenshot and visually verify artifacts.
+7. Audit accessibility, design-system health, and parity.
 
 Full generated reference: `/llms-full.txt`

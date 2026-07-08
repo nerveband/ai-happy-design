@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/creativeprojects/go-selfupdate"
 	"github.com/spf13/cobra"
 )
@@ -35,7 +36,7 @@ func configDir() string {
 func checkForUpdates() (bool, string, error) {
 	cached, err := loadUpdateCache()
 	if err == nil && time.Since(cached.LastCheck) < 24*time.Hour {
-		return cached.UpdateRequired, cached.LatestVersion, nil
+		return isNewerVersion(cached.LatestVersion, version), cached.LatestVersion, nil
 	}
 
 	source, err := selfupdate.NewGitHubSource(selfupdate.GitHubConfig{})
@@ -59,8 +60,8 @@ func checkForUpdates() (bool, string, error) {
 		return false, "", err
 	}
 
-	hasUpdate := latest.GreaterThan(version)
 	latestVer := latest.Version()
+	hasUpdate := isNewerVersion(latestVer, version)
 
 	saveUpdateCache(updateCheckCache{
 		LastCheck:      time.Now(),
@@ -72,6 +73,9 @@ func checkForUpdates() (bool, string, error) {
 }
 
 func notifyUpdateAvailable() {
+	if version == "" || version == "0.0.0-dev" {
+		return
+	}
 	if os.Getenv("AHD_NO_UPDATE_CHECK") == "1" || os.Getenv("CI") == "true" {
 		return
 	}
@@ -150,7 +154,7 @@ func runUpgrade() error {
 		return nil
 	}
 
-	if latest.LessOrEqual(version) {
+	if !isNewerVersion(latest.Version(), version) {
 		fmt.Printf("Already up to date (latest: %s)\n", latest.Version())
 		return nil
 	}
@@ -191,6 +195,18 @@ func runUpgrade() error {
 
 	fmt.Printf("Successfully upgraded to %s\n", latest.Version())
 	return nil
+}
+
+func isNewerVersion(latest, current string) bool {
+	latestVersion, err := semver.NewVersion(latest)
+	if err != nil {
+		return false
+	}
+	currentVersion, err := semver.NewVersion(current)
+	if err != nil {
+		return false
+	}
+	return latestVersion.GreaterThan(currentVersion)
 }
 
 func upgradeTargetPaths(exe string) (targetExe string, aliasExe string) {

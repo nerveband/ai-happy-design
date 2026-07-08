@@ -8,6 +8,10 @@ Use AI Happy Design to extract tokens, inspect components, build examples, and c
 ```bash
 ahd-figma command variable.get_all
 ahd-figma command tokens.export '{"format":"css","outputPath":"tokens.css"}'
+ahd-figma command tokens.preset_tailwind --payload '{"outputPath":"tokens.tailwind.json"}'
+ahd-figma command design_system.health --payload-file design-system.json
 ahd-figma command component.get_local
+ahd-figma command component.analyze_set --payload-file component-set.json
 ahd-figma command parity.compare_code '{"specPath":"design-system-contract.json"}'
+ahd-figma command parity.audit_component --payload-file component-parity.json
 ```

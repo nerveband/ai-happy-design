@@ -705,6 +705,41 @@ Delete component property definition
 | nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
 | propertyName | string | yes |  |  |  |
 
+## component.create_slot
+
+Create a component slot where supported by Figma
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| name | string | yes |  |  |  |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+| width | number |  |  |  |  |
+| height | number |  |  |  |  |
+
+## component.reset_slot
+
+Reset a component slot where supported by Figma
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## component.get_slots
+
+Get component slots where supported by Figma
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
 ## draw.create_text_path
 
 Beta Figma API: create text on a vector path with runtime guards
@@ -912,6 +947,10 @@ Add a noise effect where supported by Figma
 | nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
 | opacity | number |  |  | 0-1 |  |
 | size | number |  |  | >= 0 |  |
+| noiseSize | number |  |  | >= 0 |  |
+| noiseSizeX | number |  |  | >= 0 |  |
+| noiseSizeY | number |  |  | >= 0 |  |
+| noiseSizeVector | object |  |  |  |  |
 
 ## effect.add_texture
 
@@ -924,6 +963,10 @@ Add a texture effect where supported by Figma
 | nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
 | opacity | number |  |  | 0-1 |  |
 | size | number |  |  | >= 0 |  |
+| noiseSize | number |  |  | >= 0 |  |
+| noiseSizeX | number |  |  | >= 0 |  |
+| noiseSizeY | number |  |  | >= 0 |  |
+| noiseSizeVector | object |  |  |  |  |
 
 ## effect.add_glass
 
@@ -936,6 +979,51 @@ Add native glass effect where supported by Figma
 | nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
 | preset | string |  |  | light/medium/heavy |  |
 | radius | number |  |  | >= 0 |  |
+
+## effect.list_shaders
+
+List local shader resources where supported by Figma
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## effect.import_shader
+
+Import a shader resource where supported by Figma
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| key | string |  |  |  |  |
+| url | string |  |  |  |  |
+| name | string |  |  |  |  |
+
+## effect.apply_shader_effect
+
+Apply a shader effect to a node where supported by Figma
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| shaderId | string | yes |  |  |  |
+| uniforms | object |  |  |  |  |
+
+## fill.apply_shader
+
+Apply a shader paint fill to a node where supported by Figma
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| shaderId | string | yes |  |  |  |
+| uniforms | object |  |  |  |  |
 
 ## text.create_rich_block
 
@@ -1109,6 +1197,102 @@ Get Figma grid auto-layout container properties
 | Param | Type | Required | Default | Constraints | Description |
 |-------|------|----------|---------|-------------|-------------|
 | nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## layout.reorder_grid_rows
+
+Reorder Figma grid auto-layout row tracks where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| fromIndex | number | yes |  | >= 0 |  |
+| toIndex | number | yes |  | >= 0 |  |
+
+## layout.reorder_grid_columns
+
+Reorder Figma grid auto-layout column tracks where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| fromIndex | number | yes |  | >= 0 |  |
+| toIndex | number | yes |  | >= 0 |  |
+
+## motion.get_styles
+
+List available Motion styles where supported by the Figma runtime
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## motion.apply_style
+
+Apply a Motion style to a node where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| styleId | string | yes |  |  |  |
+
+## motion.remove_style
+
+Remove Motion style from a node where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## motion.get_animations
+
+Read Motion animations from a node where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## motion.apply_keyframes
+
+Apply Motion keyframes to a node where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| keyframes | array | yes |  |  |  |
+| duration | number |  |  | >= 0 |  |
+
+## motion.remove_keyframes
+
+Remove Motion keyframes from a node where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string | yes |  | pattern: ^[0-9]+:[0-9]+$ |  |
+
+## motion.set_timeline_duration
+
+Set Motion timeline duration where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| duration | number | yes |  | >= 0 |  |
 
 ## node.create_frame
 
@@ -2139,6 +2323,217 @@ Aliases: `webhook.delete`
 | token | string |  |  |  | Optional Figma token; defaults to FIGMA_ACCESS_TOKEN or FIGMA_TOKEN |
 | baseURL | string |  |  |  | Optional API base URL for tests or proxies |
 
+## tokens.preset_tailwind
+
+Return or write Tailwind-compatible design token preset
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| outputPath | string |  |  |  |  |
+
+## tokens.preset_shadcn
+
+Return or write shadcn-compatible design token preset
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| outputPath | string |  |  |  |  |
+
+## tokens.preset_material
+
+Return or write Material-compatible design token preset
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| outputPath | string |  |  |  |  |
+
+## tokens.setup_system
+
+Generate a batch payload for setting up token variables/styles
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| preset | string |  |  |  |  |
+| outputPath | string |  |  |  |  |
+
+## design_system.health
+
+Score design-system health from a live or supplied design-system snapshot
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| spec | object |  |  |  |  |
+| specPath | string |  |  |  |  |
+
+## component.analyze_set
+
+Analyze component set variants and likely UI states
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| componentSet | object |  |  |  |  |
+
+## component.arrange_set
+
+Generate arrangement plan for component variants
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| componentSet | object |  |  |  |  |
+
+## parity.audit_component
+
+Audit a Figma component snapshot against local component code/spec
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| figmaNode | object |  |  |  |  |
+| figmaNodePath | string |  |  |  |  |
+| codeSpec | object |  |  |  |  |
+| codeSpecPath | string |  |  |  |  |
+
+## document.get_editor_context
+
+Get current Figma editor type and runtime feature flags
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## slides.get_current
+
+Get current Figma Slides context where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## slides.create_slide
+
+Create a slide where supported by Figma Slides
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| row | number |  |  |  |  |
+| col | number |  |  |  |  |
+| name | string |  |  |  |  |
+
+## slides.set_background
+
+Set slide background where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| color | string |  |  |  |  |
+
+## slides.add_text
+
+Add text to a slide where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| text | string | yes |  |  |  |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+
+## slides.reorder
+
+Reorder slides where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string |  |  | pattern: ^[0-9]+:[0-9]+$ |  |
+| row | number |  |  |  |  |
+| col | number |  |  |  |  |
+
+## figjam.create_sticky
+
+Create a FigJam sticky where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| text | string |  |  |  |  |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+| color | string |  |  |  |  |
+
+## figjam.create_shape
+
+Create a FigJam shape where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| shape | string |  |  |  |  |
+| text | string |  |  |  |  |
+| x | number |  |  |  |  |
+| y | number |  |  |  |  |
+
+## figjam.create_connector
+
+Create a FigJam connector where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| startNodeId | string |  |  |  |  |
+| endNodeId | string |  |  |  |  |
+| text | string |  |  |  |  |
+
+## figjam.get_board
+
+Get FigJam board summary where supported
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+
+## packaging.generate_skills
+
+Generate portable AI tool skill/rules files from the internal catalog
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| outputDir | string |  |  |  |  |
+| targets | array |  |  |  |  |
+
 ## shape.create_rectangle
 
 Create a rectangle
@@ -2301,4 +2696,42 @@ Beta Figma API: get override map for an extended variable collection
 | Param | Type | Required | Default | Constraints | Description |
 |-------|------|----------|---------|-------------|-------------|
 | collectionId | string | yes |  |  |  |
+
+## document.screenshot
+
+Capture the current page or a target node as a screenshot artifact
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| nodeId | string |  |  |  |  |
+| pageId | string |  |  |  |  |
+| scale | number |  |  | >= 0 |  |
+| format | string |  |  | PNG/JPG |  |
+| outputDir | string |  |  |  |  |
+
+## document.screenshot_selection
+
+Capture the current selection as screenshot artifacts
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| scale | number |  |  | >= 0 |  |
+| format | string |  |  | PNG/JPG |  |
+| outputDir | string |  |  |  |  |
+
+## verify.visual
+
+Describe a visual verification artifact and expected inspection loop
+
+### Parameters
+
+| Param | Type | Required | Default | Constraints | Description |
+|-------|------|----------|---------|-------------|-------------|
+| artifactPath | string | yes |  |  |  |
+| target | string |  |  |  |  |
+| notes | string |  |  |  |  |
 

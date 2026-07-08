@@ -11,7 +11,7 @@ ahd-figma schema --all
 ahd-figma schema tokens.export --json
 ```
 
-Current count: `184`.
+Current count: `222`.
 
 Major domains:
 
@@ -31,5 +31,9 @@ Major domains:
 - `parity.compare_code`
 - `figma.*` REST helpers
 - `draw.*` guarded Figma Draw helpers
+- `motion.*` guarded Motion helpers
+- `slides.*` guarded Slides helpers
+- `figjam.*` guarded FigJam helpers
+- `jobs`, `profile`, `doctor`, `verify`, and `feedback` CLI helpers
 
 For a generated full reference, see [`/llms-full.txt`](/llms-full.txt).

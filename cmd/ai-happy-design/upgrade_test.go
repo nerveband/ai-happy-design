@@ -51,3 +51,15 @@ func TestCopyExecutablePreservesExecutableMode(t *testing.T) {
 		t.Fatalf("unexpected mode: %v", info.Mode().Perm())
 	}
 }
+
+func TestIsNewerVersionUsesSemverOrdering(t *testing.T) {
+	if !isNewerVersion("0.14.0", "0.13.2") {
+		t.Fatal("expected 0.14.0 to be newer than 0.13.2")
+	}
+	if isNewerVersion("0.13.2", "0.14.0") {
+		t.Fatal("did not expect 0.13.2 to be newer than 0.14.0")
+	}
+	if isNewerVersion("bad", "0.14.0") {
+		t.Fatal("invalid latest version should not be considered newer")
+	}
+}
