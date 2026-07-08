@@ -415,6 +415,7 @@ var batchCompact bool
 var batchLint bool
 var batchNoLint bool
 var batchStrictQuality bool
+var batchDryRun bool
 
 var batchCmd = &cobra.Command{
 	Use:   "batch [operations-json | file1.json file2.json ... | directory/]",
@@ -460,9 +461,6 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 	Args: cobra.ArbitraryArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		log.SetOutput(io.Discard)
-		if err := ensureRelayIfNeeded(); err != nil {
-			return err
-		}
 		if batchStrictQuality && (!batchLint || batchNoLint) {
 			return fmt.Errorf("--strict-quality requires lint checks. Remove --no-lint (or set --lint=true)")
 		}
@@ -470,6 +468,41 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 		// Collect batch files: multiple positional args, directory, inline JSON, or single file
 		batchFiles, inlineJSON, err := collectBatchInputs(args, batchOperations, batchOperationsFile)
 		if err != nil {
+			return err
+		}
+
+		if batchDryRun {
+			if inlineJSON != "" {
+				batchOperations = inlineJSON
+				batchOperationsFile = ""
+			} else if len(batchFiles) == 1 {
+				batchOperationsFile = batchFiles[0]
+				batchOperations = ""
+			}
+			ops, err := loadBatchOperations(batchOperations, batchOperationsFile)
+			if err != nil {
+				return err
+			}
+			validationOps := make([]map[string]interface{}, len(ops))
+			for i, op := range ops {
+				validationOps[i] = map[string]interface{}{"command": op.Command, "params": op.Params, "name": op.Name}
+			}
+			validation := validate.ValidateBatch(validationOps)
+			return printJSON(map[string]interface{}{
+				"ok":     validation.Blocked == 0,
+				"dryRun": true,
+				"count":  len(ops),
+				"validation": map[string]interface{}{
+					"blocked":  validation.Blocked,
+					"fixed":    validation.Fixed,
+					"warnings": validation.Warnings,
+					"errors":   validation.Errors,
+				},
+				"operations": validationOps,
+			})
+		}
+
+		if err := ensureRelayIfNeeded(); err != nil {
 			return err
 		}
 
@@ -1179,6 +1212,23 @@ func runLocalCommand(command string, params map[string]interface{}) (interface{}
 		return exportTokenPreset(params)
 	case "document.accessibility_audit":
 		return auditBatchAccessibility(params)
+	case "verify.visual":
+		path, _ := params["artifactPath"].(string)
+		if path == "" {
+			return nil, fmt.Errorf("artifactPath is required")
+		}
+		info, err := os.Stat(path)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{
+			"ok":           info.Size() > 0,
+			"artifactPath": path,
+			"fileSize":     info.Size(),
+			"target":       params["target"],
+			"notes":        params["notes"],
+			"nextSteps":    []string{"Inspect the artifact visually", "Apply corrections if needed", "Capture another screenshot after changes"},
+		}, nil
 	case "figma.oembed":
 		client := figmaRESTClient(params)
 		url, _ := params["url"].(string)
@@ -3128,6 +3178,7 @@ func main() {
 	batchCmd.Flags().BoolVar(&batchLint, "lint", true, "Auto-check created frames for overlaps, overflow, naming, and text sizing issues")
 	batchCmd.Flags().BoolVar(&batchNoLint, "no-lint", false, "Disable post-batch design lint checks")
 	batchCmd.Flags().BoolVar(&batchStrictQuality, "strict-quality", false, "Fail the batch if lint reports any warning/error issue (quality gate)")
+	batchCmd.Flags().BoolVar(&batchDryRun, "dry-run", false, "Validate and normalize batch operations without contacting Figma")
 
 	toolsCmd.Flags().BoolVar(&catalogJSON, "json", true, "Output as JSON for machine-readable discovery")
 	toolsCmd.Flags().BoolVar(&catalogLLM, "llm", false, "Output enriched LLM-focused catalog with examples and playbook")

@@ -13,6 +13,8 @@ import (
 	"github.com/nerveband/ai-happy-design/internal/ws"
 )
 
+var statusJSON bool
+
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show relay, plugin, and current page status (JSON)",
@@ -101,5 +103,6 @@ before issuing commands.`,
 }
 
 func init() {
+	statusCmd.Flags().BoolVar(&statusJSON, "json", false, "Accepted for compatibility; status always outputs JSON")
 	rootCmd.AddCommand(statusCmd)
 }
