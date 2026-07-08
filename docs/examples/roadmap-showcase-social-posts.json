@@ -1,0 +1,159 @@
+[
+  {
+    "name": "square",
+    "command": "node.create_frame",
+    "params": {
+      "name": "Roadmap Showcase - Social Square",
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1080,
+      "color": "#101820",
+      "layoutMode": "VERTICAL",
+      "padding": 80,
+      "itemSpacing": 32,
+      "primaryAxisAlign": "CENTER",
+      "counterAxisAlign": "CENTER"
+    }
+  },
+  {
+    "name": "square_badge",
+    "command": "text.create",
+    "params": {
+      "parentId": "$square",
+      "text": "AI HAPPY DESIGN",
+      "fontSize": 34,
+      "fontStyle": "Bold",
+      "color": "#38BDF8",
+      "width": 820,
+      "textAlign": "CENTER",
+      "name": "Square Badge"
+    }
+  },
+  {
+    "name": "square_title",
+    "command": "text.create",
+    "params": {
+      "parentId": "$square",
+      "text": "Agent-native Figma automation",
+      "fontSize": 82,
+      "fontStyle": "Bold",
+      "lineHeight": 108,
+      "color": "#F8FAFC",
+      "width": 820,
+      "textAlign": "CENTER",
+      "name": "Square Title"
+    }
+  },
+  {
+    "name": "square_body",
+    "command": "text.create",
+    "params": {
+      "parentId": "$square",
+      "text": "Batch-first CLI, schema safety, screenshots, jobs, design-system health, and live proof loops.",
+      "fontSize": 34,
+      "lineHeight": 132,
+      "color": "#CBD5E1",
+      "width": 760,
+      "textAlign": "CENTER",
+      "name": "Square Body"
+    }
+  },
+  {
+    "name": "story",
+    "command": "node.create_frame",
+    "params": {
+      "name": "Roadmap Showcase - Story Poster",
+      "x": 1180,
+      "y": 0,
+      "width": 1080,
+      "height": 1920,
+      "color": "#0F172A",
+      "layoutMode": "VERTICAL",
+      "padding": 96,
+      "itemSpacing": 52
+    }
+  },
+  {
+    "name": "story_title",
+    "command": "text.create",
+    "params": {
+      "parentId": "$story",
+      "text": "Built for AI design agents",
+      "fontSize": 96,
+      "fontStyle": "Bold",
+      "lineHeight": 108,
+      "color": "#FFFFFF",
+      "width": 860,
+      "name": "Story Title"
+    }
+  },
+  {
+    "name": "story_points",
+    "command": "text.create",
+    "params": {
+      "parentId": "$story",
+      "text": "• MCP prompts\n• Visual verification\n• Durable jobs\n• Token presets\n• Slides and FigJam guards",
+      "fontSize": 46,
+      "lineHeight": 145,
+      "color": "#E2E8F0",
+      "width": 820,
+      "name": "Story Points"
+    }
+  },
+  {
+    "name": "poster",
+    "command": "node.create_frame",
+    "params": {
+      "name": "Roadmap Showcase - Event Poster",
+      "x": 2380,
+      "y": 0,
+      "width": 1600,
+      "height": 2400,
+      "color": "#FAFAF9",
+      "layoutMode": "VERTICAL",
+      "padding": 120,
+      "itemSpacing": 64
+    }
+  },
+  {
+    "name": "poster_kicker",
+    "command": "text.create",
+    "params": {
+      "parentId": "$poster",
+      "text": "FULL ROADMAP ACCEPTANCE",
+      "fontSize": 44,
+      "fontStyle": "Bold",
+      "color": "#0EA5E9",
+      "width": 1320,
+      "name": "Poster Kicker"
+    }
+  },
+  {
+    "name": "poster_title",
+    "command": "text.create",
+    "params": {
+      "parentId": "$poster",
+      "text": "One binary. Full canvas. Proof before done.",
+      "fontSize": 126,
+      "fontStyle": "Bold",
+      "lineHeight": 112,
+      "color": "#111827",
+      "width": 1320,
+      "name": "Poster Title"
+    }
+  },
+  {
+    "name": "poster_body",
+    "command": "text.create",
+    "params": {
+      "parentId": "$poster",
+      "text": "CLI hardening, schema metadata, visual artifacts, design-system scoring, skill packaging, editor context, and guarded Figma API catch-up.",
+      "fontSize": 52,
+      "lineHeight": 136,
+      "color": "#374151",
+      "width": 1240,
+      "name": "Poster Body"
+    }
+  }
+]

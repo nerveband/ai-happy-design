@@ -7,7 +7,7 @@
   "documentAccess": "dynamic-page",
   "capabilities": [],
   "enableProposedApi": true,
-  "editorType": ["figma", "figjam"],
+  "editorType": ["figma", "figjam", "slides"],
   "networkAccess": {
     "allowedDomains": [
       "https://images.unsplash.com",

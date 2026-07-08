@@ -1,4 +1,4 @@
-.PHONY: build build-go build-plugin sync-plugin run-mcp run-ws test clean install lint
+.PHONY: build build-go build-plugin sync-plugin run-mcp run-ws test clean install lint verify-contracts
 
 BINARY=ai-happy-design
 ALIAS_BINARY=ahd-figma
@@ -15,11 +15,11 @@ sync-plugin:
 
 build: build-plugin sync-plugin
 	go build -ldflags "-X main.version=$(VERSION)" -o bin/$(BINARY) ./cmd/ai-happy-design
-	cp bin/$(BINARY) bin/$(ALIAS_BINARY)
+	ln -sfn $(BINARY) bin/$(ALIAS_BINARY)
 
 build-go:
 	go build -ldflags "-X main.version=$(VERSION)" -o bin/$(BINARY) ./cmd/ai-happy-design
-	cp bin/$(BINARY) bin/$(ALIAS_BINARY)
+	ln -sfn $(BINARY) bin/$(ALIAS_BINARY)
 
 run-mcp: build
 	./bin/$(BINARY) mcp
@@ -54,3 +54,8 @@ deploy: build-plugin sync-plugin
 
 lint:
 	golangci-lint run
+
+verify-contracts:
+	go test ./internal/contract ./internal/schema ./cmd/ai-happy-design
+	go run ./cmd/ai-happy-design schema --json >/tmp/ahd-schema-contract.json
+	go run ./cmd/ai-happy-design agent-context --json >/tmp/ahd-agent-context-contract.json

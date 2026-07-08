@@ -48,7 +48,8 @@ Discovery-first flow for LLM agents:
   1) ai-happy-design tools --llm --json
   2) ai-happy-design actions [domain]
   3) ai-happy-design batch --help`,
-	Version: version,
+	Version:      version,
+	SilenceUsage: true,
 }
 
 var connectCmd = &cobra.Command{
@@ -172,6 +173,7 @@ var commandBase64 bool
 var commandCompressImages bool
 var commandDryRun bool
 var commandFields string
+var commandDeliver string
 var globalOutputFormat string
 var globalJQFilter string
 
@@ -369,7 +371,33 @@ func printCommandResult(v interface{}) error {
 		}
 		v = filtered
 	}
+	if commandDeliver != "" && commandDeliver != "stdout" {
+		return deliverResult(v, commandDeliver)
+	}
 	return printJSON(v)
+}
+
+func deliverResult(v interface{}, sink string) error {
+	data, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return err
+	}
+	var outPath string
+	if strings.HasPrefix(sink, "file:") {
+		outPath = strings.TrimPrefix(sink, "file:")
+	} else if strings.HasPrefix(sink, "dir:") {
+		dir := strings.TrimPrefix(sink, "dir:")
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return err
+		}
+		outPath = filepath.Join(dir, fmt.Sprintf("ahd-result-%d.json", time.Now().UnixNano()))
+	} else {
+		return fmt.Errorf("unsupported --deliver %q; use stdout, file:<path>, or dir:<path>", sink)
+	}
+	if err := os.WriteFile(outPath, data, 0644); err != nil {
+		return err
+	}
+	return printJSON(map[string]interface{}{"deliveredTo": outPath, "bytes": len(data)})
 }
 
 func selectFields(v interface{}, fields string) (interface{}, error) {
@@ -1210,8 +1238,26 @@ func runLocalCommand(command string, params map[string]interface{}) (interface{}
 		return compareCodeSpec(params)
 	case "tokens.export":
 		return exportTokenPreset(params)
+	case "tokens.preset_tailwind":
+		return tokenPreset("tailwind", params)
+	case "tokens.preset_shadcn":
+		return tokenPreset("shadcn", params)
+	case "tokens.preset_material":
+		return tokenPreset("material", params)
+	case "tokens.setup_system":
+		return setupTokenSystem(params)
 	case "document.accessibility_audit":
 		return auditBatchAccessibility(params)
+	case "design_system.health":
+		return designSystemHealth(params)
+	case "component.analyze_set":
+		return analyzeComponentSet(params)
+	case "component.arrange_set":
+		return arrangeComponentSet(params)
+	case "parity.audit_component":
+		return auditComponentParity(params)
+	case "packaging.generate_skills":
+		return generatePortableSkills(params)
 	case "verify.visual":
 		path, _ := params["artifactPath"].(string)
 		if path == "" {
@@ -3161,6 +3207,7 @@ func main() {
 	commandCmd.Flags().BoolVar(&commandCompressImages, "compress-images", false, "Compress resolved imageData before sending (requires ImageMagick)")
 	commandCmd.Flags().BoolVar(&commandDryRun, "dry-run", false, "Validate and normalize command params without contacting Figma")
 	commandCmd.Flags().StringVar(&commandFields, "fields", "", "Comma-separated field paths to keep from the command result, e.g. scale,spacing.md")
+	commandCmd.Flags().StringVar(&commandDeliver, "deliver", "stdout", "Deliver command result to stdout, file:<path>, or dir:<path>")
 
 	batchCmd.Flags().StringVarP(&batchOperations, "operations", "o", "", "JSON array of operations")
 	batchCmd.Flags().StringVarP(&batchOperationsFile, "operations-file", "f", "", "Path to JSON file containing operations array")
@@ -3235,6 +3282,7 @@ func main() {
 	configCmd.AddCommand(configGetCmd)
 	configCmd.AddCommand(configSetCmd)
 	configCmd.AddCommand(configPathCmd)
+	configCmd.AddCommand(configSourcesCmd)
 	configCmd.AddCommand(configInitCmd)
 	rootCmd.AddCommand(configCmd)
 

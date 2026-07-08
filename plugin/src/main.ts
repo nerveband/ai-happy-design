@@ -14,6 +14,8 @@ import { handleDocument } from './handlers/document';
 import { handleExport } from './handlers/export';
 import { handleDraw } from './handlers/draw';
 import { handleMotion } from './handlers/motion';
+import { handleSlides } from './handlers/slides';
+import { handleFigJam } from './handlers/figjam';
 import { generateChannelKey } from './utils/channel';
 import { DEFAULT_PORT, normalizeRelayUrl } from './utils/relay';
 
@@ -84,6 +86,8 @@ const handlers: Record<string, (action: string, params: any) => Promise<any>> = 
   draw: handleDraw,
   motion: handleMotion,
   fill: handlePaint,
+  slides: handleSlides,
+  figjam: handleFigJam,
 };
 
 function isReadOnlyCommand(domain: string, action: string): boolean {

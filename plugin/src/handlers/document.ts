@@ -43,8 +43,32 @@ export async function handleDocument(action: string, params: any): Promise<any> 
     case 'validate': return lintNode(params);
     case 'screenshot': return screenshot(params);
     case 'screenshot_selection': return screenshotSelection(params);
+    case 'get_editor_context': return getEditorContext();
     default: throw new Error('Unknown document action: ' + action + '. Available: get_info, get_selection, get_focused_node, set_selection, scan_text, scan_by_type, get_styles, find_by_name, find_by_type, focus, zoom_to, find_free_space, find_nodes, lint');
   }
+}
+
+async function getEditorContext() {
+  var figmaAny = figma as any;
+  var editorType = figmaAny.editorType || 'figma';
+  return {
+    editorType: editorType,
+    supportedDomains: {
+      design: editorType === 'figma' || editorType === 'dev',
+      figjam: editorType === 'figjam',
+      slides: editorType === 'slides',
+      buzz: editorType === 'buzz',
+    },
+    featureFlags: {
+      commitUndo: typeof figmaAny.commitUndo === 'function',
+      createSlide: typeof figmaAny.createSlide === 'function',
+      createSticky: typeof figmaAny.createSticky === 'function',
+      createConnector: typeof figmaAny.createConnector === 'function',
+      motionStyles: typeof figmaAny.getLocalMotionStylesAsync === 'function',
+      shaders: typeof figmaAny.getLocalShadersAsync === 'function' || typeof figmaAny.getLocalShaderStylesAsync === 'function',
+    },
+    currentPage: { id: figma.currentPage.id, name: figma.currentPage.name },
+  };
 }
 
 async function getDocInfo(_params: any) {

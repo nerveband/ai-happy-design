@@ -59,6 +59,19 @@ var configPathCmd = &cobra.Command{
 	},
 }
 
+var configSourcesCmd = &cobra.Command{
+	Use:   "sources",
+	Short: "Show config precedence and source paths",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return printJSON(map[string]interface{}{
+			"precedence": []string{"flags", "environment", "profile", "config file", "defaults"},
+			"configDir":  config.Dir(),
+			"configPath": config.Path(),
+			"env":        []string{"PORT", "SERVER_HOST", "AHD_IDLE_TIMEOUT", "AHD_MCP_ENABLED", "AHD_CHANNEL", "AHD_CONFIG_DIR"},
+		})
+	},
+}
+
 var configInitForce bool
 
 var configInitCmd = &cobra.Command{
