@@ -13,6 +13,7 @@ import { handlePage } from './handlers/page';
 import { handleDocument } from './handlers/document';
 import { handleExport } from './handlers/export';
 import { handleDraw } from './handlers/draw';
+import { handleMotion } from './handlers/motion';
 import { generateChannelKey } from './utils/channel';
 import { DEFAULT_PORT, normalizeRelayUrl } from './utils/relay';
 
@@ -81,7 +82,28 @@ const handlers: Record<string, (action: string, params: any) => Promise<any>> = 
   document: handleDocument,
   export: handleExport,
   draw: handleDraw,
+  motion: handleMotion,
+  fill: handlePaint,
 };
+
+function isReadOnlyCommand(domain: string, action: string): boolean {
+  if (domain === 'document' || domain === 'export') {
+    return action !== 'set_selection' && action !== 'select' && action !== 'set_selected';
+  }
+  if (domain === 'motion') {
+    return action.indexOf('get_') === 0 || action.indexOf('list_') === 0;
+  }
+  return action.indexOf('get') === 0 || action.indexOf('list') === 0 || action.indexOf('find') === 0 || action.indexOf('scan') === 0 || action.indexOf('check') === 0 || action.indexOf('lint') === 0;
+}
+
+function commitUndoIfNeeded(domain: string, action: string, params: any): void {
+  if (params && params.commitUndo === false) return;
+  if (isReadOnlyCommand(domain, action)) return;
+  var figmaAny = figma as any;
+  if (typeof figmaAny.commitUndo === 'function') {
+    figmaAny.commitUndo();
+  }
+}
 
 // Show plugin UI
 figma.showUI(__html__, { width: 380, height: 420, themeColors: false });
@@ -95,6 +117,7 @@ figma.ui.onmessage = async (msg: any) => {
       if (!handler) throw new Error(`Unknown domain: ${domain}`);
 
       const result = await handler(action, params);
+      commitUndoIfNeeded(domain, action, params);
       figma.ui.postMessage({ type: 'command-result', id, result });
     } catch (error: any) {
       figma.ui.postMessage({

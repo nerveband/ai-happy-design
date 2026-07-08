@@ -55,7 +55,10 @@ export async function handleEffect(action: string, params: any): Promise<any> {
     case 'add_glass': return addNativeGlass(params);
     case 'apply_glass':
     case 'glass': return applyGlass(params);
-    default: throw new Error('Unknown effect action: ' + action + '. Available: set_effects, add_shadow, add_blur, apply_style, remove, remove_effect, get_effects, add_noise, add_texture, apply_glass, add_glass');
+    case 'list_shaders': return listShaders();
+    case 'import_shader': return importShader(params);
+    case 'apply_shader_effect': return applyShaderEffect(params);
+    default: throw new Error('Unknown effect action: ' + action + '. Available: set_effects, add_shadow, add_blur, apply_style, remove, remove_effect, get_effects, add_noise, add_texture, apply_glass, add_glass, list_shaders, import_shader, apply_shader_effect');
   }
 }
 
@@ -165,7 +168,7 @@ async function addNoise(params: any) {
   var node = await getEffectNode(nodeId);
   var noiseType = params.noiseType || 'monotone';
   var color = parseHexColor(params.color, { r: 1, g: 1, b: 1, a: 0.25 });
-  var noiseSize = params.noiseSize || 100;
+  var noiseSize = params.noiseSize || params.size || 100;
   var density = params.density !== undefined ? params.density : 0.3;
   var visible = params.visible !== undefined ? params.visible : true;
 
@@ -180,6 +183,7 @@ async function addNoise(params: any) {
     density: density,
     visible: visible,
   };
+  applyNoiseVector(noiseEffect, params);
 
   // DUOTONE has secondaryColor; MULTITONE has opacity
   if (upperType === 'DUOTONE' && params.secondaryColor) {
@@ -216,7 +220,7 @@ async function addNoise(params: any) {
 async function addTexture(params: any) {
   var nodeId = params.nodeId;
   var node = await getEffectNode(nodeId);
-  var noiseSize = params.noiseSize || 100;
+  var noiseSize = params.noiseSize || params.size || 100;
   var radius = params.radius || 0;
   var visible = params.visible !== undefined ? params.visible : true;
 
@@ -227,6 +231,7 @@ async function addTexture(params: any) {
     clipToShape: params.clipToShape !== undefined ? params.clipToShape : true,
     visible: visible,
   };
+  applyNoiseVector(textureEffect, params);
 
   var nextEffects = sanitizeEffects(node.effects);
   nextEffects.push(textureEffect);
@@ -234,6 +239,62 @@ async function addTexture(params: any) {
     node.effects = nextEffects;
   } catch (e: any) {
     throw new Error('Texture effect failed: ' + (e.message || String(e)));
+  }
+  return { id: node.id, name: node.name, effectCount: node.effects.length };
+}
+
+function applyNoiseVector(target: any, params: any) {
+  if (params.noiseSizeVector && typeof params.noiseSizeVector === 'object') {
+    target.noiseSizeVector = {
+      x: params.noiseSizeVector.x != null ? params.noiseSizeVector.x : target.noiseSize,
+      y: params.noiseSizeVector.y != null ? params.noiseSizeVector.y : target.noiseSize,
+    };
+    return;
+  }
+  if (params.noiseSizeX != null || params.noiseSizeY != null) {
+    target.noiseSizeVector = {
+      x: params.noiseSizeX != null ? params.noiseSizeX : target.noiseSize,
+      y: params.noiseSizeY != null ? params.noiseSizeY : target.noiseSize,
+    };
+  }
+}
+
+async function listShaders() {
+  var figmaAny = figma as any;
+  if (typeof figmaAny.getLocalShaderStylesAsync !== 'function' && typeof figmaAny.getLocalShadersAsync !== 'function') {
+    throw new Error('Shaders are unavailable in this Figma runtime');
+  }
+  var shaders = typeof figmaAny.getLocalShadersAsync === 'function'
+    ? await figmaAny.getLocalShadersAsync()
+    : await figmaAny.getLocalShaderStylesAsync();
+  return { shaders: JSON.parse(JSON.stringify(shaders || [])), count: shaders ? shaders.length : 0 };
+}
+
+async function importShader(params: any) {
+  var figmaAny = figma as any;
+  if (typeof figmaAny.importShaderByKeyAsync !== 'function' && typeof figmaAny.createShaderAsync !== 'function') {
+    throw new Error('Shader import is unavailable in this Figma runtime');
+  }
+  var shader = typeof figmaAny.importShaderByKeyAsync === 'function'
+    ? await figmaAny.importShaderByKeyAsync(params.key)
+    : await figmaAny.createShaderAsync(params.url, params.name);
+  return { shader: JSON.parse(JSON.stringify(shader)) };
+}
+
+async function applyShaderEffect(params: any) {
+  var node = await getEffectNode(params.nodeId);
+  var shaderEffect: any = {
+    type: 'SHADER',
+    shaderId: params.shaderId,
+    uniforms: params.uniforms || {},
+    visible: params.visible !== false,
+  };
+  var nextEffects = sanitizeEffects(node.effects);
+  nextEffects.push(shaderEffect);
+  try {
+    node.effects = nextEffects;
+  } catch (e: any) {
+    throw new Error('Shader effects are unavailable in this Figma runtime: ' + (e.message || String(e)));
   }
   return { id: node.id, name: node.name, effectCount: node.effects.length };
 }

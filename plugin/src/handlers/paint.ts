@@ -86,10 +86,11 @@ export async function handlePaint(action: string, params: any): Promise<any> {
     case 'fills':
     case 'list_fills':
     case 'get_fills': return getFills(params);
+    case 'apply_shader': return applyShader(params);
     case 'stroke':
     case 'set_stroke_color':
     case 'set_stroke': return setStroke(params);
-    default: throw new Error('Unknown paint action: ' + action + '. Available: set_solid, set_gradient, set_image_fill, set_image, set_image_fill_from_url, set_image_url, add_fill, remove_fill, get_fills, set_stroke');
+    default: throw new Error('Unknown paint action: ' + action + '. Available: set_solid, set_gradient, set_image_fill, set_image, set_image_fill_from_url, set_image_url, add_fill, remove_fill, get_fills, set_stroke, apply_shader');
   }
 }
 
@@ -255,6 +256,22 @@ async function removeFill(params: any) {
   fills.splice(index, 1);
   node.fills = fills;
   return { id: node.id, name: node.name, fillCount: fills.length };
+}
+
+async function applyShader(params: any) {
+  var node = await getFillNodeAsync(params.nodeId);
+  var shaderPaint: any = {
+    type: 'SHADER',
+    shaderId: params.shaderId,
+    uniforms: params.uniforms || {},
+    visible: params.visible !== false,
+  };
+  try {
+    node.fills = [shaderPaint];
+  } catch (e: any) {
+    throw new Error('Shader fills are unavailable in this Figma runtime: ' + (e.message || String(e)));
+  }
+  return { id: node.id, name: node.name, fillType: 'SHADER' };
 }
 
 async function getFills(params: any) {

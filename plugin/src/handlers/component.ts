@@ -36,7 +36,10 @@ export async function handleComponent(action: string, params: any): Promise<any>
     case 'delete_property':
     case 'remove_property':
     case 'delete_property_definition': return deletePropertyDefinition(params);
-    default: throw new Error('Unknown component action: ' + action + '. Available: create, create_instance, create_set, get_local, get_remote, get_overrides, set_overrides, detach_instance, reset_instance, swap_instance, get_property_definitions, add_property_definition, delete_property_definition');
+    case 'create_slot': return createSlot(params);
+    case 'reset_slot': return resetSlot(params);
+    case 'get_slots': return getSlots(params);
+    default: throw new Error('Unknown component action: ' + action + '. Available: create, create_instance, create_set, get_local, get_remote, get_overrides, set_overrides, detach_instance, reset_instance, swap_instance, get_property_definitions, add_property_definition, delete_property_definition, create_slot, reset_slot, get_slots');
   }
 }
 
@@ -311,4 +314,59 @@ async function setOverrides(params: any) {
 
   instance.setProperties(overrides as Record<string, string>);
   return { id: instance.id, name: instance.name, applied: overrides };
+}
+
+async function createSlot(params: any) {
+  var parent = await getNodeById(params.nodeId);
+  var parentAny = parent as any;
+  if (typeof parentAny.createSlot !== 'function' && typeof (figma as any).createSlot !== 'function') {
+    throw new Error('Component slots are unavailable in this Figma runtime');
+  }
+  var slot = typeof parentAny.createSlot === 'function'
+    ? parentAny.createSlot(params.name)
+    : (figma as any).createSlot();
+  if (params.name) slot.name = params.name;
+  if (params.x != null) slot.x = params.x;
+  if (params.y != null) slot.y = params.y;
+  if (params.width != null && params.height != null && typeof slot.resize === 'function') {
+    slot.resize(params.width, params.height);
+  }
+  if ('appendChild' in parentAny && slot.parent !== parentAny) {
+    parentAny.appendChild(slot);
+  }
+  return { id: slot.id, name: slot.name, type: slot.type };
+}
+
+async function resetSlot(params: any) {
+  var slot = await getNodeById(params.nodeId);
+  var slotAny = slot as any;
+  if (typeof slotAny.resetSlot !== 'function' && typeof slotAny.resetOverrides !== 'function') {
+    throw new Error('Component slot reset is unavailable in this Figma runtime');
+  }
+  if (typeof slotAny.resetSlot === 'function') slotAny.resetSlot();
+  else slotAny.resetOverrides();
+  return { id: slot.id, name: slot.name, reset: true };
+}
+
+async function getSlots(params: any) {
+  var node = await getNodeById(params.nodeId);
+  var nodeAny = node as any;
+  var slots: any[] = [];
+  if (typeof nodeAny.getSlots === 'function') {
+    slots = nodeAny.getSlots();
+  } else if ('findAll' in nodeAny) {
+    slots = nodeAny.findAll(function(child: any) {
+      return child.type === 'SLOT' || child.isSlot === true || child.componentSlotId != null;
+    });
+  } else {
+    throw new Error('Component slots are unavailable in this Figma runtime');
+  }
+  return {
+    id: node.id,
+    name: node.name,
+    slots: slots.map(function(slot: any) {
+      return { id: slot.id, name: slot.name, type: slot.type, componentSlotId: slot.componentSlotId };
+    }),
+    count: slots.length,
+  };
 }

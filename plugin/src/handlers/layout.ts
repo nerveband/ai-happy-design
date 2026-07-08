@@ -47,6 +47,8 @@ export async function handleLayout(action: string, params: any): Promise<any> {
     case 'grid_child_position': return setGridChildPosition(params);
     case 'get_grid_layout':
     case 'grid_layout': return getGridLayout(params);
+    case 'reorder_grid_rows': return reorderGridTracks(params, 'row');
+    case 'reorder_grid_columns': return reorderGridTracks(params, 'column');
     case 'pricing_grid': return createPricingGrid(params);
     default: throw new Error('Unknown layout action: ' + action + '. Available: set_auto_layout, set_padding, set_spacing, set_alignment, set_sizing, set_constraints, set_layout_wrap, set_wrap, remove_auto_layout, check_overlaps, set_grid, get_grids, remove_grids');
   }
@@ -408,7 +410,33 @@ async function getGridLayout(params: any) {
     gridColumnGap: gridNode.gridColumnGap,
     gridRowSizes: JSON.parse(JSON.stringify(gridNode.gridRowSizes || [])),
     gridColumnSizes: JSON.parse(JSON.stringify(gridNode.gridColumnSizes || [])),
+    gridAutoFlow: gridNode.gridAutoFlow,
+    gridAutoRows: JSON.parse(JSON.stringify(gridNode.gridAutoRows || null)),
+    gridAutoColumns: JSON.parse(JSON.stringify(gridNode.gridAutoColumns || null)),
+    gridColumnCountSizingMode: gridNode.gridColumnCountSizingMode,
+    gridRowCountSizingMode: gridNode.gridRowCountSizingMode,
   };
+}
+
+async function reorderGridTracks(params: any, axis: string) {
+  var node = await getFrameNode(params.nodeId);
+  var gridNode = node as any;
+  requireGridContainer(gridNode, params.nodeId);
+  var field = axis === 'row' ? 'gridRowSizes' : 'gridColumnSizes';
+  var tracks = gridNode[field];
+  if (!Array.isArray(tracks)) {
+    throw new Error('Grid ' + axis + ' track reordering is unavailable in this Figma runtime');
+  }
+  var fromIndex = params.fromIndex;
+  var toIndex = params.toIndex;
+  if (fromIndex < 0 || fromIndex >= tracks.length || toIndex < 0 || toIndex >= tracks.length) {
+    throw new Error('Grid ' + axis + ' reorder index out of range');
+  }
+  var next = tracks.slice();
+  var moved = next.splice(fromIndex, 1)[0];
+  next.splice(toIndex, 0, moved);
+  gridNode[field] = next;
+  return getGridLayout(params);
 }
 
 function fontStyleForWeight(weight: any, fallback: string) {

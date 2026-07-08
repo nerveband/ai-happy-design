@@ -37,6 +37,8 @@ export interface SerializedNode {
   textAlignVertical?: string;
   componentId?: string;
   mainComponentId?: string;
+  componentSlotId?: string;
+  isSlot?: boolean;
   parentChain?: Array<{id: string, name: string, type: string}>;
 }
 
@@ -96,6 +98,9 @@ export function serializeNode(node: SceneNode, depth: number = 0, maxDepth: numb
     const inst = node as InstanceNode;
     result.mainComponentId = inst.mainComponent?.id;
   }
+  var anyNode = node as any;
+  if (anyNode.componentSlotId != null) result.componentSlotId = anyNode.componentSlotId;
+  if (node.type === 'SLOT' || anyNode.isSlot === true) result.isSlot = true;
 
   // Children (with depth limit)
   if ('children' in node && depth < maxDepth) {

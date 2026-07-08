@@ -41,6 +41,8 @@ export async function handleDocument(action: string, params: any): Promise<any> 
     case 'lint':
     case 'check':
     case 'validate': return lintNode(params);
+    case 'screenshot': return screenshot(params);
+    case 'screenshot_selection': return screenshotSelection(params);
     default: throw new Error('Unknown document action: ' + action + '. Available: get_info, get_selection, get_focused_node, set_selection, scan_text, scan_by_type, get_styles, find_by_name, find_by_type, focus, zoom_to, find_free_space, find_nodes, lint');
   }
 }
@@ -68,6 +70,46 @@ async function getSelection(_params: any) {
     nodes: selection.map(node => serializeNode(node, 0, 2)),
     count: selection.length,
   };
+}
+
+async function exportNodeScreenshot(node: SceneNode, params: any) {
+  if (typeof (node as any).exportAsync !== 'function') {
+    throw new Error('Node ' + node.id + ' does not support screenshot export');
+  }
+  var format = String(params.format || 'PNG').toUpperCase();
+  var scale = params.scale || 2;
+  var bytes = await node.exportAsync({ format: format as any, constraint: { type: 'SCALE', value: scale } });
+  return {
+    id: node.id,
+    name: node.name,
+    format: format,
+    scale: scale,
+    byteLength: bytes.length,
+    data: figma.base64Encode(bytes),
+  };
+}
+
+async function screenshot(params: any) {
+  var node: SceneNode;
+  if (params.nodeId) {
+    node = await getSceneNodeById(params.nodeId);
+  } else {
+    var selection = figma.currentPage.selection;
+    if (selection.length > 0) node = selection[0];
+    else throw new Error('document.screenshot requires nodeId or a current selection');
+  }
+  var shot = await exportNodeScreenshot(node, params);
+  return shot;
+}
+
+async function screenshotSelection(params: any) {
+  var selection = figma.currentPage.selection;
+  if (selection.length === 0) throw new Error('No selection to screenshot');
+  var screenshots = [];
+  for (var i = 0; i < selection.length; i++) {
+    screenshots.push(await exportNodeScreenshot(selection[i], params));
+  }
+  return { screenshots: screenshots, count: screenshots.length };
 }
 
 async function getFocusedNode(_params: any) {
