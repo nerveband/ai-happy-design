@@ -7,6 +7,32 @@ import (
 	"strings"
 )
 
+type MCPPrompt struct {
+	Name        string
+	Description string
+	Text        string
+}
+
+func MCPPrompts() []MCPPrompt {
+	return []MCPPrompt{
+		{Name: "design_strategy", Description: "Plan a Figma design using the AHD catalog and schema-first workflow.", Text: "Use ahd_describe and schema resources first. Compute tokens, find free space, create with batch, then verify structure and visuals."},
+		{Name: "batch_strategy", Description: "Use batch for high-throughput Figma canvas operations.", Text: "Prefer one batch for multi-node creation or large edits. Use named steps, compact aliases, dry-run validation, and strict quality checks before reporting completion."},
+		{Name: "design_system_strategy", Description: "Work inside an existing design system without drifting styles.", Text: "Analyze existing styles, variables, components, and naming before edits. Reuse tokens and components where possible, then verify with focused reads."},
+		{Name: "visual_verification_strategy", Description: "Close the loop with screenshots and local artifact inspection.", Text: "After visual writes, run document.screenshot or document.screenshot_selection, inspect the screenshot artifact, apply corrections, and screenshot again until the result is visually sound."},
+		{Name: "accessibility_strategy", Description: "Check accessibility-relevant design qualities before finalizing.", Text: "Validate contrast, text size, hierarchy, spacing, and touch target scale. Use lint and visual verification artifacts to catch issues that schema validation cannot see."},
+		{Name: "figma_api_guardrails", Description: "Handle current and beta Figma APIs safely.", Text: "Use runtime-guarded commands for Motion, Shaders, Slots, Grid, Noise, and Texture features. If unavailable, report the unsupported-feature error and continue with compatible alternatives."},
+	}
+}
+
+func GetMCPPrompt(name string) (MCPPrompt, bool) {
+	for _, prompt := range MCPPrompts() {
+		if prompt.Name == name {
+			return prompt, true
+		}
+	}
+	return MCPPrompt{}, false
+}
+
 // LLMCatalog returns an enriched machine-readable catalog with examples and
 // recommended execution patterns for LLM agents.
 func LLMCatalog() map[string]interface{} {
@@ -86,19 +112,19 @@ func LLMCatalog() map[string]interface{} {
 				"width:100%":       "layoutSizingHorizontal:FILL in auto-layout",
 			},
 			"visualHierarchy": map[string]interface{}{
-				"_rule":    "Control what viewers see first/second/third using size, weight, color, contrast.",
-				"primary":  "display/hero tier, weight 800, accent color. The ONE focal point.",
+				"_rule":     "Control what viewers see first/second/third using size, weight, color, contrast.",
+				"primary":   "display/hero tier, weight 800, accent color. The ONE focal point.",
 				"secondary": "heading/subheading tier, weight 600-700, white/slightly muted.",
-				"tertiary": "body/caption tier, weight 400-500, muted gray.",
-				"ambient":  "Decorative shapes at very low opacity (0.05-0.15). Must NOT compete with content.",
-				"contrast": "Primary = high contrast, secondary = medium, tertiary = low, ambient = near-invisible.",
+				"tertiary":  "body/caption tier, weight 400-500, muted gray.",
+				"ambient":   "Decorative shapes at very low opacity (0.05-0.15). Must NOT compete with content.",
+				"contrast":  "Primary = high contrast, secondary = medium, tertiary = low, ambient = near-invisible.",
 			},
 			"designDecisions": map[string]interface{}{
-				"_rule":    "Match visual treatment to element role.",
-				"shadows":  "Cards/buttons/modals get shadows. Recipes: subtle(Y:2,R:8,a:0.1), card(Y:4,R:16,a:0.2), elevated(Y:8,R:32,a:0.3), glow(accent,R:24).",
+				"_rule":     "Match visual treatment to element role.",
+				"shadows":   "Cards/buttons/modals get shadows. Recipes: subtle(Y:2,R:8,a:0.1), card(Y:4,R:16,a:0.2), elevated(Y:8,R:32,a:0.3), glow(accent,R:24).",
 				"gradients": "Hero backgrounds, CTAs, accent overlays. Avoid on body text and every surface. Use LINEAR with 2 stops.",
-				"blur":     "Glass: fill(a:0.08) + BACKGROUND_BLUR(R:16) + stroke(a:0.1). LAYER_BLUR for background depth. Never blur readable content.",
-				"strokes":  "Card borders(a:0.07), input fields, decorative outlines, dividers(1px). Stroke-only: set stroke + paint.remove_fill.",
+				"blur":      "Glass: fill(a:0.08) + BACKGROUND_BLUR(R:16) + stroke(a:0.1). LAYER_BLUR for background depth. Never blur readable content.",
+				"strokes":   "Card borders(a:0.07), input fields, decorative outlines, dividers(1px). Stroke-only: set stroke + paint.remove_fill.",
 			},
 			"layerOrganization": map[string]interface{}{
 				"naming":     "Name every element by role: 'Hero Section', 'Card - Feature', 'CTA Button'. Never leave 'Frame 47'.",
@@ -123,10 +149,10 @@ func LLMCatalog() map[string]interface{} {
 			"_overview":     "These patterns produce professional Figma designs. Follow them strictly.",
 			"_decisionTree": "DEFAULT: Use auto-layout (flexbox). Think in rows and columns. Figma auto-layout IS CSS flexbox — you already know it. Create frames with layoutMode, itemSpacing, padding, and alignment in a SINGLE create_frame call. For decorative overlays inside auto-layout frames, use layoutPositioning:ABSOLUTE on the child to exempt it from the flow. After creating, run layout.check_overlaps to verify no elements overlap.",
 			"coordinateSystem": map[string]interface{}{
-				"origin":    "Top-left (0,0). X right, Y down. x/y relative to parent frame.",
+				"origin":     "Top-left (0,0). X right, Y down. x/y relative to parent frame.",
 				"autoLayout": "In auto-layout, x/y ignored for flow children. Only absolute-positioned children use x/y.",
-				"centering": "x = (parentWidth - elementWidth) / 2, y = (parentHeight - elementHeight) / 2",
-				"snap8px":   "Round all values to nearest multiple of 8.",
+				"centering":  "x = (parentWidth - elementWidth) / 2, y = (parentHeight - elementHeight) / 2",
+				"snap8px":    "Round all values to nearest multiple of 8.",
 			},
 			"grid": map[string]interface{}{
 				"rule":    "Align ALL dimensions to an 8px grid. Every x, y, width, height, padding, and spacing value should be a multiple of 8.",
@@ -138,12 +164,12 @@ func LLMCatalog() map[string]interface{} {
 				"pattern": "1. Create parent frame. 2. Set auto-layout on it. 3. Add children (text, icons) INTO the frame using parentId param or layer.move_to_parent.",
 			},
 			"autoLayout": map[string]interface{}{
-				"rule":      "Use auto-layout for ALL layout containers. Auto-layout IS CSS flexbox — layoutMode VERTICAL/HORIZONTAL, itemSpacing=gap, padding, primaryAxisAlignItems, counterAxisAlignItems.",
+				"rule":       "Use auto-layout for ALL layout containers. Auto-layout IS CSS flexbox — layoutMode VERTICAL/HORIZONTAL, itemSpacing=gap, padding, primaryAxisAlignItems, counterAxisAlignItems.",
 				"oneCommand": `node.create_frame {name:"VStack", width:500, layoutMode:"VERTICAL", itemSpacing:24, padding:32, primaryAxisAlign:"CENTER", counterAxisAlign:"CENTER", primaryAxisSizing:"AUTO"}`,
-				"sizing":    "HUG=shrink-wrap (buttons/badges), FILL=stretch to parent (content areas), FIXED=exact dimensions (root frames).",
-				"text":      "Create text with width param. Plugin auto-sets layoutSizingVertical=HUG. Use layoutSizingHorizontal=FILL for full-width text.",
-				"absolute":  "layoutPositioning:ABSOLUTE only for decorative overlays inside auto-layout. Takes child out of flow.",
-				"centering": "primaryAxisAlign=CENTER + counterAxisAlign=CENTER centers children in both axes.",
+				"sizing":     "HUG=shrink-wrap (buttons/badges), FILL=stretch to parent (content areas), FIXED=exact dimensions (root frames).",
+				"text":       "Create text with width param. Plugin auto-sets layoutSizingVertical=HUG. Use layoutSizingHorizontal=FILL for full-width text.",
+				"absolute":   "layoutPositioning:ABSOLUTE only for decorative overlays inside auto-layout. Takes child out of flow.",
+				"centering":  "primaryAxisAlign=CENTER + counterAxisAlign=CENTER centers children in both axes.",
 			},
 			"manualPositioning": map[string]interface{}{
 				"rule":          "Non-auto-layout frames position children by x/y (relative to parent). Do NOT set layoutPositioning:ABSOLUTE on children of non-auto-layout frames.",
@@ -161,7 +187,7 @@ func LLMCatalog() map[string]interface{} {
 			},
 			"layoutPatterns": map[string]interface{}{
 				"centeredPage":        "Root frame (FIXED, bg fill) → Content wrapper (VERTICAL auto-layout, CENTER/CENTER, no fill) → children stack and center.",
-				"twoColumnGrid":      "HORIZONTAL auto-layout parent, child card frames with equal widths.",
+				"twoColumnGrid":       "HORIZONTAL auto-layout parent, child card frames with equal widths.",
 				"headerContentFooter": "Root (VERTICAL, FIXED) → Header (FIXED height) → Content (layoutGrow:1) → Footer (FIXED height).",
 			},
 			"typography": map[string]interface{}{
@@ -255,7 +281,7 @@ func LLMCatalog() map[string]interface{} {
 			"CREATING: batch for multi-element. EDITING: single command. Use auto-layout (flexbox) by default.",
 			"Always pass lineHeightUnit:'PERCENT'. Use --strict-quality on first batch run. Export at scale=2.",
 		},
-			"cliOnlyCommands": map[string]interface{}{
+		"cliOnlyCommands": map[string]interface{}{
 			"extract":   "ai-happy-design extract file.html --width 1080 --height 1350 — parses HTML/CSS into batch JSON.",
 			"benchmark": "ai-happy-design benchmark exec ops.json --runs 3 — times batch execution. benchmark pipe --phase-a-ms N for external LLM timing.",
 		},

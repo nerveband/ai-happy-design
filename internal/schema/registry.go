@@ -7,12 +7,70 @@ var All []Schema
 
 // Register adds a schema to the global registry.
 func Register(s Schema) {
+	s = normalizeSchemaMetadata(s)
 	for _, existing := range All {
 		if strings.EqualFold(existing.Command, s.Command) {
 			return
 		}
 	}
 	All = append(All, s)
+}
+
+func normalizeSchemaMetadata(s Schema) Schema {
+	if s.Safety == "" {
+		s.Safety = inferSafety(s.Command)
+	}
+	if s.Idempotency == "" {
+		s.Idempotency = inferIdempotency(s.Command, s.Safety)
+	}
+	if s.Idempotency == "non-idempotent" {
+		s.Idempotency = "non_idempotent"
+	}
+	if s.Safety == "write" || s.Safety == "destructive" {
+		s.SupportsDryRun = true
+	}
+	if s.Safety == "read" {
+		s.SupportsDryRun = false
+	}
+	if s.Safety != "local" && !strings.HasPrefix(s.Command, "figma.") {
+		s.RequiresFigma = true
+		s.RequiresRelay = true
+	}
+	return s
+}
+
+func inferSafety(command string) string {
+	if strings.HasPrefix(command, "design.") || strings.HasPrefix(command, "tokens.") || strings.HasPrefix(command, "parity.") || strings.HasPrefix(command, "verify.") {
+		return "local"
+	}
+	action := command
+	if dot := strings.Index(command, "."); dot >= 0 {
+		action = command[dot+1:]
+	}
+	if strings.HasPrefix(action, "get") || strings.HasPrefix(action, "list") || strings.HasPrefix(action, "find") || strings.HasPrefix(action, "scan") || strings.HasPrefix(action, "check") || strings.HasPrefix(action, "lint") || strings.HasPrefix(action, "measure") || strings.HasPrefix(action, "export") || action == "image" || action == "svg" || action == "pdf" || action == "batch_export" || action == "screenshot" || action == "screenshot_selection" {
+		return "read"
+	}
+	if strings.Contains(action, "delete") || strings.Contains(action, "remove") || action == "detach_instance" || action == "ungroup" {
+		return "destructive"
+	}
+	return "write"
+}
+
+func inferIdempotency(command, safety string) string {
+	if safety == "read" || safety == "local" {
+		return "idempotent"
+	}
+	action := command
+	if dot := strings.Index(command, "."); dot >= 0 {
+		action = command[dot+1:]
+	}
+	if strings.HasPrefix(action, "create") || strings.HasPrefix(action, "add") || strings.HasPrefix(action, "duplicate") || strings.HasPrefix(action, "clone") || strings.Contains(action, "import") {
+		return "non_idempotent"
+	}
+	if safety == "destructive" {
+		return "non_idempotent"
+	}
+	return "unknown"
 }
 
 // Lookup finds a schema by command name or alias. Returns nil if not found.

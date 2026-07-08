@@ -60,6 +60,9 @@ func init() {
 		{Command: "component.get_property_definitions", Description: "Get component property definitions", Params: []Param{nodeID}},
 		{Command: "component.add_property_definition", Description: "Add component property definition", Params: []Param{nodeID, {Name: "name", Type: "string", Required: true}, {Name: "type", Type: "string", Required: true}}},
 		{Command: "component.delete_property_definition", Description: "Delete component property definition", Params: []Param{nodeID, {Name: "propertyName", Type: "string", Required: true}}},
+		{Command: "component.create_slot", Description: "Create a component slot where supported by Figma", Params: []Param{nodeID, {Name: "name", Type: "string", Required: true}, {Name: "x", Type: "number"}, {Name: "y", Type: "number"}, {Name: "width", Type: "number"}, {Name: "height", Type: "number"}}},
+		{Command: "component.reset_slot", Description: "Reset a component slot where supported by Figma", Params: []Param{nodeID}},
+		{Command: "component.get_slots", Description: "Get component slots where supported by Figma", Params: []Param{nodeID}, Safety: "read"},
 	} {
 		Register(s)
 	}

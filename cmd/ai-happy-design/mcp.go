@@ -76,6 +76,7 @@ func handleMCPRequest(req mcpRequest) (mcpResponse, bool) {
 			"capabilities": map[string]interface{}{
 				"tools":     map[string]interface{}{},
 				"resources": map[string]interface{}{},
+				"prompts":   map[string]interface{}{},
 			},
 		}
 	case "tools/list":
@@ -99,6 +100,15 @@ func handleMCPRequest(req mcpRequest) (mcpResponse, bool) {
 		}}
 	case "resources/read":
 		result, err := mcpReadResource(req.Params)
+		if err != nil {
+			resp.Error = mcpError(-32000, err.Error())
+		} else {
+			resp.Result = result
+		}
+	case "prompts/list":
+		resp.Result = map[string]interface{}{"prompts": mcpPrompts()}
+	case "prompts/get":
+		result, err := mcpGetPrompt(req.Params)
 		if err != nil {
 			resp.Error = mcpError(-32000, err.Error())
 		} else {
@@ -134,7 +144,19 @@ func mcpTools() []map[string]interface{} {
 		if len(required) > 0 {
 			input["required"] = required
 		}
-		out = append(out, map[string]interface{}{"name": mcpToolName(s.Command), "description": s.Description, "inputSchema": input})
+		out = append(out, map[string]interface{}{
+			"name":        mcpToolName(s.Command),
+			"description": s.Description,
+			"inputSchema": input,
+			"annotations": map[string]interface{}{
+				"safety":         s.Safety,
+				"idempotency":    s.Idempotency,
+				"supportsDryRun": s.SupportsDryRun,
+				"requiresFigma":  s.RequiresFigma,
+				"requiresRelay":  s.RequiresRelay,
+				"requiresAuth":   s.RequiresAuth,
+			},
+		})
 	}
 	return out
 }
@@ -258,6 +280,43 @@ func commandFromMCPToolName(name string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func mcpPrompts() []map[string]interface{} {
+	prompts := tools.MCPPrompts()
+	out := make([]map[string]interface{}, 0, len(prompts))
+	for _, prompt := range prompts {
+		out = append(out, map[string]interface{}{
+			"name":        prompt.Name,
+			"description": prompt.Description,
+		})
+	}
+	return out
+}
+
+func mcpGetPrompt(raw json.RawMessage) (interface{}, error) {
+	var payload struct {
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil, err
+	}
+	prompt, ok := tools.GetMCPPrompt(payload.Name)
+	if !ok {
+		return nil, fmt.Errorf("unknown prompt: %s", payload.Name)
+	}
+	return map[string]interface{}{
+		"description": prompt.Description,
+		"messages": []map[string]interface{}{
+			{
+				"role": "user",
+				"content": map[string]interface{}{
+					"type": "text",
+					"text": prompt.Text,
+				},
+			},
+		},
+	}, nil
 }
 
 func mcpTextContent(text string) map[string]interface{} {

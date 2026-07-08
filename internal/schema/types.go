@@ -18,13 +18,16 @@ type Param struct {
 
 // Schema defines the full schema for a command.action pair.
 type Schema struct {
-	Command       string   `json:"command"`
-	Aliases       []string `json:"aliases,omitempty"`
-	Description   string   `json:"description"`
-	Params        []Param  `json:"params"`
-	Safety        string   `json:"safety,omitempty"`      // "read", "write", "destructive", "local"
-	Idempotency   string   `json:"idempotency,omitempty"` // "idempotent", "non_idempotent", "unknown"
-	RequiresFigma bool     `json:"requiresFigma,omitempty"`
+	Command        string   `json:"command"`
+	Aliases        []string `json:"aliases,omitempty"`
+	Description    string   `json:"description"`
+	Params         []Param  `json:"params"`
+	Safety         string   `json:"safety,omitempty"`      // "read", "write", "destructive", "local"
+	Idempotency    string   `json:"idempotency,omitempty"` // "idempotent", "non_idempotent", "unknown"
+	SupportsDryRun bool     `json:"supportsDryRun"`
+	RequiresFigma  bool     `json:"requiresFigma,omitempty"`
+	RequiresRelay  bool     `json:"requiresRelay,omitempty"`
+	RequiresAuth   bool     `json:"requiresAuth,omitempty"`
 }
 
 // Ptr returns a pointer to a float64 (helper for Min/Max).
