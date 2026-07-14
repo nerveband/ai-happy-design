@@ -18,6 +18,7 @@ import { handleSlides } from './handlers/slides';
 import { handleFigJam } from './handlers/figjam';
 import { generateChannelKey } from './utils/channel';
 import { DEFAULT_PORT, normalizeRelayUrl } from './utils/relay';
+import { serializeForPostMessage } from './utils/serialize';
 
 type ConnectionSettings = {
   channelKey: string;
@@ -122,7 +123,11 @@ figma.ui.onmessage = async (msg: any) => {
 
       const result = await handler(action, params);
       commitUndoIfNeeded(domain, action, params);
-      figma.ui.postMessage({ type: 'command-result', id, result });
+      figma.ui.postMessage({
+        type: 'command-result',
+        id,
+        result: serializeForPostMessage(result),
+      });
     } catch (error: any) {
       figma.ui.postMessage({
         type: 'command-error',

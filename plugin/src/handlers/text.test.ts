@@ -1,5 +1,6 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { handleText, resolveRange } from './text';
+import { getTextNodeById } from '../utils/getNode';
 
 vi.mock('../utils/fonts', () => ({
   loadFont: vi.fn(async () => undefined),
@@ -187,6 +188,33 @@ describe('resolveRange', () => {
 });
 
 describe('high-level text commands', () => {
+  it('serializes mixed text properties without leaking symbols', async () => {
+    const mixed = (globalThis as any).figma.mixed;
+    vi.mocked(getTextNodeById).mockResolvedValueOnce({
+      id: '1:99',
+      name: 'Mixed text',
+      characters: 'Bold and regular text',
+      fontSize: mixed,
+      fontName: mixed,
+      textAlignHorizontal: mixed,
+      textAlignVertical: 'TOP',
+      lineHeight: { unit: 'PIXELS', value: mixed },
+      letterSpacing: { unit: 'PIXELS', value: mixed },
+      textDecoration: mixed,
+      textCase: mixed,
+    } as any);
+
+    const result = await handleText('get_content', { nodeId: '1:99' });
+
+    expect(result.fontSize).toBe('mixed');
+    expect(result.fontName).toBe('mixed');
+    expect(result.textAlignHorizontal).toBe('mixed');
+    expect(result.lineHeight).toEqual({ unit: 'PIXELS', value: 'mixed' });
+    expect(result.letterSpacing).toEqual({ unit: 'PIXELS', value: 'mixed' });
+    expect(result.textDecoration).toBe('mixed');
+    expect(result.textCase).toBe('mixed');
+  });
+
   it('measures text with the requested width and font size', async () => {
     const result = await handleText('measure', {
       text: 'Sponsor package',

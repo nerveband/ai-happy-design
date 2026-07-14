@@ -82,7 +82,7 @@ var wsCmd = &cobra.Command{
 		if inUse, _ := relaymgr.IsPortInUse(cfg.Port); inUse {
 			owner, isAHD := relaymgr.PortOwner(cfg.Port)
 			if isAHD {
-				fmt.Fprintf(os.Stderr, "Port %d held by stale relay (%s) — killing it.\n", cfg.Port, owner)
+				diagnosticf("Port %d held by stale relay (%s) — killing it.\n", cfg.Port, owner)
 				_, _ = relaymgr.Stop()
 				// Also force-kill by port in case state file was stale
 				if killCmd, err := exec.LookPath("lsof"); err == nil {
@@ -109,11 +109,11 @@ var wsCmd = &cobra.Command{
 			fmt.Printf("Starting WebSocket relay on port %d...\n", cfg.Port)
 		}
 		if cfg.Port != config.DefaultPort {
-			fmt.Fprintf(os.Stderr, "\n⚠  Non-default port %d. Update the Figma plugin:\n", cfg.Port)
-			fmt.Fprintf(os.Stderr, "   1. Open the plugin in Figma\n")
-			fmt.Fprintf(os.Stderr, "   2. Change the Relay URL to: ws://localhost:%d/ws  (or just type %d)\n", cfg.Port, cfg.Port)
-			fmt.Fprintf(os.Stderr, "   3. Click Connect\n")
-			fmt.Fprintf(os.Stderr, "   CLI commands: ai-happy-design --port %d command ...\n\n", cfg.Port)
+			diagnosticf("\n⚠  Non-default port %d. Update the Figma plugin:\n", cfg.Port)
+			diagnosticf("   1. Open the plugin in Figma\n")
+			diagnosticf("   2. Change the Relay URL to: ws://localhost:%d/ws  (or just type %d)\n", cfg.Port, cfg.Port)
+			diagnosticf("   3. Click Connect\n")
+			diagnosticf("   CLI commands: ai-happy-design --port %d command ...\n\n", cfg.Port)
 		}
 		return wsServer.Start()
 	},
@@ -281,7 +281,7 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 		// Opt-in image compression
 		if commandCompressImages {
 			if compressed, changed, compErr := imgutil.CompressParamsImageData(params, imgutil.DefaultOptions()); compErr != nil {
-				fmt.Fprintf(os.Stderr, "[compress] warning: %v\n", compErr)
+				diagnosticf("[compress] warning: %v\n", compErr)
 			} else if changed {
 				params = compressed
 			}
@@ -743,7 +743,7 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 		if !batchAllowOverlap {
 			autoPlaceRootFrames(client, ops)
 		}
-		ops, imagePrep := preprocessBatchImageData(ops, batchCompressImages, "", true)
+		ops, imagePrep := preprocessBatchImageData(ops, batchCompressImages, "", batchLive)
 
 		// Schema validation (warn+fix mode)
 		var schemaResult validate.Result
@@ -767,7 +767,7 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 				}
 			}
 			if schemaResult.Fixed > 0 || len(schemaResult.Warnings) > 0 {
-				fmt.Fprintf(os.Stderr, "[schema] %d fixed, %d warnings, %d blocked\n",
+				diagnosticf("[schema] %d fixed, %d warnings, %d blocked\n",
 					schemaResult.Fixed, len(schemaResult.Warnings), schemaResult.Blocked)
 			}
 			if batchStrictQuality && schemaResult.Blocked > 0 {
@@ -807,7 +807,7 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 				}
 			}
 			if lintResult.Fixed > 0 || len(lintResult.Warnings) > 0 {
-				fmt.Fprintf(os.Stderr, "[design-lint] %d fixed, %d warnings, score: %.1f/10\n",
+				diagnosticf("[design-lint] %d fixed, %d warnings, score: %.1f/10\n",
 					lintResult.Fixed, len(lintResult.Warnings), lintResult.Score.Overall)
 			}
 			if batchStrictQuality && lintResult.Score.Overall < 7.0 {
@@ -866,13 +866,13 @@ If relay is not running, CLI auto-starts it unless --no-auto-relay is set.`,
 			// Runtime fallback for interpolated imageData values that could not be preprocessed.
 			if rawImage, ok := params["imageData"].(string); ok && needsRuntimeImagePrep(rawImage) {
 				if resolved, changed, resolveErr := imgutil.ResolveParamsImageData(params); resolveErr != nil {
-					fmt.Fprintf(os.Stderr, "[resolve] step %d warning: %v\n", i, resolveErr)
+					diagnosticf("[resolve] step %d warning: %v\n", i, resolveErr)
 				} else if changed {
 					params = resolved
 				}
 				if batchCompressImages {
 					if compressed, changed, compErr := imgutil.CompressParamsImageData(params, imgutil.DefaultOptions()); compErr != nil {
-						fmt.Fprintf(os.Stderr, "[compress] step %d warning: %v\n", i, compErr)
+						diagnosticf("[compress] step %d warning: %v\n", i, compErr)
 					} else if changed {
 						params = compressed
 					}
@@ -1325,6 +1325,16 @@ This is optional and never enabled automatically.`,
 	},
 }
 
+func diagnosticsEnabled() bool {
+	return globalOutputFormat == "text"
+}
+
+func diagnosticf(format string, args ...interface{}) {
+	if diagnosticsEnabled() {
+		fmt.Fprintf(os.Stderr, format, args...)
+	}
+}
+
 func ensureRelayIfNeeded() error {
 	cfg := loadConfig()
 	result, err := relaymgr.Ensure(relaymgr.EnsureOptions{
@@ -1336,7 +1346,7 @@ func ensureRelayIfNeeded() error {
 		return err
 	}
 	if result.Started {
-		fmt.Fprintf(os.Stderr, "[relay] started local relay on %s:%d\n", cfg.ServerHost, cfg.Port)
+		diagnosticf("[relay] started local relay on %s:%d\n", cfg.ServerHost, cfg.Port)
 	}
 	return nil
 }
@@ -1764,7 +1774,7 @@ func preprocessBatchImageData(ops []batchOperation, compress bool, label string,
 		prefix = fmt.Sprintf("[image-prep %s]", label)
 	}
 	if showProgress {
-		fmt.Fprintf(os.Stderr, "%s preparing %d unique image payload(s) from %d operation(s) using %d worker(s)\n",
+		diagnosticf("%s preparing %d unique image payload(s) from %d operation(s) using %d worker(s)\n",
 			prefix, summary.Unique, summary.Candidates, workers)
 	}
 
@@ -1826,7 +1836,7 @@ func preprocessBatchImageData(ops []batchOperation, compress bool, label string,
 					if result.Err != nil {
 						status = "error"
 					}
-					fmt.Fprintf(os.Stderr, "%s %d/%d %s %dms %s\n",
+					diagnosticf("%s %d/%d %s %dms %s\n",
 						prefix, done, summary.Unique, status, result.ElapsedMs, shortImageSource(raw))
 				}
 			}
@@ -1885,7 +1895,7 @@ func preprocessBatchImageData(ops []batchOperation, compress bool, label string,
 		}
 		if result.Err != nil {
 			if showProgress && !warned[raw] {
-				fmt.Fprintf(os.Stderr, "%s warning: %v (%s)\n", prefix, result.Err, shortImageSource(raw))
+				diagnosticf("%s warning: %v (%s)\n", prefix, result.Err, shortImageSource(raw))
 				warned[raw] = true
 			}
 			continue
@@ -1902,7 +1912,7 @@ func preprocessBatchImageData(ops []batchOperation, compress bool, label string,
 	}
 
 	if showProgress {
-		fmt.Fprintf(os.Stderr, "%s done in %dms (unique=%d, cacheHits=%d, changed=%d, failed=%d)\n",
+		diagnosticf("%s done in %dms (unique=%d, cacheHits=%d, changed=%d, failed=%d)\n",
 			prefix, summary.TotalMs, summary.Unique, summary.CacheHits, summary.Changed, summary.Failed)
 	}
 
@@ -1993,7 +2003,7 @@ func runPostBatchLint(client *ws.Client, rootNodeIDs []string, label string) lin
 		prefix = fmt.Sprintf("[lint %s]", label)
 	}
 
-	fmt.Fprintf(os.Stderr, "%s checking %d root frame(s)\n", prefix, len(rootNodeIDs))
+	diagnosticf("%s checking %d root frame(s)\n", prefix, len(rootNodeIDs))
 
 	const maxShown = 10
 	total := 0
@@ -2002,13 +2012,13 @@ func runPostBatchLint(client *ws.Client, rootNodeIDs []string, label string) lin
 	for _, nodeID := range rootNodeIDs {
 		lintResult, lintErr := client.SendCommand("document.lint", map[string]interface{}{"nodeId": nodeID})
 		if lintErr != nil {
-			fmt.Fprintf(os.Stderr, "%s lint failed for %s: %s\n", prefix, nodeID, lintErr.Error())
+			diagnosticf("%s lint failed for %s: %s\n", prefix, nodeID, lintErr.Error())
 			continue
 		}
 
 		var lintData map[string]interface{}
 		if err := json.Unmarshal(lintResult, &lintData); err != nil {
-			fmt.Fprintf(os.Stderr, "%s invalid lint response for %s\n", prefix, nodeID)
+			diagnosticf("%s invalid lint response for %s\n", prefix, nodeID)
 			continue
 		}
 		warnings, _ := lintData["warnings"].([]interface{})
@@ -2062,32 +2072,32 @@ func runPostBatchLint(client *ws.Client, rootNodeIDs []string, label string) lin
 				location = nodeName + " (" + location + ")"
 			}
 			if location != "" {
-				fmt.Fprintf(os.Stderr, "%s %s [%s] %s - %s\n", prefix, icon, wtype, location, msg)
+				diagnosticf("%s %s [%s] %s - %s\n", prefix, icon, wtype, location, msg)
 			} else {
-				fmt.Fprintf(os.Stderr, "%s %s [%s] %s\n", prefix, icon, wtype, msg)
+				diagnosticf("%s %s [%s] %s\n", prefix, icon, wtype, msg)
 			}
 
 			if wtype == "default_name" && strings.TrimSpace(lintNodeID) != "" {
-				fmt.Fprintf(os.Stderr, "%s fix: ai-happy-design command node.modify '{\"nodeId\":\"%s\",\"name\":\"<semantic-name>\"}'\n", prefix, lintNodeID)
+				diagnosticf("%s fix: ai-happy-design command node.modify '{\"nodeId\":\"%s\",\"name\":\"<semantic-name>\"}'\n", prefix, lintNodeID)
 			}
 			shown++
 		}
 	}
 
 	if total == 0 {
-		fmt.Fprintf(os.Stderr, "%s no warning/error issues found\n", prefix)
+		diagnosticf("%s no warning/error issues found\n", prefix)
 		return summary
 	}
 	if total > shown {
-		fmt.Fprintf(os.Stderr, "%s %d warning/error issue(s) total; showing %d\n", prefix, total, shown)
+		diagnosticf("%s %d warning/error issue(s) total; showing %d\n", prefix, total, shown)
 		for _, hint := range lintGuidance(summary) {
-			fmt.Fprintf(os.Stderr, "%s hint: %s\n", prefix, hint)
+			diagnosticf("%s hint: %s\n", prefix, hint)
 		}
 		return summary
 	}
-	fmt.Fprintf(os.Stderr, "%s %d warning/error issue(s)\n", prefix, total)
+	diagnosticf("%s %d warning/error issue(s)\n", prefix, total)
 	for _, hint := range lintGuidance(summary) {
-		fmt.Fprintf(os.Stderr, "%s hint: %s\n", prefix, hint)
+		diagnosticf("%s hint: %s\n", prefix, hint)
 	}
 	return summary
 }
@@ -2347,7 +2357,7 @@ func autoPlaceRootFrames(client *ws.Client, ops []batchOperation) {
 	findParams := map[string]interface{}{"width": rootW, "height": rootH}
 	result, err := client.SendCommand("document.find_free_space", findParams)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "⚠ Could not check free space: %v (proceeding without offset)\n", err)
+		diagnosticf("⚠ Could not check free space: %v (proceeding without offset)\n", err)
 		return
 	}
 
@@ -2400,8 +2410,8 @@ func autoPlaceRootFrames(client *ws.Client, ops []batchOperation) {
 		return
 	}
 
-	fmt.Fprintf(os.Stderr, "⚠ Auto-placing: shifted %d root frame(s) to avoid overlap with %d existing frame(s).\n", len(rootFrames), freeSpace.ExistingCount)
-	fmt.Fprintf(os.Stderr, "  Use --allow-overlap to place at exact coordinates.\n")
+	diagnosticf("⚠ Auto-placing: shifted %d root frame(s) to avoid overlap with %d existing frame(s).\n", len(rootFrames), freeSpace.ExistingCount)
+	diagnosticf("  Use --allow-overlap to place at exact coordinates.\n")
 
 	// Place root frames side by side starting at freeSpace.X, freeSpace.Y
 	// Each subsequent frame is offset by the previous frame's width + gap
@@ -2466,9 +2476,9 @@ func loadBatchOperations(operationsJSON, operationsFile string) ([]batchOperatio
 			return nil, fmt.Errorf("cannot parse operations JSON: %w", fixErr)
 		}
 		if len(fixes) > 0 {
-			fmt.Fprintf(os.Stderr, "✎ Auto-normalized %d issue(s) in batch input:\n", len(fixes))
+			diagnosticf("✎ Auto-normalized %d issue(s) in batch input:\n", len(fixes))
 			for _, f := range fixes {
-				fmt.Fprintf(os.Stderr, "  • %s\n", f)
+				diagnosticf("  • %s\n", f)
 			}
 		}
 		raw = fixed
@@ -2485,7 +2495,7 @@ func loadBatchOperations(operationsJSON, operationsFile string) ([]batchOperatio
 			}
 			after := len(expanded)
 			if after != before {
-				fmt.Fprintf(os.Stderr, "Expanded %d composite commands → %d operations\n", before, after)
+				diagnosticf("Expanded %d composite commands → %d operations\n", before, after)
 				remarshaled, mErr := json.Marshal(expanded)
 				if mErr != nil {
 					return nil, fmt.Errorf("failed to re-marshal expanded ops: %w", mErr)
@@ -2518,7 +2528,7 @@ func loadBatchOperations(operationsJSON, operationsFile string) ([]batchOperatio
 		if unmErr := json.Unmarshal(raw, &tokenOps); unmErr == nil {
 			applied, rootWidth := batchutil.ResolveTokenAliases(tokenOps)
 			if applied > 0 {
-				fmt.Fprintf(os.Stderr, "Resolved %d token alias(es) using root width %dpx\n", applied, rootWidth)
+				diagnosticf("Resolved %d token alias(es) using root width %dpx\n", applied, rootWidth)
 				if remarshaled, mErr := json.Marshal(tokenOps); mErr == nil {
 					raw = remarshaled
 				}
@@ -2636,18 +2646,18 @@ func checkPluginConnected(channelKey string) error {
 	}
 
 	// No plugin connected — give feedback and poll
-	fmt.Fprintf(os.Stderr, "Relay running on localhost:%d but no Figma plugin connected on channel %q.\n", cfg.Port, channelKey)
-	fmt.Fprintf(os.Stderr, "Plugin auto-reconnects every ~5s. You can also:\n")
-	fmt.Fprintf(os.Stderr, "  - Press \"Connect\" in the Figma plugin UI\n")
-	fmt.Fprintf(os.Stderr, "  - Pass --channel <key> if using a different channel\n")
-	fmt.Fprintf(os.Stderr, "Waiting up to 30s for plugin...\n")
+	diagnosticf("Relay running on localhost:%d but no Figma plugin connected on channel %q.\n", cfg.Port, channelKey)
+	diagnosticf("Plugin auto-reconnects every ~5s. You can also:\n")
+	diagnosticf("  - Press \"Connect\" in the Figma plugin UI\n")
+	diagnosticf("  - Pass --channel <key> if using a different channel\n")
+	diagnosticf("Waiting up to 30s for plugin...\n")
 
 	deadline := time.Now().Add(30 * time.Second)
 	for time.Now().Before(deadline) {
 		time.Sleep(2 * time.Second)
 		connected, _ = check()
 		if connected {
-			fmt.Fprintf(os.Stderr, "Plugin connected!\n")
+			diagnosticf("Plugin connected!\n")
 			return nil
 		}
 	}
@@ -2795,7 +2805,7 @@ func runSingleBatchFile(filePath, channelKey string) batchFileResult {
 	if !batchAllowOverlap {
 		autoPlaceRootFrames(client, ops)
 	}
-	ops, imagePrep := preprocessBatchImageData(ops, batchCompressImages, filepath.Base(filePath), true)
+	ops, imagePrep := preprocessBatchImageData(ops, batchCompressImages, filepath.Base(filePath), batchLive)
 
 	results := make([]map[string]interface{}, 0, len(ops))
 	stepStates := make([]batchutil.StepState, 0, len(ops))
@@ -2832,13 +2842,13 @@ func runSingleBatchFile(filePath, channelKey string) batchFileResult {
 		// Runtime fallback for interpolated imageData values that could not be preprocessed.
 		if rawImage, ok := params["imageData"].(string); ok && needsRuntimeImagePrep(rawImage) {
 			if resolved, changed, resolveErr := imgutil.ResolveParamsImageData(params); resolveErr != nil {
-				fmt.Fprintf(os.Stderr, "[resolve] %s step %d warning: %v\n", filepath.Base(filePath), i, resolveErr)
+				diagnosticf("[resolve] %s step %d warning: %v\n", filepath.Base(filePath), i, resolveErr)
 			} else if changed {
 				params = resolved
 			}
 			if batchCompressImages {
 				if compressed, changed, compErr := imgutil.CompressParamsImageData(params, imgutil.DefaultOptions()); compErr != nil {
-					fmt.Fprintf(os.Stderr, "[compress] %s step %d warning: %v\n", filepath.Base(filePath), i, compErr)
+					diagnosticf("[compress] %s step %d warning: %v\n", filepath.Base(filePath), i, compErr)
 				} else if changed {
 					params = compressed
 				}
@@ -2974,7 +2984,7 @@ func runMultiBatchSequential(files []string, channelKey string) error {
 	fileResults := make([]batchFileResult, 0, len(files))
 	allOK := true
 	for _, f := range files {
-		fmt.Fprintf(os.Stderr, "[batch] running %s...\n", filepath.Base(f))
+		diagnosticf("[batch] running %s...\n", filepath.Base(f))
 		result := runSingleBatchFile(f, channelKey)
 		if !result.OK {
 			allOK = false
@@ -3009,9 +3019,9 @@ func runMultiBatchParallel(files []string, channelKey string) error {
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			fmt.Fprintf(os.Stderr, "[batch] starting %s (parallel)...\n", filepath.Base(filePath))
+			diagnosticf("[batch] starting %s (parallel)...\n", filepath.Base(filePath))
 			fileResults[idx] = runSingleBatchFile(filePath, channelKey)
-			fmt.Fprintf(os.Stderr, "[batch] finished %s (ok=%v)\n", filepath.Base(filePath), fileResults[idx].OK)
+			diagnosticf("[batch] finished %s (ok=%v)\n", filepath.Base(filePath), fileResults[idx].OK)
 		}(i, f)
 	}
 	wg.Wait()
@@ -3132,15 +3142,15 @@ Example:
 		runs := make([]benchmark.RunResult, 0, benchmarkRuns)
 
 		for i := 0; i < benchmarkRuns; i++ {
-			fmt.Fprintf(os.Stderr, "[benchmark] run %d/%d...\n", i+1, benchmarkRuns)
+			diagnosticf("[benchmark] run %d/%d...\n", i+1, benchmarkRuns)
 
 			result := benchExecOnce(filePath, channelKey)
 			runs = append(runs, result)
 
 			if result.Error != nil {
-				fmt.Fprintf(os.Stderr, "[benchmark] run %d error: %v\n", i+1, result.Error)
+				diagnosticf("[benchmark] run %d error: %v\n", i+1, result.Error)
 			} else {
-				fmt.Fprintf(os.Stderr, "[benchmark] run %d: %d ops in %s (%.1f ops/s)\n",
+				diagnosticf("[benchmark] run %d: %d ops in %s (%.1f ops/s)\n",
 					i+1, result.PhaseB.OpsCount, result.PhaseB.Duration.Round(time.Millisecond),
 					float64(result.PhaseB.OpsCount)/result.PhaseB.Duration.Seconds())
 			}
@@ -3198,13 +3208,13 @@ func benchExecOnce(filePath, channelKey string) benchmark.RunResult {
 		// Runtime fallback for interpolated imageData values that could not be preprocessed.
 		if rawImage, ok := params["imageData"].(string); ok && needsRuntimeImagePrep(rawImage) {
 			if resolved, changed, resolveErr := imgutil.ResolveParamsImageData(params); resolveErr != nil {
-				fmt.Fprintf(os.Stderr, "[resolve] step %d warning: %v\n", i, resolveErr)
+				diagnosticf("[resolve] step %d warning: %v\n", i, resolveErr)
 			} else if changed {
 				params = resolved
 			}
 			if batchCompressImages {
 				if compressed, changed, compErr := imgutil.CompressParamsImageData(params, imgutil.DefaultOptions()); compErr != nil {
-					fmt.Fprintf(os.Stderr, "[compress] step %d warning: %v\n", i, compErr)
+					diagnosticf("[compress] step %d warning: %v\n", i, compErr)
 				} else if changed {
 					params = compressed
 				}
@@ -3300,7 +3310,7 @@ Example:
 		}
 		tmpFile.Close()
 
-		fmt.Fprintf(os.Stderr, "[benchmark] executing batch from stdin...\n")
+		diagnosticf("[benchmark] executing batch from stdin...\n")
 
 		result := benchExecOnce(tmpFile.Name(), channelKey)
 		result.PhaseA = benchmark.PhaseTiming{

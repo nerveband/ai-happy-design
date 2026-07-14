@@ -30,10 +30,10 @@ func init() {
 
 	Register(Schema{
 		Command:     "text.set_content",
-		Description: "Set text content of an existing text node",
+		Description: "Replace text content. Figma resets character-range styles when characters is assigned; call text.get_segments first and reapply rich formatting with text.set_range_style when needed.",
 		Params: []Param{
 			{Name: "nodeId", Type: "string", Required: true, Pattern: `^[0-9]+:[0-9]+$`},
-			{Name: "content", Type: "string", Required: true, Aliases: []string{"text"}},
+			{Name: "content", Type: "string", Required: true, Aliases: []string{"text"}, Desc: "Replacement text. Replacing characters resets existing per-range formatting; preserve rich text by reading text.get_segments first and reapplying ranges afterward."},
 		},
 	})
 }

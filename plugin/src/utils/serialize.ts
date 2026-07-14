@@ -20,7 +20,7 @@ export interface SerializedNode {
   strokes?: any[];
   strokeWeight?: number;
   strokeAlign?: string;
-  cornerRadius?: number | typeof figma.mixed;
+  cornerRadius?: number | 'mixed';
   effects?: any[];
   constraints?: any;
   layoutMode?: string;
@@ -31,7 +31,7 @@ export interface SerializedNode {
   itemSpacing?: number;
   children?: SerializedNode[];
   characters?: string;
-  fontSize?: number | typeof figma.mixed;
+  fontSize?: number | 'mixed';
   fontName?: any;
   textAlignHorizontal?: string;
   textAlignVertical?: string;
@@ -65,7 +65,7 @@ export function serializeNode(node: SceneNode, depth: number = 0, maxDepth: numb
   if ('strokes' in node) result.strokes = serializePaints(node.strokes);
   if ('strokeWeight' in node) result.strokeWeight = node.strokeWeight as number;
   if ('strokeAlign' in node) result.strokeAlign = node.strokeAlign;
-  if ('cornerRadius' in node) result.cornerRadius = node.cornerRadius;
+  if ('cornerRadius' in node) result.cornerRadius = serializeForPostMessage(node.cornerRadius);
   if ('effects' in node) result.effects = serializeEffects(node.effects);
 
   // Layout
@@ -84,7 +84,7 @@ export function serializeNode(node: SceneNode, depth: number = 0, maxDepth: numb
   if (node.type === 'TEXT') {
     const textNode = node as TextNode;
     result.characters = textNode.characters;
-    result.fontSize = textNode.fontSize;
+    result.fontSize = serializeForPostMessage(textNode.fontSize);
     result.fontName = textNode.fontName;
     result.textAlignHorizontal = textNode.textAlignHorizontal;
     result.textAlignVertical = textNode.textAlignVertical;
@@ -109,16 +109,51 @@ export function serializeNode(node: SceneNode, depth: number = 0, maxDepth: numb
     );
   }
 
+  return serializeForPostMessage(result) as SerializedNode;
+}
+
+/**
+ * Convert values returned by the Figma API into data that can cross the
+ * plugin `postMessage` boundary. Figma uses the Symbol-valued `figma.mixed`
+ * sentinel for properties that differ across ranges/corners; symbols,
+ * functions, BigInts, and circular references are not transferable here.
+ */
+export function serializeForPostMessage(value: any, ancestors: any[] = []): any {
+  if (value === undefined || typeof value === 'function') return null;
+  if (typeof value === 'symbol') {
+    return value === (figma as any).mixed ? 'mixed' : null;
+  }
+  if (typeof value === 'bigint') return String(value);
+  if (value === null || typeof value !== 'object') return value;
+  if (ancestors.indexOf(value) !== -1) return '[Circular]';
+
+  const nextAncestors = ancestors.concat([value]);
+  if (Array.isArray(value)) {
+    return value.map(function(item) {
+      return serializeForPostMessage(item, nextAncestors);
+    });
+  }
+
+  const result: any = {};
+  Object.keys(value).forEach(function(key) {
+    try {
+      if (value[key] !== undefined && typeof value[key] !== 'function') {
+        result[key] = serializeForPostMessage(value[key], nextAncestors);
+      }
+    } catch (_error) {
+      result[key] = null;
+    }
+  });
   return result;
 }
 
 function serializePaints(paints: readonly Paint[] | typeof figma.mixed): any[] {
   if (paints === figma.mixed) return [];
-  return paints.map(p => JSON.parse(JSON.stringify(p)));
+  return paints.map(p => serializeForPostMessage(p));
 }
 
 function serializeEffects(effects: readonly Effect[]): any[] {
-  return effects.map(e => JSON.parse(JSON.stringify(e)));
+  return effects.map(e => serializeForPostMessage(e));
 }
 
 /**

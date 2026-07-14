@@ -1,6 +1,7 @@
 import { loadFont, loadNodeFonts, resolveFontFamily } from '../utils/fonts';
 import { getTextNodeById, getParentById } from '../utils/getNode';
 import { resolveStableId } from '../utils/stableId';
+import { serializeForPostMessage } from '../utils/serialize';
 
 function parseHexColor(color: any, fallback = { r: 0, g: 0, b: 0, a: 1 }) {
   if (color && typeof color === 'object' && typeof color.r === 'number') {
@@ -519,7 +520,7 @@ async function setParagraphSpacing(params: any) {
 
 async function getContent(params: any) {
   const node = await getTextNodeById(params.nodeId);
-  return {
+  return serializeForPostMessage({
     id: node.id,
     name: node.name,
     characters: node.characters,
@@ -531,7 +532,7 @@ async function getContent(params: any) {
     letterSpacing: node.letterSpacing,
     textDecoration: node.textDecoration,
     textCase: node.textCase,
-  };
+  });
 }
 
 async function getSegments(params: any) {
@@ -541,7 +542,7 @@ async function getSegments(params: any) {
     ? [property]
     : ['fontName', 'fontSize', 'fills', 'textDecoration', 'textCase', 'lineHeight', 'letterSpacing'];
   const segments = node.getStyledTextSegments(properties as any);
-  return { id: node.id, name: node.name, segments };
+  return serializeForPostMessage({ id: node.id, name: node.name, segments });
 }
 
 async function loadFontAction(params: any) {
