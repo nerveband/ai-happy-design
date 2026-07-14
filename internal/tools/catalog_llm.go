@@ -86,7 +86,7 @@ func LLMCatalog() map[string]interface{} {
 			"rule":   "CREATING = batch (one JSON array, many steps). EDITING = single command. Always call document.find_free_space before creating root frames.",
 			"create": "Build JSON array → 'ai-happy-design batch ops.json --strict-quality'. Use compact refs ($frame, $last) and aliases (frame/rect/text/fill). Batch auto-normalizes LLM output and auto-places frames.",
 			"edit":   "Single command: ai-happy-design command paint.set_solid '{\"nodeId\":\"1:2\",\"color\":\"#FF0000\"}'",
-			"verify": "export.image {nodeId, scale:2} auto-saves to temp dir. node.get_tree {compact:true} for token-efficient structural discovery.",
+			"verify": "layout.audit {nodeId, compact:true} first for measurable overflow/overlap/text-fit evidence; apply one intentional batch, re-audit, then export.image {nodeId, scale:2} once for visual proof. node.get_tree {compact:true} for structural discovery.",
 		},
 		"designThinking": map[string]interface{}{
 			"_overview": "Think like a frontend developer. You already know HTML/CSS — use that knowledge. Mentally draft the design as HTML/CSS first, then translate each CSS property to Figma commands. This produces dramatically better designs than generating Figma commands directly.",
@@ -173,6 +173,7 @@ func LLMCatalog() map[string]interface{} {
 			},
 			"manualPositioning": map[string]interface{}{
 				"rule":          "Non-auto-layout frames position children by x/y (relative to parent). Do NOT set layoutPositioning:ABSOLUTE on children of non-auto-layout frames.",
+				"audit":         "Before editing manually positioned content, run layout.audit {nodeId, compact:true}. Use its measured deltas and suggested commands instead of guessing or taking repeated screenshots.",
 				"colorShortcut": "node.create_frame, shape.create_rectangle, and text.create all accept a 'color' param (hex or {r,g,b}). NOT 'fillColor' or 'backgroundColor'.",
 				"hybrid":        "Root frame (manual x/y) → Badge (auto-layout for centering) → Hero text (x/y, width param) → Cards (x/y) → CTA button (auto-layout for centering)",
 			},
@@ -249,6 +250,7 @@ func LLMCatalog() map[string]interface{} {
 			},
 			"compositionTips": []string{
 				"Call design.compute_tokens first. Use auto-layout by default. Name all elements descriptively.",
+				"Before layout edits, run layout.audit. Apply one bounded batch, re-audit, and screenshot only after the audit is clean.",
 				"lineHeightUnit:'PERCENT' is required. layoutPositioning:ABSOLUTE only for decorative overlays in auto-layout.",
 				"After creating, call layout.check_overlaps. Export with export.batch at scale:2.",
 			},

@@ -20,6 +20,7 @@ ahd-figma batch -f docs/examples/live-acceptance-full-parity.json --strict-quali
 Then verify representative read paths:
 
 ```bash
+ahd-figma command layout.audit '{"nodeId":"<frame-id>","compact":true}'
 ahd-figma command node.get_tree '{"nodeId":"<frame-id>","compact":true}'
 ahd-figma command node.get_css '{"nodeId":"<frame-id>"}'
 ahd-figma command export.image '{"nodeId":"<frame-id>","format":"PNG","scale":1}'

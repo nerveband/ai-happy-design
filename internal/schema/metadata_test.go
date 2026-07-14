@@ -46,6 +46,7 @@ func TestRoadmapSchemasAreRegistered(t *testing.T) {
 		"component.get_slots",
 		"layout.reorder_grid_rows",
 		"layout.reorder_grid_columns",
+		"layout.audit",
 	} {
 		if Lookup(command) == nil {
 			t.Errorf("missing roadmap schema %s", command)
