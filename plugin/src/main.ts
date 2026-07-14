@@ -92,6 +92,7 @@ const handlers: Record<string, (action: string, params: any) => Promise<any>> = 
 };
 
 function isReadOnlyCommand(domain: string, action: string): boolean {
+  if (domain === 'layout' && action === 'audit') return true;
   if (domain === 'document' || domain === 'export') {
     return action !== 'set_selection' && action !== 'select' && action !== 'set_selected';
   }

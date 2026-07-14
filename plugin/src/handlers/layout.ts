@@ -1,5 +1,6 @@
 import { getNodeById, getSceneNodeById } from '../utils/getNode';
 import { loadFont, resolveFontFamily } from '../utils/fonts';
+import { auditLayout } from './layoutAudit';
 
 export async function handleLayout(action: string, params: any): Promise<any> {
   switch (action) {
@@ -28,6 +29,8 @@ export async function handleLayout(action: string, params: any): Promise<any> {
     case 'check_overlaps':
     case 'detect_overlaps':
     case 'overlaps': return checkOverlaps(params);
+    case 'audit':
+    case 'layout_audit': return auditLayout(params);
     case 'grid':
     case 'set_grid':
     case 'set_layout_grid':
@@ -50,7 +53,7 @@ export async function handleLayout(action: string, params: any): Promise<any> {
     case 'reorder_grid_rows': return reorderGridTracks(params, 'row');
     case 'reorder_grid_columns': return reorderGridTracks(params, 'column');
     case 'pricing_grid': return createPricingGrid(params);
-    default: throw new Error('Unknown layout action: ' + action + '. Available: set_auto_layout, set_padding, set_spacing, set_alignment, set_sizing, set_constraints, set_layout_wrap, set_wrap, remove_auto_layout, check_overlaps, set_grid, get_grids, remove_grids');
+    default: throw new Error('Unknown layout action: ' + action + '. Available: set_auto_layout, set_padding, set_spacing, set_alignment, set_sizing, set_constraints, set_layout_wrap, set_wrap, remove_auto_layout, check_overlaps, audit, set_grid, get_grids, remove_grids');
   }
 }
 

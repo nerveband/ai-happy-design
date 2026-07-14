@@ -49,6 +49,7 @@ var toolDescriptions = map[string]map[string]string{
 		"set_range_style": "Apply multiple styles to character ranges, typically after set_content. Params: nodeId, ranges[{match|start+end, bold, italic, color, fontSize, fontFamily, fontStyle, letterSpacing, lineHeight, textDecoration, textCase}]",
 	},
 	"layout": {
+		"audit":           "Read-only subtree layout audit. Detects overflow, clipping, text sizing failures, sibling overlap, tight gaps, and manual-layout risk. Returns evidence plus minimal repair commands; no screenshots or mutations. Params: nodeId, depth, maxNodes, minGap, compact, detailed. Workflow: audit → apply one intentional batch → re-audit → screenshot once.",
 		"set_auto_layout": "Enable auto-layout on a frame. Params: nodeId, direction, itemSpacing, padding*, primaryAxisAlign, counterAxisAlign",
 		"set_padding":     "Set padding. Params: nodeId, padding (uniform) or paddingTop/Right/Bottom/Left",
 		"set_spacing":     "Set item spacing. Params: nodeId, itemSpacing",
