@@ -55,6 +55,10 @@ ahd-figma batch f1.json f2.json        # multi-file
 # Edit existing nodes (single command)
 ahd-figma command paint.set_solid '{"nodeId":"1:2","color":"#FF0000"}'
 
+# Audit layout before making repairs (read-only; no screenshot needed)
+ahd-figma command layout.audit '{"nodeId":"...","compact":true}'
+# Apply one intentional batch, re-audit, then take one final screenshot
+
 # Export & verify
 ahd-figma command export.image '{"nodeId":"...","scale":2}'
 ahd-figma command document.screenshot '{"nodeId":"...","scale":1}' --output /tmp/shot.png
@@ -70,6 +74,14 @@ ahd-figma command verify.visual --payload '{"artifactPath":"/tmp/shot.png","targ
 --payload-file  # read command params or batch operations from a file
 --deliver       # route JSON results to stdout, file:<path>, or dir:<path>
 ```
+
+Layout repair workflow:
+
+```text
+audit → apply one bounded batch → re-audit → screenshot once
+```
+
+`layout.audit` reports overflow, clipping, text-fit failures, sibling overlap, tight gaps, and manual-layout risks with measured evidence and suggested CLI fixes. Do not guess at x/y, font size, or box dimensions when an audit finding provides a measured delta. Use `compact:true` to reduce tokens. JSON output is quiet by default; parse stdout without merging stderr.
 
 Proof gates:
 
